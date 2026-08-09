@@ -9,6 +9,7 @@ export interface IItem {
   description: string;
   weight: number | null;
   valueCp: number | null;
+  coinsCp: number;
   quantity: number;
   isMagical: boolean;
   properties: unknown;
@@ -17,9 +18,10 @@ export interface IItem {
   locationId: string | null;
 }
 
-export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical'> & {
+export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp'> & {
   quantity?: number;
   isMagical?: boolean;
+  coinsCp?: number;
 };
 
 export type IUpdateItem = Partial<Omit<ICreateItem, 'campaignId'>>;

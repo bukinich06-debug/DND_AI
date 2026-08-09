@@ -19,6 +19,8 @@ const validateCore = (input: Partial<ICreateMonsterTemplate>) => {
   if (input.hpMax !== undefined && input.hpMax < 1) throw new Error('Максимум хитов должен быть не меньше 1.');
   if (input.ac !== undefined && input.ac < 0) throw new Error('КД не может быть отрицательным.');
   if (input.speed !== undefined && input.speed < 0) throw new Error('Скорость не может быть отрицательной.');
+  if (input.lootCoinsCp !== undefined && input.lootCoinsCp < 0)
+    throw new Error('Лут в монетах не может быть отрицательным.');
 };
 
 export const validateCreateMonsterTemplate = (input: ICreateMonsterTemplate) => {
@@ -33,6 +35,8 @@ export const validateCreateMonsterTemplate = (input: ICreateMonsterTemplate) => 
   if (input.hpMax < 1) throw new Error('Максимум хитов должен быть не меньше 1.');
   if (input.ac < 0) throw new Error('КД не может быть отрицательным.');
   if (input.speed < 0) throw new Error('Скорость не может быть отрицательной.');
+  if (input.lootCoinsCp !== undefined && input.lootCoinsCp < 0)
+    throw new Error('Лут в монетах не может быть отрицательным.');
 };
 
 export const validateUpdateMonsterTemplate = (input: IUpdateMonsterTemplate) => {

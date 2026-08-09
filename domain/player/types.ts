@@ -38,13 +38,18 @@ export interface IPlayer {
   spells: unknown;
   notes: string | null;
   portraitUrl: string | null;
+  coinsCp: number;
 }
 
-export type ICreatePlayer = Omit<IPlayer, 'id' | 'hpTemp' | 'inspiration' | 'deathSaveSuccess' | 'deathSaveFail'> & {
+export type ICreatePlayer = Omit<
+  IPlayer,
+  'id' | 'hpTemp' | 'inspiration' | 'deathSaveSuccess' | 'deathSaveFail' | 'coinsCp'
+> & {
   hpTemp?: number;
   inspiration?: boolean;
   deathSaveSuccess?: number;
   deathSaveFail?: number;
+  coinsCp?: number;
 };
 
 export type IUpdatePlayer = Partial<Omit<ICreatePlayer, 'campaignId'>>;

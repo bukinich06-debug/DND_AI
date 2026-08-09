@@ -1,0 +1,1 @@
+export { coinRepository } from './coinRepository';

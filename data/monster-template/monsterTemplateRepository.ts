@@ -37,6 +37,7 @@ const mapTemplate = (row: MonsterTemplate): IMonsterTemplate => ({
   actions: row.actions,
   reactions: row.reactions,
   legendaryActions: row.legendaryActions,
+  lootCoinsCp: row.lootCoinsCp,
 });
 
 export const monsterTemplateRepository: IMonsterTemplateRepository = {
@@ -71,6 +72,7 @@ export const monsterTemplateRepository: IMonsterTemplateRepository = {
         actions: input.actions ?? undefined,
         reactions: input.reactions ?? undefined,
         legendaryActions: input.legendaryActions ?? undefined,
+        lootCoinsCp: input.lootCoinsCp ?? 0,
       },
     });
     return mapTemplate(row);
@@ -118,6 +120,7 @@ export const monsterTemplateRepository: IMonsterTemplateRepository = {
         ...(input.actions !== undefined ? { actions: input.actions ?? undefined } : {}),
         ...(input.reactions !== undefined ? { reactions: input.reactions ?? undefined } : {}),
         ...(input.legendaryActions !== undefined ? { legendaryActions: input.legendaryActions ?? undefined } : {}),
+        ...(input.lootCoinsCp !== undefined ? { lootCoinsCp: input.lootCoinsCp } : {}),
       },
     });
     return mapTemplate(row);

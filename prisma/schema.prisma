@@ -134,6 +134,7 @@ model Player {
   spells           Json?
   notes            String?
   portraitUrl      String?
+  coinsCp          Int     @default(0)
 
   campaign  Campaign   @relation(fields: [campaignId], references: [id])
   items     Item[]
@@ -177,6 +178,7 @@ model Npc {
   habits      String
   attitude    String?
   dmNotes     String?
+  coinsCp     Int     @default(0)
 
   campaign  Campaign       @relation(fields: [campaignId], references: [id])
   locations NpcLocation[]
@@ -256,6 +258,7 @@ model MonsterTemplate {
   actions             Json?
   reactions           Json?
   legendaryActions    Json?
+  lootCoinsCp         Int      @default(0)
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
@@ -303,6 +306,7 @@ model Item {
   description String
   weight      Float?
   valueCp     Int?
+  coinsCp     Int         @default(0)
   quantity    Int         @default(1)
   isMagical   Boolean     @default(false)
   properties  Json?

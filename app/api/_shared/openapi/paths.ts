@@ -434,4 +434,22 @@ export const paths = {
       },
     },
   },
+
+  '/api/coins/transfer': {
+    post: {
+      tags: ['Coins'],
+      summary: 'Перевести монеты между владельцами',
+      requestBody: {
+        required: true,
+        ...json(ref('TransferCoins')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('TransferCoinsResult')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 };

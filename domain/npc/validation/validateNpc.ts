@@ -6,6 +6,7 @@ const validateCore = (input: Partial<ICreateNpc>) => {
   if (input.personality !== undefined && !input.personality.trim()) throw new Error('Характер NPC обязателен.');
   if (input.speech !== undefined && !input.speech.trim()) throw new Error('Речь NPC обязательна.');
   if (input.habits !== undefined && !input.habits.trim()) throw new Error('Привычки NPC обязательны.');
+  if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
 };
 
 export const validateCreateNpc = (input: ICreateNpc) => {
@@ -15,6 +16,7 @@ export const validateCreateNpc = (input: ICreateNpc) => {
   if (!input.personality.trim()) throw new Error('Характер NPC обязателен.');
   if (!input.speech.trim()) throw new Error('Речь NPC обязательна.');
   if (!input.habits.trim()) throw new Error('Привычки NPC обязательны.');
+  if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
 };
 
 export const validateUpdateNpc = (input: IUpdateNpc) => {

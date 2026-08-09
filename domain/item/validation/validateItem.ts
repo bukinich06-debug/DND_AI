@@ -24,6 +24,7 @@ const validateCore = (input: Partial<ICreateItem>) => {
     throw new Error('Вес не может быть отрицательным.');
   if (input.valueCp !== undefined && input.valueCp !== null && input.valueCp < 0)
     throw new Error('Стоимость не может быть отрицательной.');
+  if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
 };
 
 export const validateCreateItem = (input: ICreateItem) => {
@@ -33,6 +34,7 @@ export const validateCreateItem = (input: ICreateItem) => {
   if (!kinds.has(input.kind)) throw new Error('Неизвестная категория предмета.');
   if (input.rarity != null && !rarities.has(input.rarity)) throw new Error('Неизвестная редкость предмета.');
   if (input.quantity !== undefined && input.quantity < 1) throw new Error('Количество должно быть не меньше 1.');
+  if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
   assertItemOwnership(input);
 };
 

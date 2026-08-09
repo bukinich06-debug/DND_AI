@@ -139,6 +139,7 @@ export const schemas = {
       'description',
       'weight',
       'valueCp',
+      'coinsCp',
       'quantity',
       'isMagical',
       'properties',
@@ -155,6 +156,7 @@ export const schemas = {
       description: { type: 'string' },
       weight: { type: 'number', nullable: true },
       valueCp: { type: 'integer', nullable: true },
+      coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
       properties: {},
@@ -186,6 +188,7 @@ export const schemas = {
       description: { type: 'string' },
       weight: { type: 'number', nullable: true },
       valueCp: { type: 'integer', nullable: true },
+      coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
       properties: {},
@@ -203,6 +206,7 @@ export const schemas = {
       description: { type: 'string' },
       weight: { type: 'number', nullable: true },
       valueCp: { type: 'integer', nullable: true },
+      coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
       properties: {},
@@ -254,6 +258,7 @@ export const schemas = {
       'spells',
       'notes',
       'portraitUrl',
+      'coinsCp',
     ],
     properties: {
       id: { type: 'string' },
@@ -290,6 +295,7 @@ export const schemas = {
       spells: {},
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
   CreatePlayer: {
@@ -364,6 +370,7 @@ export const schemas = {
       spells: {},
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
   UpdatePlayer: {
@@ -401,6 +408,7 @@ export const schemas = {
       spells: {},
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
 
@@ -417,6 +425,7 @@ export const schemas = {
       'habits',
       'attitude',
       'dmNotes',
+      'coinsCp',
     ],
     properties: {
       id: { type: 'string' },
@@ -429,6 +438,7 @@ export const schemas = {
       habits: { type: 'string' },
       attitude: { type: 'string', nullable: true },
       dmNotes: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
   CreateNpc: {
@@ -444,6 +454,7 @@ export const schemas = {
       habits: { type: 'string' },
       attitude: { type: 'string', nullable: true },
       dmNotes: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
   UpdateNpc: {
@@ -457,6 +468,7 @@ export const schemas = {
       habits: { type: 'string' },
       attitude: { type: 'string', nullable: true },
       dmNotes: { type: 'string', nullable: true },
+      coinsCp: { type: 'integer' },
     },
   },
 
@@ -761,6 +773,7 @@ export const schemas = {
       'actions',
       'reactions',
       'legendaryActions',
+      'lootCoinsCp',
     ],
     properties: {
       id: { type: 'string' },
@@ -787,6 +800,7 @@ export const schemas = {
       actions: {},
       reactions: {},
       legendaryActions: {},
+      lootCoinsCp: { type: 'integer' },
     },
   },
   CreateMonsterTemplate: {
@@ -845,6 +859,7 @@ export const schemas = {
       actions: {},
       reactions: {},
       legendaryActions: {},
+      lootCoinsCp: { type: 'integer' },
     },
   },
   UpdateMonsterTemplate: {
@@ -872,6 +887,7 @@ export const schemas = {
       actions: {},
       reactions: {},
       legendaryActions: {},
+      lootCoinsCp: { type: 'integer' },
     },
   },
 
@@ -898,6 +914,58 @@ export const schemas = {
       note: { type: 'string', nullable: true },
       playerId: { type: 'string', nullable: true },
       npcId: { type: 'string', nullable: true },
+    },
+  },
+
+  CoinOwnerKind: {
+    type: 'string',
+    enum: ['player', 'npc', 'item'],
+  },
+  CoinOwner: {
+    type: 'object',
+    required: ['kind', 'id'],
+    properties: {
+      kind: { $ref: '#/components/schemas/CoinOwnerKind' },
+      id: { type: 'string' },
+    },
+  },
+  Coins: {
+    type: 'object',
+    required: ['pp', 'gp', 'ep', 'sp', 'cp'],
+    properties: {
+      pp: { type: 'integer' },
+      gp: { type: 'integer' },
+      ep: { type: 'integer' },
+      sp: { type: 'integer' },
+      cp: { type: 'integer' },
+    },
+  },
+  CoinBalance: {
+    type: 'object',
+    required: ['owner', 'coinsCp', 'coins'],
+    properties: {
+      owner: { $ref: '#/components/schemas/CoinOwner' },
+      coinsCp: { type: 'integer' },
+      coins: { $ref: '#/components/schemas/Coins' },
+    },
+  },
+  TransferCoins: {
+    type: 'object',
+    required: ['campaignId', 'from', 'to', 'amountCp'],
+    properties: {
+      campaignId: { type: 'string' },
+      from: { $ref: '#/components/schemas/CoinOwner' },
+      to: { $ref: '#/components/schemas/CoinOwner' },
+      amountCp: { type: 'integer' },
+    },
+  },
+  TransferCoinsResult: {
+    type: 'object',
+    required: ['from', 'to', 'amountCp'],
+    properties: {
+      from: { $ref: '#/components/schemas/CoinBalance' },
+      to: { $ref: '#/components/schemas/CoinBalance' },
+      amountCp: { type: 'integer' },
     },
   },
 } as const;

@@ -18,6 +18,7 @@ export const openApiDocument = {
     { name: 'Quests' },
     { name: 'MonsterTemplates' },
     { name: 'DiceRolls' },
+    { name: 'Coins' },
   ],
   paths,
   components: {

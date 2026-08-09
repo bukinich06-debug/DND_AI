@@ -42,6 +42,7 @@ const validateCore = (input: Partial<ICreatePlayer>) => {
   if (input.hitDiceLeft !== undefined) assertNonNeg('Оставшиеся кости хитов', input.hitDiceLeft);
   if (input.deathSaveSuccess !== undefined) assertNonNeg('Успехи спасбросков от смерти', input.deathSaveSuccess);
   if (input.deathSaveFail !== undefined) assertNonNeg('Провалы спасбросков от смерти', input.deathSaveFail);
+  if (input.coinsCp !== undefined) assertNonNeg('Монеты', input.coinsCp);
 
   if (input.hpMax !== undefined && input.hpCurrent !== undefined && input.hpCurrent > input.hpMax)
     throw new Error('Текущие хиты не могут превышать максимум.');

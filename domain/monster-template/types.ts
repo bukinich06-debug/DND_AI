@@ -28,9 +28,12 @@ export interface IMonsterTemplate {
   actions: unknown;
   reactions: unknown;
   legendaryActions: unknown;
+  lootCoinsCp: number;
 }
 
-export type ICreateMonsterTemplate = Omit<IMonsterTemplate, 'id'>;
+export type ICreateMonsterTemplate = Omit<IMonsterTemplate, 'id' | 'lootCoinsCp'> & {
+  lootCoinsCp?: number;
+};
 
 export type IUpdateMonsterTemplate = Partial<Omit<ICreateMonsterTemplate, 'campaignId'>>;
 

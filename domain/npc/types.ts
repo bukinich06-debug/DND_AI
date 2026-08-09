@@ -9,9 +9,12 @@ export interface INpc {
   habits: string;
   attitude: string | null;
   dmNotes: string | null;
+  coinsCp: number;
 }
 
-export type ICreateNpc = Omit<INpc, 'id'>;
+export type ICreateNpc = Omit<INpc, 'id' | 'coinsCp'> & {
+  coinsCp?: number;
+};
 
 export type IUpdateNpc = Partial<Omit<ICreateNpc, 'campaignId'>>;
 

@@ -42,6 +42,7 @@ const mapPlayer = (row: Player): IPlayer => ({
   spells: row.spells,
   notes: row.notes,
   portraitUrl: row.portraitUrl,
+  coinsCp: row.coinsCp,
 });
 
 export const playerRepository: IPlayerRepository = {
@@ -86,6 +87,7 @@ export const playerRepository: IPlayerRepository = {
         spells: input.spells ?? undefined,
         notes: input.notes ?? null,
         portraitUrl: input.portraitUrl ?? null,
+        coinsCp: input.coinsCp ?? 0,
       },
     });
     return mapPlayer(row);
@@ -143,6 +145,7 @@ export const playerRepository: IPlayerRepository = {
         ...(input.spells !== undefined ? { spells: input.spells ?? undefined } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.portraitUrl !== undefined ? { portraitUrl: input.portraitUrl } : {}),
+        ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
       },
     });
     return mapPlayer(row);
