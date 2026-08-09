@@ -1,4 +1,5 @@
 import type { Location } from '@/generated/client';
+import { Prisma } from '@/generated/client';
 import type { ICreateLocation, ILocation, ILocationRepository, IUpdateLocation } from '@/domain/location';
 import type { LocationKind } from '@/domain/shared';
 import { db } from '@/data/shared';
@@ -71,6 +72,26 @@ export const locationRepository: ILocationRepository = {
     await db.item.updateMany({ where: { locationId: id }, data: { locationId: null } });
     await db.quest.updateMany({ where: { locationId: id }, data: { locationId: null } });
     await db.npcLocation.deleteMany({ where: { locationId: id } });
+    await db.locationLink.deleteMany({ where: { OR: [{ fromId: id }, { toId: id }] } });
+    await db.player.updateMany({
+      where: { travelDestinationId: id },
+      data: {
+        travelDestinationId: null,
+        travelRoute: Prisma.JsonNull,
+        travelLegIndex: null,
+        travelDaysLeft: null,
+      },
+    });
+    await db.player.updateMany({
+      where: { locationId: id },
+      data: {
+        locationId: null,
+        travelDestinationId: null,
+        travelRoute: Prisma.JsonNull,
+        travelLegIndex: null,
+        travelDaysLeft: null,
+      },
+    });
     await db.location.updateMany({ where: { parentId: id }, data: { parentId: null } });
     await db.location.delete({ where: { id } });
   },

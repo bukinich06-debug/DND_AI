@@ -261,6 +261,11 @@ export const schemas = {
       'coinsCp',
       'conditions',
       'exhaustionLevel',
+      'locationId',
+      'travelDestinationId',
+      'travelRoute',
+      'travelLegIndex',
+      'travelDaysLeft',
     ],
     properties: {
       id: { type: 'string' },
@@ -300,6 +305,11 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       conditions: stringArray,
       exhaustionLevel: { type: 'integer' },
+      locationId: { type: 'string', nullable: true },
+      travelDestinationId: { type: 'string', nullable: true },
+      travelRoute: { type: 'array', items: { type: 'string' }, nullable: true },
+      travelLegIndex: { type: 'integer', nullable: true },
+      travelDaysLeft: { type: 'integer', nullable: true },
     },
   },
   CreatePlayer: {
@@ -377,6 +387,7 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       conditions: stringArray,
       exhaustionLevel: { type: 'integer' },
+      locationId: { type: 'string', nullable: true },
     },
   },
   UpdatePlayer: {
@@ -417,6 +428,61 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       conditions: stringArray,
       exhaustionLevel: { type: 'integer' },
+      locationId: { type: 'string', nullable: true },
+    },
+  },
+
+  PlayerTravel: {
+    type: 'object',
+    required: ['destinationId', 'destination', 'route', 'legIndex', 'daysLeft'],
+    properties: {
+      destinationId: { type: 'string' },
+      destination: { $ref: '#/components/schemas/Location' },
+      route: { type: 'array', items: { type: 'string' } },
+      legIndex: { type: 'integer' },
+      daysLeft: { type: 'integer' },
+    },
+  },
+  PlayerLocation: {
+    type: 'object',
+    required: ['playerId', 'location', 'travel'],
+    properties: {
+      playerId: { type: 'string' },
+      location: { allOf: [{ $ref: '#/components/schemas/Location' }], nullable: true },
+      travel: { allOf: [{ $ref: '#/components/schemas/PlayerTravel' }], nullable: true },
+    },
+  },
+
+  LocationLink: {
+    type: 'object',
+    required: ['id', 'campaignId', 'fromId', 'toId', 'days', 'label'],
+    properties: {
+      id: { type: 'string' },
+      campaignId: { type: 'string' },
+      fromId: { type: 'string' },
+      toId: { type: 'string' },
+      days: { type: 'integer' },
+      label: { type: 'string', nullable: true },
+    },
+  },
+  CreateLocationLink: {
+    type: 'object',
+    required: ['campaignId', 'fromId', 'toId', 'days'],
+    properties: {
+      campaignId: { type: 'string' },
+      fromId: { type: 'string' },
+      toId: { type: 'string' },
+      days: { type: 'integer' },
+      label: { type: 'string', nullable: true },
+    },
+  },
+  UpdateLocationLink: {
+    type: 'object',
+    properties: {
+      fromId: { type: 'string' },
+      toId: { type: 'string' },
+      days: { type: 'integer' },
+      label: { type: 'string', nullable: true },
     },
   },
 

@@ -1,6 +1,14 @@
-import type { Player } from '@/generated/client';
-import type { ICreatePlayer, IPlayer, IPlayerRepository, IUpdatePlayer } from '@/domain/player';
 import { db } from '@/data/shared';
+import type { ICreatePlayer, IPlayer, IPlayerLocationState, IPlayerRepository, IUpdatePlayer } from '@/domain/player';
+import type { Player } from '@/generated/client';
+import { Prisma } from '@/generated/client';
+
+const mapTravelRoute = (value: unknown): string[] | null => {
+  if (value == null) return null;
+  if (!Array.isArray(value)) return null;
+  const ids = value.filter((item): item is string => typeof item === 'string');
+  return ids.length === value.length ? ids : null;
+};
 
 const mapPlayer = (row: Player): IPlayer => ({
   id: row.id,
@@ -45,6 +53,11 @@ const mapPlayer = (row: Player): IPlayer => ({
   coinsCp: row.coinsCp,
   conditions: row.conditions,
   exhaustionLevel: row.exhaustionLevel,
+  locationId: row.locationId,
+  travelDestinationId: row.travelDestinationId,
+  travelRoute: mapTravelRoute(row.travelRoute),
+  travelLegIndex: row.travelLegIndex,
+  travelDaysLeft: row.travelDaysLeft,
 });
 
 export const playerRepository: IPlayerRepository = {
@@ -92,6 +105,7 @@ export const playerRepository: IPlayerRepository = {
         coinsCp: input.coinsCp ?? 0,
         conditions: input.conditions ?? [],
         exhaustionLevel: input.exhaustionLevel ?? 0,
+        locationId: input.locationId ?? null,
       },
     });
     return mapPlayer(row);
@@ -152,6 +166,23 @@ export const playerRepository: IPlayerRepository = {
         ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
         ...(input.conditions !== undefined ? { conditions: input.conditions } : {}),
         ...(input.exhaustionLevel !== undefined ? { exhaustionLevel: input.exhaustionLevel } : {}),
+        ...(input.locationId !== undefined ? { locationId: input.locationId } : {}),
+      },
+    });
+    return mapPlayer(row);
+  },
+
+  updateLocationState: async (id, input: IPlayerLocationState) => {
+    const row = await db.player.update({
+      where: { id },
+      data: {
+        ...(input.locationId !== undefined ? { locationId: input.locationId } : {}),
+        ...(input.travelDestinationId !== undefined ? { travelDestinationId: input.travelDestinationId } : {}),
+        ...(input.travelRoute !== undefined
+          ? { travelRoute: input.travelRoute === null ? Prisma.JsonNull : input.travelRoute }
+          : {}),
+        ...(input.travelLegIndex !== undefined ? { travelLegIndex: input.travelLegIndex } : {}),
+        ...(input.travelDaysLeft !== undefined ? { travelDaysLeft: input.travelDaysLeft } : {}),
       },
     });
     return mapPlayer(row);

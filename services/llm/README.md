@@ -20,6 +20,10 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `get_player_conditions` | `tools/getPlayerConditionsTool.ts` | Активные состояния |
 | `add_player_condition` | `tools/addPlayerConditionTool.ts` | Наложить состояние |
 | `remove_player_condition` | `tools/removePlayerConditionTool.ts` | Снять состояние |
+| `get_player_location` | `tools/getPlayerLocationTool.ts` | Текущая локация / travel |
+| `move_player` | `tools/movePlayerTool.ts` | Мгновенное перемещение |
+| `start_travel` | `tools/startTravelTool.ts` | Начать путешествие |
+| `advance_travel` | `tools/advanceTravelTool.ts` | Продвинуть путь на дни |
 
 ---
 
@@ -203,6 +207,79 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `exhaustionLevel` | integer | нет | Уровень истощения |
 
 **Return** — как у `get_player_conditions`.
+
+---
+
+## `get_player_location`
+
+Текущая локация игрока и состояние путешествия (`travel: null` — не в пути).
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+
+**Return**
+
+```ts
+{
+  playerId: string
+  location: Location | null
+  travel: null | {
+    destinationId: string
+    destination: Location
+    route: string[]
+    legIndex: number
+    daysLeft: number
+  }
+}
+```
+
+---
+
+## `move_player`
+
+Мгновенно переместить в локацию. Сбрасывает travel. Для дальних путей — `start_travel`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `locationId` | string | да | ID локации |
+
+**Return** — как у `get_player_location`.
+
+---
+
+## `start_travel`
+
+Начать путь к цели по `LocationLink`. Нужна текущая локация и существующий маршрут.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `destinationId` | string | да | ID цели |
+
+**Return** — как у `get_player_location`.
+
+---
+
+## `advance_travel`
+
+Продвинуть активное путешествие на N дней (по умолчанию 1). При завершении последнего отрезка — прибытие.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `days` | integer | нет | Дней пути (минимум 1) |
+
+**Return** — как у `get_player_location`.
 
 ---
 

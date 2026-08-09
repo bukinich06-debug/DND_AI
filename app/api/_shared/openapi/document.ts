@@ -11,6 +11,7 @@ export const openApiDocument = {
   tags: [
     { name: 'Campaigns' },
     { name: 'Locations' },
+    { name: 'LocationLinks' },
     { name: 'Items' },
     { name: 'Players' },
     { name: 'Npcs' },

@@ -154,6 +154,23 @@ export const paths = {
 
   '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
   '/api/players/{id}': crudById('Players', 'Player'),
+  '/api/players/{id}/location': {
+    get: {
+      tags: ['Players'],
+      summary: 'Текущая локация игрока',
+      parameters: [idParam],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('PlayerLocation')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
+  '/api/location-links': listCreateByCampaign('LocationLinks', 'LocationLink', 'CreateLocationLink'),
+  '/api/location-links/{id}': crudById('LocationLinks', 'LocationLink'),
 
   '/api/npcs': listCreateByCampaign('Npcs', 'Npc', 'CreateNpc'),
   '/api/npcs/{id}': crudById('Npcs', 'Npc'),

@@ -84,6 +84,7 @@ model Campaign {
   description      String?
   players          Player[]
   locations        Location[]
+  locationLinks    LocationLink[]
   npcs             Npc[]
   items            Item[]
   quests           Quest[]
@@ -134,13 +135,20 @@ model Player {
   spells           Json?
   notes            String?
   portraitUrl      String?
-  coinsCp          Int      @default(0)
-  conditions       String[] @default([])
-  exhaustionLevel  Int      @default(0)
+  coinsCp              Int      @default(0)
+  conditions           String[] @default([])
+  exhaustionLevel      Int      @default(0)
+  locationId           String?
+  travelDestinationId  String?
+  travelRoute          Json?
+  travelLegIndex       Int?
+  travelDaysLeft       Int?
 
-  campaign  Campaign   @relation(fields: [campaignId], references: [id])
-  items     Item[]
-  diceRolls DiceRoll[]
+  campaign          Campaign  @relation(fields: [campaignId], references: [id])
+  location          Location? @relation("PlayerLocation", fields: [locationId], references: [id])
+  travelDestination Location? @relation("PlayerTravelDestination", fields: [travelDestinationId], references: [id])
+  items             Item[]
+  diceRolls         DiceRoll[]
 
   @@map("player")
 }
@@ -158,14 +166,35 @@ model Location {
   isSecret    Boolean      @default(false)
   tags        String[]
 
-  campaign Campaign      @relation(fields: [campaignId], references: [id])
-  parent   Location?     @relation("LocationTree", fields: [parentId], references: [id])
-  children Location[]    @relation("LocationTree")
-  npcs     NpcLocation[]
-  items    Item[]
-  quests   Quest[]
+  campaign           Campaign       @relation(fields: [campaignId], references: [id])
+  parent             Location?      @relation("LocationTree", fields: [parentId], references: [id])
+  children           Location[]     @relation("LocationTree")
+  npcs               NpcLocation[]
+  items              Item[]
+  quests             Quest[]
+  playersHere        Player[]       @relation("PlayerLocation")
+  playersTravelingTo Player[]       @relation("PlayerTravelDestination")
+  linksFrom          LocationLink[] @relation("LocationLinkFrom")
+  linksTo            LocationLink[] @relation("LocationLinkTo")
 
   @@map("location")
+}
+
+/// Ребро пути между локациями (дорога / переход), days — длительность в днях
+model LocationLink {
+  id         String  @id @default(cuid())
+  campaignId String
+  fromId     String
+  toId       String
+  days       Int
+  label      String?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  from     Location @relation("LocationLinkFrom", fields: [fromId], references: [id])
+  to       Location @relation("LocationLinkTo", fields: [toId], references: [id])
+
+  @@unique([fromId, toId])
+  @@map("location_link")
 }
 
 /// NPC — неигровой персонаж: внешность, характер, речь, привычки

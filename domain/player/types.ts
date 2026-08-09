@@ -1,3 +1,5 @@
+import type { ILocation } from '@/domain/location';
+
 export interface IPlayer {
   id: string;
   campaignId: string;
@@ -41,11 +43,28 @@ export interface IPlayer {
   coinsCp: number;
   conditions: string[];
   exhaustionLevel: number;
+  locationId: string | null;
+  travelDestinationId: string | null;
+  travelRoute: string[] | null;
+  travelLegIndex: number | null;
+  travelDaysLeft: number | null;
 }
 
 export type ICreatePlayer = Omit<
   IPlayer,
-  'id' | 'hpTemp' | 'inspiration' | 'deathSaveSuccess' | 'deathSaveFail' | 'coinsCp' | 'conditions' | 'exhaustionLevel'
+  | 'id'
+  | 'hpTemp'
+  | 'inspiration'
+  | 'deathSaveSuccess'
+  | 'deathSaveFail'
+  | 'coinsCp'
+  | 'conditions'
+  | 'exhaustionLevel'
+  | 'locationId'
+  | 'travelDestinationId'
+  | 'travelRoute'
+  | 'travelLegIndex'
+  | 'travelDaysLeft'
 > & {
   hpTemp?: number;
   inspiration?: boolean;
@@ -54,9 +73,18 @@ export type ICreatePlayer = Omit<
   coinsCp?: number;
   conditions?: string[];
   exhaustionLevel?: number;
+  locationId?: string | null;
 };
 
 export type IUpdatePlayer = Partial<Omit<ICreatePlayer, 'campaignId'>>;
+
+export interface IPlayerLocationState {
+  locationId?: string | null;
+  travelDestinationId?: string | null;
+  travelRoute?: string[] | null;
+  travelLegIndex?: number | null;
+  travelDaysLeft?: number | null;
+}
 
 export interface IGetPlayerProficiencies {
   campaignId: string;
@@ -99,10 +127,48 @@ export interface IPlayerConditions {
   rules: Record<string, string>;
 }
 
+export interface IGetPlayerLocation {
+  campaignId: string;
+  playerId: string;
+}
+
+export interface IMovePlayer {
+  campaignId: string;
+  playerId: string;
+  locationId: string;
+}
+
+export interface IStartTravel {
+  campaignId: string;
+  playerId: string;
+  destinationId: string;
+}
+
+export interface IAdvanceTravel {
+  campaignId: string;
+  playerId: string;
+  days?: number;
+}
+
+export interface IPlayerTravelState {
+  destinationId: string;
+  destination: ILocation;
+  route: string[];
+  legIndex: number;
+  daysLeft: number;
+}
+
+export interface IPlayerLocation {
+  playerId: string;
+  location: ILocation | null;
+  travel: IPlayerTravelState | null;
+}
+
 export interface IPlayerRepository {
   create: (input: ICreatePlayer) => Promise<IPlayer>;
   getById: (id: string) => Promise<IPlayer | null>;
   listByCampaignId: (campaignId: string) => Promise<IPlayer[]>;
   update: (id: string, input: IUpdatePlayer) => Promise<IPlayer>;
+  updateLocationState: (id: string, input: IPlayerLocationState) => Promise<IPlayer>;
   delete: (id: string) => Promise<void>;
 }

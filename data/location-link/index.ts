@@ -1,0 +1,1 @@
+export { locationLinkRepository } from './locationLinkRepository';
