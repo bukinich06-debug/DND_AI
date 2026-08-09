@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Тип локации в иерархии мира
+enum LocationKind {
+  region
+  settlement
+  district
+  building
+  room
+  dungeon
+  wilderness
+  other
+}
+
+/// Уровень раскрытия знания NPC: сразу / под проверкой / скрыто
+enum KnowledgeReveal {
+  open
+  check
+  hidden
+}
+
+/// Категория предмета
+enum ItemKind {
+  weapon
+  armor
+  shield
+  tool
+  gear
+  consumable
+  treasure
+  key
+  junk
+  other
+}
+
+/// Редкость предмета
+enum ItemRarity {
+  common
+  uncommon
+  rare
+  veryRare
+  legendary
+  artifact
+}
+
+/// Статус квеста
+enum QuestStatus {
+  available
+  active
+  done
+  failed
+}
+
+/// Роль NPC в квесте
+enum QuestNpcRole {
+  giver
+  participant
+  target
+  witness
+}
+
+/// Кампания — корень игрового мира
+model Campaign {
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  players          Player[]
+  locations        Location[]
+  npcs             Npc[]
+  items            Item[]
+  quests           Quest[]
+  monsterTemplates MonsterTemplate[]
+
+  @@map("campaign")
+}
+
+/// Игрок (PC) — лист персонажа по правилам D&D 2024
+model Player {
+  id               String  @id @default(cuid())
+  campaignId       String
+  name             String
+  species          String
+  className        String
+  subclass         String?
+  background       String
+  level            Int
+  xp               Int?
+  alignment        String?
+  str              Int
+  dex              Int
+  con              Int
+  int              Int
+  wis              Int
+  cha              Int
+  hpMax            Int
+  hpCurrent        Int
+  hpTemp           Int     @default(0)
+  hitDie           String
+  hitDiceLeft      Int
+  ac               Int
+  speed            Int
+  initiativeBonus  Int?
+  proficiencyBonus Int
+  inspiration      Boolean @default(false)
+  deathSaveSuccess Int     @default(0)
+  deathSaveFail    Int     @default(0)
+  armorProf        String[]
+  weaponProf       String[]
+  toolProf         String[]
+  languages        String[]
+  skillProf        String[]
+  skillExpertise   String[]
+  saveProf         String[]
+  features         Json?
+  spells           Json?
+  notes            String?
+  portraitUrl      String?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  items    Item[]
+
+  @@map("player")
+}
+
+/// Локация — место в мире (город, здание, комната и т.п.), дерево через parentId
+model Location {
+  id          String       @id @default(cuid())
+  campaignId  String
+  parentId    String?
+  kind        LocationKind
+  name        String
+  summary     String
+  description String
+  features    String
+  isSecret    Boolean      @default(false)
+  tags        String[]
+
+  campaign Campaign      @relation(fields: [campaignId], references: [id])
+  parent   Location?     @relation("LocationTree", fields: [parentId], references: [id])
+  children Location[]    @relation("LocationTree")
+  npcs     NpcLocation[]
+  items    Item[]
+  quests   Quest[]
+
+  @@map("location")
+}
+
+/// NPC — неигровой персонаж: внешность, характер, речь, привычки
+model Npc {
+  id          String  @id @default(cuid())
+  campaignId  String
+  name        String
+  title       String?
+  appearance  String
+  personality String
+  speech      String
+  habits      String
+  attitude    String?
+  dmNotes     String?
+
+  campaign  Campaign       @relation(fields: [campaignId], references: [id])
+  locations NpcLocation[]
+  knowledge NpcKnowledge[]
+  items     Item[]
+  quests    QuestNpc[]
+  statBlock NpcStatBlock?
+
+  @@map("npc")
+}
+
+/// Боевой профиль NPC (статблок): HP, AC, сопротивления, атаки
+model NpcStatBlock {
+  id                  String   @id @default(cuid())
+  npcId               String   @unique
+  size                String?
+  creatureType        String?
+  challengeRating     String?
+  proficiencyBonus    Int?
+  str                 Int
+  dex                 Int
+  con                 Int
+  int                 Int
+  wis                 Int
+  cha                 Int
+  hpMax               Int
+  hpCurrent           Int
+  ac                  Int
+  speed               Int
+  initiativeBonus     Int?
+  saveProf            String[]
+  resistances         String[]
+  immunities          String[]
+  vulnerabilities     String[]
+  conditionImmunities String[]
+  senses              String[]
+  languages           String[]
+  traits              Json?
+  actions             Json?
+  reactions           Json?
+  legendaryActions    Json?
+
+  npc Npc @relation(fields: [npcId], references: [id], onDelete: Cascade)
+
+  @@map("npc_stat_block")
+}
+
+/// Шаблон монстра — переиспользуемый статблок без нарратива NPC
+model MonsterTemplate {
+  id                  String   @id @default(cuid())
+  campaignId          String
+  name                String
+  summary             String?
+  size                String?
+  creatureType        String?
+  challengeRating     String?
+  proficiencyBonus    Int?
+  str                 Int
+  dex                 Int
+  con                 Int
+  int                 Int
+  wis                 Int
+  cha                 Int
+  hpMax               Int
+  ac                  Int
+  speed               Int
+  initiativeBonus     Int?
+  saveProf            String[]
+  resistances         String[]
+  immunities          String[]
+  vulnerabilities     String[]
+  conditionImmunities String[]
+  senses              String[]
+  languages           String[]
+  traits              Json?
+  actions             Json?
+  reactions           Json?
+  legendaryActions    Json?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("monster_template")
+}
+
+/// Связь NPC с локациями (где живёт, работает, бывает)
+model NpcLocation {
+  npcId      String
+  locationId String
+  role       String?
+  isPrimary  Boolean @default(false)
+
+  npc      Npc      @relation(fields: [npcId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@id([npcId, locationId])
+  @@map("npc_location")
+}
+
+/// Знание NPC: open / check / hidden — что скажет сразу, под проверкой или не выдаст
+model NpcKnowledge {
+  id        String          @id @default(cuid())
+  npcId     String
+  title     String
+  content   String
+  reveal    KnowledgeReveal
+  skillHint String?
+  dc        Int?
+  questId   String?
+
+  npc   Npc    @relation(fields: [npcId], references: [id])
+  quest Quest? @relation(fields: [questId], references: [id])
+
+  @@map("npc_knowledge")
+}
+
+/// Предмет — оружие, доспех, инструмент, ключ, мусор; владелец: игрок, NPC или локация
+model Item {
+  id          String      @id @default(cuid())
+  campaignId  String
+  name        String
+  kind        ItemKind
+  rarity      ItemRarity?
+  description String
+  weight      Float?
+  valueCp     Int?
+  quantity    Int         @default(1)
+  isMagical   Boolean     @default(false)
+  properties  Json?
+  playerId    String?
+  npcId       String?
+  locationId  String?
+
+  campaign Campaign  @relation(fields: [campaignId], references: [id])
+  player   Player?   @relation(fields: [playerId], references: [id])
+  npc      Npc?      @relation(fields: [npcId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+
+  @@map("item")
+}
+
+/// Квест — задание кампании
+model Quest {
+  id          String      @id @default(cuid())
+  campaignId  String
+  title       String
+  description String
+  status      QuestStatus @default(available)
+  locationId  String?
+
+  campaign  Campaign       @relation(fields: [campaignId], references: [id])
+  location  Location?      @relation(fields: [locationId], references: [id])
+  npcs      QuestNpc[]
+  knowledge NpcKnowledge[]
+
+  @@map("quest")
+}
+
+/// Роль NPC в квесте: даёт, участвует, цель, свидетель
+model QuestNpc {
+  questId String
+  npcId   String
+  role    QuestNpcRole
+
+  quest Quest @relation(fields: [questId], references: [id])
+  npc   Npc   @relation(fields: [npcId], references: [id])
+
+  @@id([questId, npcId, role])
+  @@map("quest_npc")
+}
