@@ -1,0 +1,1 @@
+export { monsterTemplateRepository } from './monsterTemplateRepository';

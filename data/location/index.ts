@@ -1,0 +1,1 @@
+export { locationRepository } from './locationRepository';

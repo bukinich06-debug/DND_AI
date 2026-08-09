@@ -1,0 +1,1 @@
+export { campaignRepository } from './campaignRepository';
