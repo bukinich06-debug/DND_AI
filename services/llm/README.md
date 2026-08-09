@@ -15,6 +15,11 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `roll_dice` | `tools/rollDiceTool.ts` | Бросок кубика |
 | `get_coins` | `tools/getCoinsTool.ts` | Баланс монет |
 | `transfer_coins` | `tools/transferCoinsTool.ts` | Перевод монет (покупка / лут) |
+| `search_player_items` | `tools/searchPlayerItemsTool.ts` | Инвентарь / поиск предмета |
+| `get_player_proficiencies` | `tools/getPlayerProficienciesTool.ts` | Навыки и владения |
+| `get_player_conditions` | `tools/getPlayerConditionsTool.ts` | Активные состояния |
+| `add_player_condition` | `tools/addPlayerConditionTool.ts` | Наложить состояние |
+| `remove_player_condition` | `tools/removePlayerConditionTool.ts` | Снять состояние |
 
 ---
 
@@ -89,6 +94,115 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 ```
 
 Ошибки: недостаточно монет, владелец не найден / не из кампании.
+
+---
+
+## `search_player_items`
+
+Инвентарь игрока или поиск предмета. Перед использованием предмета / инструмента.
+
+Без `query` — весь инвентарь. С `query` — кандидаты: инструменты PHB матчятся по стандартным именам (en/ru); уникальные/магические — по `name`/`description`, эффект бери из `description`/`properties`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `query` | string | нет | Поисковый запрос |
+
+**Return**
+
+```ts
+{
+  playerId: string,
+  query: string | null,
+  exact: boolean,
+  items: Array<{
+    id, name, kind, quantity, description, properties, isMagical, toolKey?
+  }>
+}
+```
+
+---
+
+## `get_player_proficiencies`
+
+Владения игрока. Для thieves' tools смотри `toolProf` (`thievesTools`), не skill. Обычно вместе с `search_player_items`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+
+**Return**
+
+```ts
+{
+  playerId: string,
+  proficiencyBonus: number,
+  skillProf: string[],
+  skillExpertise: string[],
+  toolProf: string[],
+  weaponProf: string[],
+  armorProf: string[]
+}
+```
+
+---
+
+## `get_player_conditions`
+
+Активные состояния PHB 2024 и уровень истощения. Перед действием (идти / атаковать / говорить). «Сон» = `unconscious`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+
+**Return**
+
+```ts
+{
+  playerId: string,
+  conditions: string[],
+  exhaustionLevel: number,
+  rules: Record<string, string>
+}
+```
+
+---
+
+## `add_player_condition`
+
+Наложить состояние. Для exhaustion без `exhaustionLevel` — +1; с ним — установить уровень (0–6).
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `condition` | string | да | Ключ или имя (en/ru) |
+| `exhaustionLevel` | integer | нет | Уровень истощения |
+
+**Return** — как у `get_player_conditions`.
+
+---
+
+## `remove_player_condition`
+
+Снять состояние. Для exhaustion без `exhaustionLevel` — −1; с ним — установить уровень.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `condition` | string | да | Ключ или имя |
+| `exhaustionLevel` | integer | нет | Уровень истощения |
+
+**Return** — как у `get_player_conditions`.
 
 ---
 

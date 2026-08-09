@@ -259,6 +259,8 @@ export const schemas = {
       'notes',
       'portraitUrl',
       'coinsCp',
+      'conditions',
+      'exhaustionLevel',
     ],
     properties: {
       id: { type: 'string' },
@@ -296,6 +298,8 @@ export const schemas = {
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
       coinsCp: { type: 'integer' },
+      conditions: stringArray,
+      exhaustionLevel: { type: 'integer' },
     },
   },
   CreatePlayer: {
@@ -371,6 +375,8 @@ export const schemas = {
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
       coinsCp: { type: 'integer' },
+      conditions: stringArray,
+      exhaustionLevel: { type: 'integer' },
     },
   },
   UpdatePlayer: {
@@ -409,6 +415,8 @@ export const schemas = {
       notes: { type: 'string', nullable: true },
       portraitUrl: { type: 'string', nullable: true },
       coinsCp: { type: 'integer' },
+      conditions: stringArray,
+      exhaustionLevel: { type: 'integer' },
     },
   },
 

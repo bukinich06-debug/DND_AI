@@ -55,6 +55,11 @@ export const itemRepository: IItemRepository = {
     return rows.map(mapItem);
   },
 
+  listByPlayerId: async (playerId) => {
+    const rows = await db.item.findMany({ where: { playerId }, orderBy: { name: 'asc' } });
+    return rows.map(mapItem);
+  },
+
   update: async (id, input: IUpdateItem) => {
     const row = await db.item.update({
       where: { id },

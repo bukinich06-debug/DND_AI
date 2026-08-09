@@ -43,6 +43,8 @@ const mapPlayer = (row: Player): IPlayer => ({
   notes: row.notes,
   portraitUrl: row.portraitUrl,
   coinsCp: row.coinsCp,
+  conditions: row.conditions,
+  exhaustionLevel: row.exhaustionLevel,
 });
 
 export const playerRepository: IPlayerRepository = {
@@ -88,6 +90,8 @@ export const playerRepository: IPlayerRepository = {
         notes: input.notes ?? null,
         portraitUrl: input.portraitUrl ?? null,
         coinsCp: input.coinsCp ?? 0,
+        conditions: input.conditions ?? [],
+        exhaustionLevel: input.exhaustionLevel ?? 0,
       },
     });
     return mapPlayer(row);
@@ -146,6 +150,8 @@ export const playerRepository: IPlayerRepository = {
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.portraitUrl !== undefined ? { portraitUrl: input.portraitUrl } : {}),
         ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
+        ...(input.conditions !== undefined ? { conditions: input.conditions } : {}),
+        ...(input.exhaustionLevel !== undefined ? { exhaustionLevel: input.exhaustionLevel } : {}),
       },
     });
     return mapPlayer(row);

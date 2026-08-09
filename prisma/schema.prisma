@@ -134,7 +134,9 @@ model Player {
   spells           Json?
   notes            String?
   portraitUrl      String?
-  coinsCp          Int     @default(0)
+  coinsCp          Int      @default(0)
+  conditions       String[] @default([])
+  exhaustionLevel  Int      @default(0)
 
   campaign  Campaign   @relation(fields: [campaignId], references: [id])
   items     Item[]

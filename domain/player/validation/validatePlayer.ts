@@ -1,4 +1,5 @@
-import type { ICreatePlayer, IUpdatePlayer } from '../types';
+import type { ICreatePlayer, IGetPlayerProficiencies, IUpdatePlayer } from '../types';
+import { validateConditionKeys, validateConditionState, validateExhaustionLevel } from './validateConditions';
 
 const MIN_ABILITY = 1;
 const MAX_ABILITY = 30;
@@ -11,6 +12,13 @@ const assertAbility = (name: string, value: number) => {
 
 const assertNonNeg = (name: string, value: number) => {
   if (value < 0) throw new Error(`${name} не может быть отрицательным.`);
+};
+
+const validateConditionsInput = (input: Partial<ICreatePlayer>) => {
+  if (input.conditions !== undefined && input.exhaustionLevel !== undefined)
+    validateConditionState(input.conditions, input.exhaustionLevel);
+  else if (input.conditions !== undefined) validateConditionKeys(input.conditions);
+  else if (input.exhaustionLevel !== undefined) validateExhaustionLevel(input.exhaustionLevel);
 };
 
 const validateCore = (input: Partial<ICreatePlayer>) => {
@@ -46,14 +54,22 @@ const validateCore = (input: Partial<ICreatePlayer>) => {
 
   if (input.hpMax !== undefined && input.hpCurrent !== undefined && input.hpCurrent > input.hpMax)
     throw new Error('Текущие хиты не могут превышать максимум.');
+
+  validateConditionsInput(input);
 };
 
 export const validateCreatePlayer = (input: ICreatePlayer) => {
   if (!input.campaignId.trim()) throw new Error('Кампания обязательна.');
   validateCore(input);
   if (input.hpCurrent > input.hpMax) throw new Error('Текущие хиты не могут превышать максимум.');
+  validateConditionState(input.conditions ?? [], input.exhaustionLevel ?? 0);
 };
 
 export const validateUpdatePlayer = (input: IUpdatePlayer) => {
   validateCore(input);
+};
+
+export const validateGetPlayerProficiencies = (input: IGetPlayerProficiencies) => {
+  if (!input.campaignId.trim()) throw new Error('Кампания обязательна.');
+  if (!input.playerId.trim()) throw new Error('Игрок обязателен.');
 };
