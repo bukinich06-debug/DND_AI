@@ -1,0 +1,37 @@
+---
+description: Prisma schema workflow during early development — use db push, not migrations
+globs: prisma/**/*,**/schema.prisma
+alwaysApply: false
+---
+
+# Prisma (early development)
+
+Schema is still changing often. **Do not** use `prisma migrate` or create migration files.
+
+## Table naming
+
+All DB table names must be **lowercase**. Model names stay PascalCase in Prisma; map them with `@@map`:
+
+```prisma
+model Setting {
+  // ...
+  @@map("setting")
+}
+```
+
+Do not rely on Prisma’s default table name (PascalCase model name).
+
+## Apply schema changes
+
+1. Edit `prisma/schema.prisma`
+2. Apply with `prisma db push`
+3. Run `prisma generate` after schema changes
+
+## Do not
+
+- Run `prisma migrate dev` / `prisma migrate deploy`
+- Create or edit files under `prisma/migrations/`
+- Add migration workflows unless the user explicitly asks
+- Add `createdAt` / `updatedAt` fields to Prisma models
+
+When the schema stabilizes, replace this rule with a migrate-based workflow.

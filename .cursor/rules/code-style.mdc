@@ -1,0 +1,153 @@
+---
+description: Code style — simple, readable, hook-based decomposition
+alwaysApply: true
+---
+
+# Code style — readability first
+
+**Goal:** code must be easy to read in one pass. Prefer simple, explicit code over clever abstractions.
+
+Architecture / layers: see `AGENTS.md`.
+
+## Identifiers (all names)
+
+Whenever you invent a name (function, constant, variable, type, interface, hook, param, prop, etc.):
+
+1. **Short** — prefer the shortest name that stays clear
+2. **Laconic** — no filler words or redundant context
+3. **Simple English** — everyday words; avoid rare or jargon-heavy vocabulary
+
+```ts
+// ✅
+const getUser = (...) => ...
+const MAX_RETRIES = 3
+interface ISearchResult { ... }
+
+// ❌
+const retrieveUserEntityFromRepository = (...) => ...
+const MAXIMUM_ALLOWED_RETRY_ATTEMPTS_COUNT = 3
+interface IHydratedSearchResultCollectionPayload { ... }
+```
+
+Prefer `IUser` over `IUserEntityModel`; `plan` over `orchestrateRequestPlan`.
+If a name needs a comment to explain the English word — choose a simpler word.
+
+Interfaces always start with `I` (`IUser`, `IButtonProps`, `IFormState`).
+
+## Export only what others need
+
+Do **not** `export` a type, interface, const, or helper that is used only inside the same file.
+Export is for the public API of the module (or of the folder via `index.ts`).
+
+```ts
+// ✅ — params only for this function
+interface IPlanUserRequestParams {
+  message: string;
+  signal?: AbortSignal;
+}
+
+export const planUserRequest = async ({ message, signal }: IPlanUserRequestParams) => { ... }
+
+// ❌ — nobody imports IPlanUserRequestParams from outside
+export interface IPlanUserRequestParams { ... }
+```
+
+If a consumer later needs the type — export it then, not “just in case”.
+
+## Single-statement `if`
+
+If the body is **one** statement (`throw`, `return`, assignment), do **not** wrap it in `{ }`.
+Prefer one line when it fits `printWidth` (120):
+
+```ts
+// ✅
+if (!data.ok || !data.plan) throw new Error(data.error || 'Не удалось спланировать запрос.');
+
+// ❌
+if (!data.ok || !data.plan) {
+  throw new Error(data.error || 'Не удалось спланировать запрос.');
+}
+```
+
+Use braces when the body has **2+** statements, or when omitting them hurts readability (nested `if`/`else`).
+
+## Ternaries in components
+
+**Do not** use ternaries to choose large JSX branches in a component return:
+
+```tsx
+// ❌
+{loading ? <HugeLoaderTree /> : <HugeContentTree />}
+
+// ❌
+{value ? <Block /> : null}
+
+// ✅
+if (loading) return <Loader />;
+
+return <Content />;
+
+// ✅
+{summary && <Summary value={summary} />}
+```
+
+For alternative branches use an early `return` or prepare JSX before the main `return`.
+
+**OK** — small value ternaries (strings, numbers, simple props / `className`):
+
+```tsx
+className={open ? 'a' : 'b'}
+title={isEdit ? 'Сохранить' : 'Создать'}
+```
+
+## Thin UI components
+
+`ui/*.tsx` is wiring only: refs, hooks, JSX return.
+
+No business logic in `ui/`. No limit on how many hooks — keep them small and by concern (see below).
+
+Reference: `components/app-layout/ui/appLayout.tsx`.
+
+## Hooks as decomposition
+
+Split a large entity into **small hooks by concern**, not into factories.
+
+| Hook | Responsibility |
+|------|----------------|
+| `useFormState` | local form state |
+| `useSubmit` | submit / save |
+| `useTitle` | header / toolbar |
+
+Typical chain: `ui` → small hooks by concern.
+
+- One hook file = one clear job.
+- Hook names: short and descriptive (`useSubmit`, not `useSettingsFormSubmitHandler`).
+- Do **not** name hooks `useContext` — it shadows React's `useContext`; use a specific name (`useFormState`, etc.).
+- UI logic lives in `hooks/` — **no `model/` folder** in UI components.
+
+### Composite components and hooks
+
+- Parent may have its **own** `hooks/` — children must **not** import them.
+- Do **not** put shared hooks at the composite root for children to depend on.
+- If several children need the same hook → `shared` (local or `components/shared/`).
+
+## Explicit over DRY
+
+For small static structures (roughly < 15 items):
+
+- write them as **inline literals**;
+- do **not** create builder helpers, name arrays, `.map()` factories, or param objects unless the structure is truly dynamic or reused.
+
+## No premature optimization
+
+- Do **not** use `useMemo` / `useCallback` by default.
+- Add them only when there is a measured re-render or dependency problem.
+
+## User-facing text
+
+User-facing strings and errors — **Russian**.
+
+## Minimal scope
+
+Do not add mock data, select options, success messages, or save handlers unless requested.
+Stub with `console.log` or empty async loaders until backend exists.
