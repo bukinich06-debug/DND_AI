@@ -1,0 +1,1 @@
+export { diceRollRepository } from './diceRollRepository';

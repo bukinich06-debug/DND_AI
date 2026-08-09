@@ -42,6 +42,10 @@ export const schemas = {
     type: 'string',
     enum: ['giver', 'participant', 'target', 'witness'],
   },
+  DiceKind: {
+    type: 'string',
+    enum: ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'],
+  },
 
   Campaign: {
     type: 'object',
@@ -868,6 +872,32 @@ export const schemas = {
       actions: {},
       reactions: {},
       legendaryActions: {},
+    },
+  },
+
+  DiceRoll: {
+    type: 'object',
+    required: ['id', 'campaignId', 'die', 'value', 'note', 'playerId', 'npcId', 'rolledAt'],
+    properties: {
+      id: { type: 'string' },
+      campaignId: { type: 'string' },
+      die: { $ref: '#/components/schemas/DiceKind' },
+      value: { type: 'integer' },
+      note: { type: 'string', nullable: true },
+      playerId: { type: 'string', nullable: true },
+      npcId: { type: 'string', nullable: true },
+      rolledAt: { type: 'string', format: 'date-time' },
+    },
+  },
+  RollDice: {
+    type: 'object',
+    required: ['campaignId', 'die'],
+    properties: {
+      campaignId: { type: 'string' },
+      die: { $ref: '#/components/schemas/DiceKind' },
+      note: { type: 'string', nullable: true },
+      playerId: { type: 'string', nullable: true },
+      npcId: { type: 'string', nullable: true },
     },
   },
 } as const;

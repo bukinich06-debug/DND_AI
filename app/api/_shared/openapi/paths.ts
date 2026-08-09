@@ -404,4 +404,34 @@ export const paths = {
       },
     },
   },
+
+  '/api/dice-rolls': {
+    get: {
+      tags: ['DiceRolls'],
+      summary: 'История бросков по кампании',
+      parameters: [campaignIdQuery],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('DiceRoll') }),
+        },
+        ...errorResponses,
+      },
+    },
+    post: {
+      tags: ['DiceRolls'],
+      summary: 'Бросить кубик',
+      requestBody: {
+        required: true,
+        ...json(ref('RollDice')),
+      },
+      responses: {
+        '201': {
+          description: 'Создано',
+          ...json(ref('DiceRoll')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 };

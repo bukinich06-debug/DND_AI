@@ -17,6 +17,7 @@ export const openApiDocument = {
     { name: 'NpcKnowledge' },
     { name: 'Quests' },
     { name: 'MonsterTemplates' },
+    { name: 'DiceRolls' },
   ],
   paths,
   components: {

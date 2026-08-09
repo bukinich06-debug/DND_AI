@@ -62,3 +62,15 @@ export const QuestNpcRole = {
 } as const;
 
 export type QuestNpcRole = (typeof QuestNpcRole)[keyof typeof QuestNpcRole];
+
+export const DiceKind = {
+  d4: 'd4',
+  d6: 'd6',
+  d8: 'd8',
+  d10: 'd10',
+  d12: 'd12',
+  d20: 'd20',
+  d100: 'd100',
+} as const;
+
+export type DiceKind = (typeof DiceKind)[keyof typeof DiceKind];

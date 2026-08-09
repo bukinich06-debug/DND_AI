@@ -66,6 +66,17 @@ enum QuestNpcRole {
   witness
 }
 
+/// Тип кубика
+enum DiceKind {
+  d4
+  d6
+  d8
+  d10
+  d12
+  d20
+  d100
+}
+
 /// Кампания — корень игрового мира
 model Campaign {
   id               String            @id @default(cuid())
@@ -77,6 +88,7 @@ model Campaign {
   items            Item[]
   quests           Quest[]
   monsterTemplates MonsterTemplate[]
+  diceRolls        DiceRoll[]
 
   @@map("campaign")
 }
@@ -123,8 +135,9 @@ model Player {
   notes            String?
   portraitUrl      String?
 
-  campaign Campaign @relation(fields: [campaignId], references: [id])
-  items    Item[]
+  campaign  Campaign   @relation(fields: [campaignId], references: [id])
+  items     Item[]
+  diceRolls DiceRoll[]
 
   @@map("player")
 }
@@ -171,6 +184,7 @@ model Npc {
   items     Item[]
   quests    QuestNpc[]
   statBlock NpcStatBlock?
+  diceRolls DiceRoll[]
 
   @@map("npc")
 }
@@ -332,4 +346,22 @@ model QuestNpc {
 
   @@id([questId, npcId, role])
   @@map("quest_npc")
+}
+
+/// История броска кубика
+model DiceRoll {
+  id         String   @id @default(cuid())
+  campaignId String
+  die        DiceKind
+  value      Int
+  note       String?
+  playerId   String?
+  npcId      String?
+  rolledAt   DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  player   Player?  @relation(fields: [playerId], references: [id])
+  npc      Npc?     @relation(fields: [npcId], references: [id])
+
+  @@map("dice_roll")
 }
