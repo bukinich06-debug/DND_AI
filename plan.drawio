@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Страница-1" id="AxaF_UrSOmljYplyRko8">
+    <mxGraphModel dx="2054" dy="1103" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Дирижер" vertex="1">
+          <mxGeometry height="60" width="120" x="360" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Проверка действий&lt;div&gt;(AI агент)&lt;/div&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="40" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="NPC-агент&lt;br&gt;(AI агент)" vertex="1">
+          <mxGeometry height="60" width="120" x="200" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Описание мира&lt;br&gt;(AI агент)" vertex="1">
+          <mxGeometry height="60" width="120" x="360" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Боевая система&lt;br&gt;(код)" vertex="1">
+          <mxGeometry height="60" width="120" x="520" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Игровые правила&lt;br&gt;(код)" vertex="1">
+          <mxGeometry height="60" width="120" x="680" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-14" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-2" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="160" y="190" as="sourcePoint" />
+            <mxPoint x="210" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-15" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-4" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="190" y="230" as="sourcePoint" />
+            <mxPoint x="240" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-16" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-5" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="560" y="200" as="sourcePoint" />
+            <mxPoint x="610" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-17" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-6" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="590" y="210" as="sourcePoint" />
+            <mxPoint x="640" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-18" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-8" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="570" y="200" as="sourcePoint" />
+            <mxPoint x="620" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-20" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="NPC" vertex="1">
+          <mxGeometry height="60" width="120" x="40" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-21" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Локации&amp;nbsp;" vertex="1">
+          <mxGeometry height="60" width="120" x="200" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-22" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Предметы&amp;nbsp;" vertex="1">
+          <mxGeometry height="60" width="120" x="360" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-23" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Квесты" vertex="1">
+          <mxGeometry height="60" width="120" x="520" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-24" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="История мира&lt;br&gt;(Журнал событий)" vertex="1">
+          <mxGeometry height="60" width="120" x="680" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-26" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="Слой поиска знаний (БД)" vertex="1">
+          <mxGeometry height="30" width="160" x="20" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-27" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" value="Фоновые процессы" vertex="1">
+          <mxGeometry height="30" width="160" x="20" y="770" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-28" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Анализатор последствий" vertex="1">
+          <mxGeometry height="60" width="120" x="40" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-29" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Симулятор мира" vertex="1">
+          <mxGeometry height="60" width="120" x="200" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-30" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Определяет, какие последствия вызвали действия игрока или других существ." vertex="1">
+          <mxGeometry height="140" width="120" x="40" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-31" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Развивает мир самостоятельно: NPC живут своей жизнью, происходят события, меняется экономика и т.д." vertex="1">
+          <mxGeometry height="140" width="120" x="200" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-33" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Планировщик времени" vertex="1">
+          <mxGeometry height="60" width="120" x="360" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-34" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Обрабатывает течение времени (часы, дни, недели, долгий отдых)." vertex="1">
+          <mxGeometry height="140" width="120" x="360" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-35" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Режиссёр сцен" vertex="1">
+          <mxGeometry height="60" width="120" x="520" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-36" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Следит за темпом повествования и при необходимости инициирует интересные события, не нарушая логику мира." vertex="1">
+          <mxGeometry height="140" width="120" x="520" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-37" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="личности, память, отношения, расписание" vertex="1">
+          <mxGeometry height="140" width="120" x="40" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-38" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="описание и состояние мест" vertex="1">
+          <mxGeometry height="140" width="120" x="200" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-39" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="все существующие предметы мира" vertex="1">
+          <mxGeometry height="140" width="120" x="360" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-40" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="этапы, участники, последствия" vertex="1">
+          <mxGeometry height="140" width="120" x="520" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-41" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="глобальные события и факты мира" vertex="1">
+          <mxGeometry height="140" width="120" x="680" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-42" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Проверяет, возможно ли действие игрока согласно правилам мира" vertex="1">
+          <mxGeometry height="140" width="120" x="40" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-43" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Отвечает за речь, поведение и решения конкретного NPC." vertex="1">
+          <mxGeometry height="140" width="120" x="200" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-44" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Художественно описывает окружающий мир, используя факты из базы данных." vertex="1">
+          <mxGeometry height="140" width="120" x="360" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-45" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Рассчитывает бой, инициативу, броски, урон, эффекты." vertex="1">
+          <mxGeometry height="140" width="120" x="520" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-46" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" value="Инвентарь, деньги, характеристики, проверки навыков, кубики, заклинания и прочая механика D&amp;amp;D." vertex="1">
+          <mxGeometry height="140" width="120" x="680" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-47" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;aspect=fixed;" value="Игрок&lt;br&gt;(UI)" vertex="1">
+          <mxGeometry height="80" width="80" x="380" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="c3o-1g4HUU_fIIkU2JzX-49" edge="1" parent="1" source="c3o-1g4HUU_fIIkU2JzX-47" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="c3o-1g4HUU_fIIkU2JzX-1" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="210" y="200" as="sourcePoint" />
+            <mxPoint x="260" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
