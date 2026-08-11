@@ -21,6 +21,15 @@ Tools дают мастеру доступ к состоянию кампани�
 
 Контекст tool всегда включает `campaignId` (в args его не передают).
 
+## Сделано
+
+- Броски кубиков, монеты, инвентарь / поиск
+- Владения и состояния персонажа
+- Локация и travel
+- CRUD сущностей кампании (players, locations, NPCs, quests и т.д.)
+
+Полная карта со ссылками на код: [`FEATURES.md`](FEATURES.md).
+
 ## Архитектура кода
 
 Слои `app` (тонкие route handlers) → `services` → `domain` ← `data`. Правила структуры — в [`AGENTS.md`](AGENTS.md). Стиль кода — [`.cursor/rules/code-style.mdc`](.cursor/rules/code-style.mdc).
