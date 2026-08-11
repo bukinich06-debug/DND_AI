@@ -26,6 +26,10 @@ export const schemas = {
     type: 'string',
     enum: ['open', 'check', 'hidden'],
   },
+  MemoryKind: {
+    type: 'string',
+    enum: ['episode', 'fact', 'favor', 'grievance', 'promise'],
+  },
   ItemKind: {
     type: 'string',
     enum: ['weapon', 'armor', 'shield', 'tool', 'gear', 'consumable', 'treasure', 'key', 'junk', 'other'],
@@ -581,6 +585,57 @@ export const schemas = {
       skillHint: { type: 'string', nullable: true },
       dc: { type: 'integer', nullable: true },
       questId: { type: 'string', nullable: true },
+    },
+  },
+
+  NpcRelation: {
+    type: 'object',
+    required: ['npcId', 'playerId', 'score', 'note'],
+    properties: {
+      npcId: { type: 'string' },
+      playerId: { type: 'string' },
+      score: { type: 'integer', minimum: -100, maximum: 100 },
+      note: { type: 'string', nullable: true },
+    },
+  },
+  SetNpcRelationBody: {
+    type: 'object',
+    required: ['score'],
+    properties: {
+      score: { type: 'integer', minimum: -100, maximum: 100 },
+      note: { type: 'string', nullable: true },
+    },
+  },
+
+  NpcMemory: {
+    type: 'object',
+    required: ['id', 'npcId', 'playerId', 'summary', 'kind', 'importance'],
+    properties: {
+      id: { type: 'string' },
+      npcId: { type: 'string' },
+      playerId: { type: 'string', nullable: true },
+      summary: { type: 'string' },
+      kind: { $ref: '#/components/schemas/MemoryKind' },
+      importance: { type: 'integer', minimum: 1, maximum: 5 },
+    },
+  },
+  CreateNpcMemoryBody: {
+    type: 'object',
+    required: ['summary', 'kind'],
+    properties: {
+      playerId: { type: 'string', nullable: true },
+      summary: { type: 'string' },
+      kind: { $ref: '#/components/schemas/MemoryKind' },
+      importance: { type: 'integer', minimum: 1, maximum: 5 },
+    },
+  },
+  UpdateNpcMemory: {
+    type: 'object',
+    properties: {
+      playerId: { type: 'string', nullable: true },
+      summary: { type: 'string' },
+      kind: { $ref: '#/components/schemas/MemoryKind' },
+      importance: { type: 'integer', minimum: 1, maximum: 5 },
     },
   },
 

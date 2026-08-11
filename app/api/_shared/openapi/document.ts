@@ -16,6 +16,8 @@ export const openApiDocument = {
     { name: 'Players' },
     { name: 'Npcs' },
     { name: 'NpcKnowledge' },
+    { name: 'NpcRelation' },
+    { name: 'NpcMemory' },
     { name: 'Quests' },
     { name: 'MonsterTemplates' },
     { name: 'DiceRolls' },

@@ -204,6 +204,127 @@ export const paths = {
       },
     },
   },
+  '/api/npcs/{id}/relations': {
+    get: {
+      tags: ['NpcRelation'],
+      summary: 'Отношения NPC к игрокам',
+      parameters: [idParam],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('NpcRelation') }),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/npcs/{id}/relations/{playerId}': {
+    get: {
+      tags: ['NpcRelation'],
+      summary: 'Отношение NPC к игроку',
+      parameters: [
+        idParam,
+        {
+          name: 'playerId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcRelation')),
+        },
+        ...errorResponses,
+      },
+    },
+    put: {
+      tags: ['NpcRelation'],
+      summary: 'Задать отношение NPC к игроку',
+      parameters: [
+        idParam,
+        {
+          name: 'playerId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      requestBody: {
+        required: true,
+        ...json(ref('SetNpcRelationBody')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcRelation')),
+        },
+        ...errorResponses,
+      },
+    },
+    delete: {
+      tags: ['NpcRelation'],
+      summary: 'Удалить отношение NPC к игроку',
+      parameters: [
+        idParam,
+        {
+          name: 'playerId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '204': { description: 'Удалено' },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/npcs/{id}/memories': {
+    get: {
+      tags: ['NpcMemory'],
+      summary: 'Воспоминания NPC',
+      parameters: [
+        idParam,
+        {
+          name: 'playerId',
+          in: 'query',
+          required: false,
+          schema: { type: 'string', nullable: true },
+        },
+        {
+          name: 'minImportance',
+          in: 'query',
+          required: false,
+          schema: { type: 'integer', minimum: 1, maximum: 5 },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('NpcMemory') }),
+        },
+        ...errorResponses,
+      },
+    },
+    post: {
+      tags: ['NpcMemory'],
+      summary: 'Добавить воспоминание NPC',
+      parameters: [idParam],
+      requestBody: {
+        required: true,
+        ...json(ref('CreateNpcMemoryBody')),
+      },
+      responses: {
+        '201': {
+          description: 'Создано',
+          ...json(ref('NpcMemory')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
   '/api/npcs/{id}/locations': {
     get: {
       tags: ['Npcs'],
@@ -339,6 +460,46 @@ export const paths = {
     delete: {
       tags: ['NpcKnowledge'],
       summary: 'Удалить знание NPC',
+      parameters: [idParam],
+      responses: {
+        '204': { description: 'Удалено' },
+        ...errorResponses,
+      },
+    },
+  },
+
+  '/api/npc-memories/{id}': {
+    get: {
+      tags: ['NpcMemory'],
+      summary: 'Получить воспоминание NPC',
+      parameters: [idParam],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcMemory')),
+        },
+        ...errorResponses,
+      },
+    },
+    patch: {
+      tags: ['NpcMemory'],
+      summary: 'Обновить воспоминание NPC',
+      parameters: [idParam],
+      requestBody: {
+        required: true,
+        ...json(ref('UpdateNpcMemory')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcMemory')),
+        },
+        ...errorResponses,
+      },
+    },
+    delete: {
+      tags: ['NpcMemory'],
+      summary: 'Удалить воспоминание NPC',
       parameters: [idParam],
       responses: {
         '204': { description: 'Удалено' },

@@ -19,6 +19,16 @@ export const KnowledgeReveal = {
 
 export type KnowledgeReveal = (typeof KnowledgeReveal)[keyof typeof KnowledgeReveal];
 
+export const MemoryKind = {
+  episode: 'episode',
+  fact: 'fact',
+  favor: 'favor',
+  grievance: 'grievance',
+  promise: 'promise',
+} as const;
+
+export type MemoryKind = (typeof MemoryKind)[keyof typeof MemoryKind];
+
 export const ItemKind = {
   weapon: 'weapon',
   armor: 'armor',

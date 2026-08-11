@@ -76,6 +76,17 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | tools | [`getPlayerLocationTool.ts`](services/llm/tools/getPlayerLocationTool.ts) — [`get_player_location`](services/llm/README.md#get_player_location); [`movePlayerTool.ts`](services/llm/tools/movePlayerTool.ts) — [`move_player`](services/llm/README.md#move_player); [`startTravelTool.ts`](services/llm/tools/startTravelTool.ts) — [`start_travel`](services/llm/README.md#start_travel); [`advanceTravelTool.ts`](services/llm/tools/advanceTravelTool.ts) — [`advance_travel`](services/llm/README.md#advance_travel) |
 | API | [`app/api/players/[id]/location/`](app/api/players/%5Bid%5D/location/) |
 
+### NPC: отношения, память, знания
+
+Отношение NPC↔PC (score/stance), воспоминания и знания с фильтром reveal для агента.
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/npc/`](domain/npc/) (`constants/relationReasons`, `helpers/`, relation/memory types) |
+| services | [`services/npc/relation/`](services/npc/relation/), [`services/npc/memory/`](services/npc/memory/), [`services/npc/knowledge/`](services/npc/knowledge/) |
+| tools | [`get_npc_relation`](services/llm/README.md#get_npc_relation); [`improve_npc_relation`](services/llm/README.md#improve_npc_relation); [`worsen_npc_relation`](services/llm/README.md#worsen_npc_relation); [`list_npc_memories`](services/llm/README.md#list_npc_memories); [`add_npc_memory`](services/llm/README.md#add_npc_memory); [`list_npc_knowledge`](services/llm/README.md#list_npc_knowledge); [`get_npc_knowledge`](services/llm/README.md#get_npc_knowledge) |
+| API | CRUD: [`app/api/npcs/`](app/api/npcs/) relations/memories, [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
+
 ---
 
 ## CRUD-сущности
@@ -89,7 +100,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | Locations (+ children) | [`domain/location/`](domain/location/) | [`services/location/`](services/location/) | [`app/api/locations/`](app/api/locations/) |
 | Location links | [`domain/location-link/`](domain/location-link/) | [`services/location-link/`](services/location-link/) | [`app/api/location-links/`](app/api/location-links/) |
 | Items | [`domain/item/`](domain/item/) | [`services/item/crud/`](services/item/crud/) | [`app/api/items/`](app/api/items/) |
-| NPCs (+ locations, knowledge, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/) |
+| NPCs (+ locations, knowledge, relations, memories, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
 | Quests (+ quest↔npc) | [`domain/quest/`](domain/quest/) | [`services/quest/`](services/quest/) | [`app/api/quests/`](app/api/quests/) |
 | Monster templates | [`domain/monster-template/`](domain/monster-template/) | [`services/monster-template/`](services/monster-template/) | [`app/api/monster-templates/`](app/api/monster-templates/) |
 | Combat helpers | [`domain/combat/`](domain/combat/) | — | — |

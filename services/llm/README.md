@@ -24,6 +24,13 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `move_player` | `tools/movePlayerTool.ts` | Мгновенное перемещение |
 | `start_travel` | `tools/startTravelTool.ts` | Начать путешествие |
 | `advance_travel` | `tools/advanceTravelTool.ts` | Продвинуть путь на дни |
+| `get_npc_relation` | `tools/getNpcRelationTool.ts` | Отношение NPC к игроку |
+| `improve_npc_relation` | `tools/improveNpcRelationTool.ts` | Улучшить отношение (reason→delta) |
+| `worsen_npc_relation` | `tools/worsenNpcRelationTool.ts` | Ухудшить отношение (reason→delta) |
+| `list_npc_memories` | `tools/listNpcMemoriesTool.ts` | Воспоминания NPC |
+| `add_npc_memory` | `tools/addNpcMemoryTool.ts` | Добавить воспоминание |
+| `list_npc_knowledge` | `tools/listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
+| `get_npc_knowledge` | `tools/getNpcKnowledgeTool.ts` | Одно знание NPC |
 
 ---
 
@@ -280,6 +287,140 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `days` | integer | нет | Дней пути (минимум 1) |
 
 **Return** — как у `get_player_location`.
+
+---
+
+## `get_npc_relation`
+
+Отношение NPC к игроку. Нет записи → `score: 0`, `stance: neutral`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `playerId` | string | да | ID игрока |
+
+**Return**
+
+```ts
+{ npcId, playerId, score, note, stance }
+```
+
+`stance`: `hostile` \| `cold` \| `neutral` \| `warm` \| `devoted`.
+
+---
+
+## `improve_npc_relation`
+
+Улучшить отношение. Цифру считает domain по `reason`; пишется memory.
+
+| reason | delta | memory kind | importance |
+|--------|------:|-------------|------------|
+| `compliment` | +5 | favor | 2 |
+| `help` | +20 | favor | 3 |
+| `save` | +50 | favor | 5 |
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `playerId` | string | да | ID игрока |
+| `reason` | `compliment\|help\|save` | да | Тип поступка |
+| `summary` | string | да | Что сделал игрок |
+
+**Return**
+
+```ts
+{ relation, stance, delta, memory }
+```
+
+---
+
+## `worsen_npc_relation`
+
+Ухудшить отношение. Как `improve_npc_relation`, но негативные reasons.
+
+| reason | delta | memory kind | importance |
+|--------|------:|-------------|------------|
+| `insult` | −10 | grievance | 2 |
+| `threat` | −25 | grievance | 3 |
+| `attack` | −50 | grievance | 5 |
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `playerId` | string | да | ID игрока |
+| `reason` | `insult\|threat\|attack` | да | Тип поступка |
+| `summary` | string | да | Чем обидел игрок |
+
+**Return** — как у `improve_npc_relation`.
+
+---
+
+## `list_npc_memories`
+
+Воспоминания NPC. Сортировка: importance desc, id asc.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `playerId` | string | нет | Фильтр по игроку |
+| `minImportance` | integer 1…5 | нет | Минимальная важность |
+
+**Return** — массив `{ id, npcId, playerId, summary, kind, importance }`.
+
+---
+
+## `add_npc_memory`
+
+Добавить воспоминание без смены score. Для смены отношения — `improve`/`worsen`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `summary` | string | да | Факт |
+| `kind` | `episode\|fact\|favor\|grievance\|promise` | да | Тип |
+| `playerId` | string | нет | Если о конкретном PC |
+| `importance` | integer 1…5 | нет | По умолчанию 3 |
+
+**Return** — объект memory.
+
+---
+
+## `list_npc_knowledge`
+
+Знания NPC. По умолчанию `reveal=open`. `check` — без `content`. `hidden` недоступны.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID NPC |
+| `reveal` | `open\|check` | нет | По умолчанию `open` |
+
+**Return** — массив знаний (`content` null для `check`).
+
+---
+
+## `get_npc_knowledge`
+
+Одно знание по id. `open` — полный текст; `check` — без content; `hidden` — ошибка.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `knowledgeId` | string | да | ID знания |
+
+**Return** — знание (возможно `content: null`).
 
 ---
 

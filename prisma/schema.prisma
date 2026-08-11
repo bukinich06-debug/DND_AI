@@ -26,6 +26,15 @@ enum KnowledgeReveal {
   hidden
 }
 
+/// Тип воспоминания NPC
+enum MemoryKind {
+  episode
+  fact
+  favor
+  grievance
+  promise
+}
+
 /// Категория предмета
 enum ItemKind {
   weapon
@@ -149,6 +158,8 @@ model Player {
   travelDestination Location? @relation("PlayerTravelDestination", fields: [travelDestinationId], references: [id])
   items             Item[]
   diceRolls         DiceRoll[]
+  npcRelations      NpcRelation[]
+  npcMemories       NpcMemory[]
 
   @@map("player")
 }
@@ -218,6 +229,8 @@ model Npc {
   quests    QuestNpc[]
   statBlock NpcStatBlock?
   diceRolls DiceRoll[]
+  relations NpcRelation[]
+  memories  NpcMemory[]
 
   @@map("npc")
 }
@@ -325,6 +338,35 @@ model NpcKnowledge {
   quest Quest? @relation(fields: [questId], references: [id])
 
   @@map("npc_knowledge")
+}
+
+/// Отношение NPC к конкретному игроку (−100…100)
+model NpcRelation {
+  npcId    String
+  playerId String
+  score    Int     @default(0)
+  note     String?
+
+  npc    Npc    @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([npcId, playerId])
+  @@map("npc_relation")
+}
+
+/// Сжатое воспоминание NPC (факт / эпизод / должок / обида / обещание)
+model NpcMemory {
+  id         String     @id @default(cuid())
+  npcId      String
+  playerId   String?
+  summary    String
+  kind       MemoryKind
+  importance Int        @default(3)
+
+  npc    Npc     @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  player Player? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("npc_memory")
 }
 
 /// Предмет — оружие, доспех, инструмент, ключ, мусор; владелец: игрок, NPC или локация
