@@ -229,10 +229,26 @@ model Npc {
   quests    QuestNpc[]
   statBlock NpcStatBlock?
   diceRolls DiceRoll[]
-  relations NpcRelation[]
-  memories  NpcMemory[]
+  relations       NpcRelation[]
+  memories        NpcMemory[]      @relation("NpcOwnsMemory")
+  aboutInMemories NpcMemory[]      @relation("NpcAboutMemory")
+  knows           NpcAcquaintance[] @relation("NpcKnows")
+  knownBy         NpcAcquaintance[] @relation("NpcKnownBy")
 
   @@map("npc")
+}
+
+/// Знакомство NPC↔NPC (однонаправленно: npc знает otherNpc)
+model NpcAcquaintance {
+  npcId      String
+  otherNpcId String
+  note       String?
+
+  npc       Npc @relation("NpcKnows", fields: [npcId], references: [id], onDelete: Cascade)
+  otherNpc Npc @relation("NpcKnownBy", fields: [otherNpcId], references: [id], onDelete: Cascade)
+
+  @@id([npcId, otherNpcId])
+  @@map("npc_acquaintance")
 }
 
 /// Боевой профиль NPC (статблок): HP, AC, сопротивления, атаки
@@ -356,15 +372,17 @@ model NpcRelation {
 
 /// Сжатое воспоминание NPC (факт / эпизод / должок / обида / обещание)
 model NpcMemory {
-  id         String     @id @default(cuid())
-  npcId      String
-  playerId   String?
-  summary    String
-  kind       MemoryKind
-  importance Int        @default(3)
+  id          String     @id @default(cuid())
+  npcId       String
+  playerId    String?
+  aboutNpcId String?
+  summary     String
+  kind        MemoryKind
+  importance  Int        @default(3)
 
-  npc    Npc     @relation(fields: [npcId], references: [id], onDelete: Cascade)
-  player Player? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  npc       Npc     @relation("NpcOwnsMemory", fields: [npcId], references: [id], onDelete: Cascade)
+  player    Player? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  aboutNpc Npc?    @relation("NpcAboutMemory", fields: [aboutNpcId], references: [id], onDelete: SetNull)
 
   @@map("npc_memory")
 }

@@ -4,6 +4,7 @@ export interface INpcMemory {
   id: string;
   npcId: string;
   playerId: string | null;
+  aboutNpcId: string | null;
   summary: string;
   kind: MemoryKind;
   importance: number;

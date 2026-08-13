@@ -78,14 +78,25 @@ CRUD предметов и поиск по инвентарю игрока дл�
 
 ### NPC: отношения, память, знания
 
-Отношение NPC↔PC (score/stance), воспоминания и знания с фильтром reveal для агента.
+Отношение NPC↔PC (score/stance), воспоминания (с опциональным субъектом `aboutNpcId`) и знания с фильтром reveal для агента. Знакомства NPC↔NPC (`NpcAcquaintance`, однонаправленно).
 
 | Слой | Путь |
 |------|------|
-| domain | [`domain/npc/`](domain/npc/) (`constants/relationReasons`, `helpers/`, relation/memory types) |
-| services | [`services/npc/relation/`](services/npc/relation/), [`services/npc/memory/`](services/npc/memory/), [`services/npc/knowledge/`](services/npc/knowledge/) |
+| domain | [`domain/npc/`](domain/npc/) (`constants/relationReasons`, `helpers/`, relation/memory/acquaintance types) |
+| services | [`services/npc/relation/`](services/npc/relation/), [`services/npc/memory/`](services/npc/memory/), [`services/npc/knowledge/`](services/npc/knowledge/), [`services/npc/acquaintance/`](services/npc/acquaintance/), [`services/npc/search/`](services/npc/search/) |
 | tools | [`get_npc_relation`](services/llm/README.md#get_npc_relation); [`improve_npc_relation`](services/llm/README.md#improve_npc_relation); [`worsen_npc_relation`](services/llm/README.md#worsen_npc_relation); [`list_npc_memories`](services/llm/README.md#list_npc_memories); [`add_npc_memory`](services/llm/README.md#add_npc_memory); [`list_npc_knowledge`](services/llm/README.md#list_npc_knowledge); [`get_npc_knowledge`](services/llm/README.md#get_npc_knowledge) |
 | API | CRUD: [`app/api/npcs/`](app/api/npcs/) relations/memories, [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
+
+### NPC chat agent
+
+Диалог с NPC через DeepSeek: preload характера/relation/memories/acquaintances/knowledge + **tool loop** (все LLM tools). Ответ `{ say, do, toolCalls }`. После ответа — **post-hooks** (фон): `resolveMentionedNpcs` по reply + хвосту диалога + знакомым speaker’а создаёт stub или **обновляет** уже известного (create vs update); следующий запрос к тому же чату ждёт завершения хука (lock, timeout 90s). Тест UI с логом tools.
+
+| Слой | Путь |
+|------|------|
+| services | [`services/llm/npc/`](services/llm/npc/) (`chatWithNpc`, `runNpcToolLoop`, `npcTools`); hooks [`services/llm/hooks/`](services/llm/hooks/); provider [`sendDeepseekChat`](services/llm/providers/sendDeepseekChat.ts) |
+| API | [`app/api/npc-chat/`](app/api/npc-chat/) |
+| UI (тест) | [`app/npc-chat/`](app/npc-chat/), [`components/npc-chat/`](components/npc-chat/) (hooks слева, tools справа) |
+| docs | [`services/llm/README.md`](services/llm/README.md#npc-chat) |
 
 ---
 

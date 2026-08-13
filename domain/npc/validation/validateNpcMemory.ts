@@ -16,13 +16,18 @@ const assertImportance = (importance: number) => {
     throw new Error(`Важность должна быть от ${MIN_IMPORTANCE} до ${MAX_IMPORTANCE}.`);
 };
 
+const assertOptionalId = (value: string | null | undefined, label: string) => {
+  if (value !== undefined && value !== null && !value.trim())
+    throw new Error(`${label} не может быть пустой строкой.`);
+};
+
 export const validateCreateNpcMemory = (input: ICreateNpcMemory) => {
   if (!input.npcId.trim()) throw new Error('NPC обязателен.');
   if (!input.summary.trim()) throw new Error('Содержание воспоминания обязательно.');
   assertKind(input.kind);
   if (input.importance !== undefined) assertImportance(input.importance);
-  if (input.playerId !== undefined && input.playerId !== null && !input.playerId.trim())
-    throw new Error('Игрок не может быть пустой строкой.');
+  assertOptionalId(input.playerId, 'Игрок');
+  assertOptionalId(input.aboutNpcId, 'Субъект воспоминания');
 };
 
 export const validateUpdateNpcMemory = (input: IUpdateNpcMemory) => {
@@ -30,6 +35,6 @@ export const validateUpdateNpcMemory = (input: IUpdateNpcMemory) => {
     throw new Error('Содержание воспоминания обязательно.');
   if (input.kind !== undefined) assertKind(input.kind);
   if (input.importance !== undefined) assertImportance(input.importance);
-  if (input.playerId !== undefined && input.playerId !== null && !input.playerId.trim())
-    throw new Error('Игрок не может быть пустой строкой.');
+  assertOptionalId(input.playerId, 'Игрок');
+  assertOptionalId(input.aboutNpcId, 'Субъект воспоминания');
 };

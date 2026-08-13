@@ -9,6 +9,7 @@ interface IArgs {
   summary: string;
   kind: MemoryKind;
   playerId?: string | null;
+  aboutNpcId?: string | null;
   importance?: number;
 }
 
@@ -35,11 +36,18 @@ const parseArgs = (args: unknown): IArgs => {
   else if (typeof raw.playerId === 'string') playerId = raw.playerId.trim() || null;
   else throw new Error('playerId должен быть строкой.');
 
+  let aboutNpcId: string | null | undefined;
+  if (raw.aboutNpcId === undefined) aboutNpcId = undefined;
+  else if (raw.aboutNpcId === null) aboutNpcId = null;
+  else if (typeof raw.aboutNpcId === 'string') aboutNpcId = raw.aboutNpcId.trim() || null;
+  else throw new Error('aboutNpcId должен быть строкой.');
+
   return {
     npcId: raw.npcId.trim(),
     summary: raw.summary.trim(),
     kind: raw.kind,
     playerId,
+    aboutNpcId,
     importance,
   };
 };
@@ -47,14 +55,18 @@ const parseArgs = (args: unknown): IArgs => {
 export const addNpcMemoryTool: ILlmTool = {
   name: 'add_npc_memory',
   description:
-    'Добавляет сжатое воспоминание NPC без смены score отношения. kind: episode | fact | favor | grievance | promise. Используй для фактов, обещаний и эпизодов, которые не меняют отношение сами по себе. Для комплиментов/оскорблений/помощи/ударов — improve_npc_relation / worsen_npc_relation.',
+    'Добавляет сжатое воспоминание NPC без смены score. summary должен быть самодостаточным: кто + что + связь со speaker (не «он/кто-то»). Факт о другом NPC — aboutNpcId и playerId null. playerId только если память о поступке/отношении к игроку. kind: episode | fact | favor | grievance | promise. Для комплиментов/оскорблений/помощи/ударов — improve_npc_relation / worsen_npc_relation.',
   parameters: {
     type: 'object',
     properties: {
-      npcId: { type: 'string', description: 'ID NPC' },
-      summary: { type: 'string', description: '1–2 предложения факта' },
+      npcId: { type: 'string', description: 'ID NPC (владелец памяти)' },
+      summary: {
+        type: 'string',
+        description: '1–2 предложения с явным субъектом (имя или роль)',
+      },
       kind: { type: 'string', enum: KIND_VALUES, description: 'Тип воспоминания' },
-      playerId: { type: 'string', description: 'ID игрока, если память о нём' },
+      playerId: { type: 'string', description: 'ID игрока, только если память о нём' },
+      aboutNpcId: { type: 'string', description: 'ID другого NPC, о ком факт' },
       importance: { type: 'integer', minimum: 1, maximum: 5, description: 'Важность (по умолчанию 3)' },
     },
     required: ['npcId', 'summary', 'kind'],
@@ -68,6 +80,7 @@ export const addNpcMemoryTool: ILlmTool = {
         summary: parsed.summary,
         kind: parsed.kind,
         playerId: parsed.playerId ?? null,
+        aboutNpcId: parsed.aboutNpcId ?? null,
         ...(parsed.importance !== undefined ? { importance: parsed.importance } : {}),
       },
       ctx.campaignId

@@ -13,6 +13,7 @@ const mapMemory = (row: NpcMemory): INpcMemory => ({
   id: row.id,
   npcId: row.npcId,
   playerId: row.playerId,
+  aboutNpcId: row.aboutNpcId,
   summary: row.summary,
   kind: row.kind as MemoryKind,
   importance: row.importance,
@@ -24,6 +25,7 @@ export const npcMemoryRepository: INpcMemoryRepository = {
       data: {
         npcId: input.npcId,
         playerId: input.playerId ?? null,
+        aboutNpcId: input.aboutNpcId ?? null,
         summary: input.summary.trim(),
         kind: input.kind,
         importance: input.importance ?? 3,
@@ -58,6 +60,7 @@ export const npcMemoryRepository: INpcMemoryRepository = {
         ...(input.kind !== undefined ? { kind: input.kind } : {}),
         ...(input.importance !== undefined ? { importance: input.importance } : {}),
         ...(input.playerId !== undefined ? { playerId: input.playerId } : {}),
+        ...(input.aboutNpcId !== undefined ? { aboutNpcId: input.aboutNpcId } : {}),
       },
     });
     return mapMemory(row);

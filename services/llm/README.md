@@ -8,6 +8,68 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 ---
 
+## NPC chat
+
+Диалог с NPC-агентом (DeepSeek). Preload контекста в system prompt + **tool loop** (все LLM tools).
+
+После ответа — фоновые **post-hooks** (`services/llm/hooks/`): следующий запрос с тем же `campaignId+npcId+playerId` ждёт завершения предыдущего хука (in-memory lock, timeout 90s).
+
+| Что | Путь |
+|-----|------|
+| Оркестрация | `services/llm/npc/chatWithNpc.ts` |
+| Tool loop | `runNpcToolLoop.ts`, registry `npcTools.ts` |
+| Post-hooks | `services/llm/hooks/` (`runAfterAgent`, `hookLock`, `resolveMentionedNpcs`) |
+| Контекст / prompt / parse | `loadNpcChatContext.ts`, `buildNpcPrompt.ts`, `parseNpcReply.ts` |
+| Provider | `services/llm/providers/sendDeepseekChat.ts` (`DEEPSEEK_API_KEY`, OpenAI-compatible `tools`) |
+| HTTP | `POST /api/npc-chat`, статус хуков `GET /api/npc-chat/hooks?turnId=` |
+| Тест UI | `/npc-chat` (hooks слева, чат, tools справа) |
+
+**Request**
+
+```ts
+{
+  campaignId: string
+  npcId: string
+  playerId: string
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+}
+```
+
+**Response**
+
+```ts
+{
+  say: string
+  do: string | null
+  toolCalls: Array<{
+    name: string
+    args: unknown
+    ok: boolean
+    result?: unknown
+    error?: string
+  }>
+  turnId: string
+}
+```
+
+`do` — только важное наблюдаемое действие; иначе `null`. В историю ассистента кладётся `say`.  
+`toolCalls` — все вызовы за этот send (пустой массив, если tools не нужны).  
+`turnId` — для poll `GET /api/npc-chat/hooks?turnId=` → `{ hooks: [{ turnId, name, status, toolCalls, error? }] }` (`running` | `done` | `failed`).
+
+Подключены все tools из оглавления ниже (`npcTools.ts`). Post-hook tools (`search_npc`, `ensure_npc_acquaintance`, `create_mentioned_npc`, `update_mentioned_npc`) в диалог **не** входят.
+
+### Post-hook: resolveMentionedNpcs
+
+После ответа NPC отдельный LLM-pass смотрит `say`/`do`, хвост диалога и preload знакомых speaker’а:
+
+1. Уточнение к уже знакомому (роль → имя и т.п.) → `update_mentioned_npc`
+2. Новое имя → `search_npc` → найден: `ensure_npc_acquaintance`; нет: `create_mentioned_npc` (stub + acquaintance + optional memory)
+3. Роль без личного имени и нет match → create с provisional name (`Муж <speaker>`) + `title`
+
+Registry: `services/llm/hooks/npc/mentionTools.ts`.
+
+---
+
 ## Оглавление
 
 | name | Файл | Назначение |
@@ -31,6 +93,10 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `add_npc_memory` | `tools/addNpcMemoryTool.ts` | Добавить воспоминание |
 | `list_npc_knowledge` | `tools/listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
 | `get_npc_knowledge` | `tools/getNpcKnowledgeTool.ts` | Одно знание NPC |
+| `search_npc` | `tools/searchNpcTool.ts` | Поиск NPC (post-hook) |
+| `ensure_npc_acquaintance` | `tools/ensureNpcAcquaintanceTool.ts` | Знакомство NPC↔NPC (post-hook) |
+| `create_mentioned_npc` | `tools/createMentionedNpcTool.ts` | Stub NPC из упоминания (post-hook) |
+| `update_mentioned_npc` | `tools/updateMentionedNpcTool.ts` | Update stub / знакомого (post-hook) |
 
 ---
 
@@ -373,22 +439,24 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `playerId` | string | нет | Фильтр по игроку |
 | `minImportance` | integer 1…5 | нет | Минимальная важность |
 
-**Return** — массив `{ id, npcId, playerId, summary, kind, importance }`.
+**Return** — массив `{ id, npcId, playerId, aboutNpcId, summary, kind, importance }`.
 
 ---
 
 ## `add_npc_memory`
 
-Добавить воспоминание без смены score. Для смены отношения — `improve`/`worsen`.
+Добавить воспоминание без смены score. Для смены отношения — `improve`/`worsen`.  
+`summary` самодостаточный (кто + что). Факт о другом NPC — `aboutNpcId`, `playerId` null. `playerId` — только если память о игроке.
 
 **Args**
 
 | Параметр | Тип | Обяз. | Описание |
 |----------|-----|-------|----------|
-| `npcId` | string | да | ID NPC |
-| `summary` | string | да | Факт |
+| `npcId` | string | да | ID NPC (владелец) |
+| `summary` | string | да | Факт с явным субъектом |
 | `kind` | `episode\|fact\|favor\|grievance\|promise` | да | Тип |
-| `playerId` | string | нет | Если о конкретном PC |
+| `playerId` | string | нет | Только если о PC |
+| `aboutNpcId` | string | нет | ID другого NPC, о ком факт |
 | `importance` | integer 1…5 | нет | По умолчанию 3 |
 
 **Return** — объект memory.
@@ -421,6 +489,78 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `knowledgeId` | string | да | ID знания |
 
 **Return** — знание (возможно `content: null`).
+
+---
+
+## `search_npc`
+
+Post-hook. Поиск NPC в кампании по имени. Приоритет — знакомые speaker (`ctx.npcId`).
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `name` | string | да | Имя или часть имени |
+
+**Return** — массив `{ id, name, title, knownBySpeaker }`.
+
+---
+
+## `ensure_npc_acquaintance`
+
+Post-hook. Upsert «speaker (`ctx.npcId`) знает otherNpc».
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `otherNpcId` | string | да | ID знакомого NPC |
+| `note` | string | нет | Как знакомы |
+
+**Return** — запись acquaintance.
+
+---
+
+## `create_mentioned_npc`
+
+Post-hook. Stub NPC + acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `name` | string | да | Личное или provisional имя |
+| `appearance` | string | нет | Внешность (дефолт `неизвестно`) |
+| `personality` | string | нет | Характер (дефолт `неизвестно`) |
+| `speech` | string | нет | Речь (дефолт `неизвестно`) |
+| `habits` | string | нет | Привычки (дефолт `неизвестно`) |
+| `title` | string | нет | Титул / роль |
+| `memory` | string | нет | Факт о нём (с именем/ролью в тексте) |
+| `note` | string | нет | Как знакомы |
+
+**Return** — `{ npc, acquaintance, memory }`. `dmNotes` = `auto:mentioned-by:{speakerId}`.
+
+---
+
+## `update_mentioned_npc`
+
+Post-hook. Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null).
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `npcId` | string | да | ID знакомого NPC |
+| `name` | string | нет | Новое имя |
+| `title` | string | нет | Титул / роль |
+| `appearance` | string | нет | Внешность |
+| `personality` | string | нет | Характер |
+| `speech` | string | нет | Речь |
+| `habits` | string | нет | Привычки |
+| `memory` | string | нет | Факт о нём (с именем/ролью в тексте) |
+| `note` | string | нет | Как знакомы (ensure acquaintance) |
+
+**Return** — `{ npc, acquaintance, memory }`. Нужно хотя бы одно optional-поле.
 
 ---
 

@@ -18,10 +18,16 @@ export type ICreateNpc = Omit<INpc, 'id' | 'coinsCp'> & {
 
 export type IUpdateNpc = Partial<Omit<ICreateNpc, 'campaignId'>>;
 
+export interface ISearchNpcsByNameParams {
+  campaignId: string;
+  name: string;
+}
+
 export interface INpcRepository {
   create: (input: ICreateNpc) => Promise<INpc>;
   getById: (id: string) => Promise<INpc | null>;
   listByCampaignId: (campaignId: string) => Promise<INpc[]>;
+  searchByName: (params: ISearchNpcsByNameParams) => Promise<INpc[]>;
   update: (id: string, input: IUpdateNpc) => Promise<INpc>;
   delete: (id: string) => Promise<void>;
 }

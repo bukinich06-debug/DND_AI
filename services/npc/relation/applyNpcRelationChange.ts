@@ -41,6 +41,7 @@ export const applyNpcRelationChange = async (input: IApplyNpcRelationChangeParam
   const memory = await createNpcMemory({
     npcId: input.npcId,
     playerId: input.playerId,
+    aboutNpcId: null,
     summary: input.summary.trim(),
     kind: rule.memoryKind,
     importance: rule.importance,

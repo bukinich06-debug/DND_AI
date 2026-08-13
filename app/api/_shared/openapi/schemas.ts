@@ -609,11 +609,12 @@ export const schemas = {
 
   NpcMemory: {
     type: 'object',
-    required: ['id', 'npcId', 'playerId', 'summary', 'kind', 'importance'],
+    required: ['id', 'npcId', 'playerId', 'aboutNpcId', 'summary', 'kind', 'importance'],
     properties: {
       id: { type: 'string' },
       npcId: { type: 'string' },
       playerId: { type: 'string', nullable: true },
+      aboutNpcId: { type: 'string', nullable: true },
       summary: { type: 'string' },
       kind: { $ref: '#/components/schemas/MemoryKind' },
       importance: { type: 'integer', minimum: 1, maximum: 5 },
@@ -624,6 +625,7 @@ export const schemas = {
     required: ['summary', 'kind'],
     properties: {
       playerId: { type: 'string', nullable: true },
+      aboutNpcId: { type: 'string', nullable: true },
       summary: { type: 'string' },
       kind: { $ref: '#/components/schemas/MemoryKind' },
       importance: { type: 'integer', minimum: 1, maximum: 5 },
@@ -633,6 +635,7 @@ export const schemas = {
     type: 'object',
     properties: {
       playerId: { type: 'string', nullable: true },
+      aboutNpcId: { type: 'string', nullable: true },
       summary: { type: 'string' },
       kind: { $ref: '#/components/schemas/MemoryKind' },
       importance: { type: 'integer', minimum: 1, maximum: 5 },
@@ -1095,6 +1098,73 @@ export const schemas = {
       from: { $ref: '#/components/schemas/CoinBalance' },
       to: { $ref: '#/components/schemas/CoinBalance' },
       amountCp: { type: 'integer' },
+    },
+  },
+
+  NpcChatMessage: {
+    type: 'object',
+    required: ['role', 'content'],
+    properties: {
+      role: { type: 'string', enum: ['user', 'assistant'] },
+      content: { type: 'string' },
+    },
+  },
+  NpcChatRequest: {
+    type: 'object',
+    required: ['campaignId', 'npcId', 'playerId', 'messages'],
+    properties: {
+      campaignId: { type: 'string' },
+      npcId: { type: 'string' },
+      playerId: { type: 'string' },
+      messages: { type: 'array', items: { $ref: '#/components/schemas/NpcChatMessage' } },
+    },
+  },
+  NpcChatReply: {
+    type: 'object',
+    required: ['say', 'do', 'toolCalls', 'turnId'],
+    properties: {
+      say: { type: 'string' },
+      do: { type: 'string', nullable: true },
+      toolCalls: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/NpcChatToolCall' },
+      },
+      turnId: { type: 'string' },
+    },
+  },
+  NpcChatToolCall: {
+    type: 'object',
+    required: ['name', 'args', 'ok'],
+    properties: {
+      name: { type: 'string' },
+      args: {},
+      ok: { type: 'boolean' },
+      result: {},
+      error: { type: 'string' },
+    },
+  },
+  NpcChatHookRun: {
+    type: 'object',
+    required: ['turnId', 'name', 'status', 'toolCalls'],
+    properties: {
+      turnId: { type: 'string' },
+      name: { type: 'string' },
+      status: { type: 'string', enum: ['running', 'done', 'failed'] },
+      toolCalls: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/NpcChatToolCall' },
+      },
+      error: { type: 'string' },
+    },
+  },
+  NpcChatHooksReply: {
+    type: 'object',
+    required: ['hooks'],
+    properties: {
+      hooks: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/NpcChatHookRun' },
+      },
     },
   },
 } as const;

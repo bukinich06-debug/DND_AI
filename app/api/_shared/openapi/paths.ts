@@ -630,4 +630,44 @@ export const paths = {
       },
     },
   },
+
+  '/api/npc-chat': {
+    post: {
+      tags: ['NpcChat'],
+      summary: 'Реплика NPC-агента (DeepSeek)',
+      requestBody: {
+        required: true,
+        ...json(ref('NpcChatRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcChatReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
+  '/api/npc-chat/hooks': {
+    get: {
+      tags: ['NpcChat'],
+      summary: 'Статус post-hooks по turnId',
+      parameters: [
+        {
+          name: 'turnId',
+          in: 'query',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcChatHooksReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 };

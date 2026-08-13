@@ -18,10 +18,15 @@ export { applyRelationDelta, clampRelationScore } from './helpers/applyRelationD
 export { relationStance } from './helpers/relationStance';
 export type { RelationStance } from './helpers/relationStance';
 export type {
+  INpcAcquaintance,
+  INpcAcquaintanceRepository,
+  ISetNpcAcquaintance,
+} from './acquaintanceTypes';
+export type {
   ICreateNpcKnowledge,
   INpcKnowledge,
   INpcKnowledgeRepository,
-  IUpdateNpcKnowledge
+  IUpdateNpcKnowledge,
 } from './knowledgeTypes';
 export type { INpcLocation, INpcLocationRepository, ISetNpcLocation } from './locationTypes';
 export type {
@@ -29,11 +34,18 @@ export type {
   IListNpcMemoriesFilter,
   INpcMemory,
   INpcMemoryRepository,
-  IUpdateNpcMemory
+  IUpdateNpcMemory,
 } from './memoryTypes';
 export type { INpcRelation, INpcRelationRepository, ISetNpcRelation } from './relationTypes';
 export type { INpcStatBlock, INpcStatBlockRepository, IUpsertNpcStatBlock } from './statBlockTypes';
-export type { ICreateNpc, INpc, INpcRepository, IUpdateNpc } from './types';
+export type {
+  ICreateNpc,
+  INpc,
+  INpcRepository,
+  ISearchNpcsByNameParams,
+  IUpdateNpc,
+} from './types';
+export { validateSetNpcAcquaintance } from './validation/validateNpcAcquaintance';
 export { validateCreateNpc, validateUpdateNpc } from './validation/validateNpc';
 export { validateCreateNpcKnowledge, validateUpdateNpcKnowledge } from './validation/validateNpcKnowledge';
 export { validateSetNpcLocation } from './validation/validateNpcLocation';
@@ -43,7 +55,7 @@ export {
   isImproveRelationReason,
   isRelationChangeReason,
   isWorsenRelationReason,
-  validateNpcRelationChange
+  validateNpcRelationChange,
 } from './validation/validateNpcRelationChange';
 export type { INpcRelationChangeInput } from './validation/validateNpcRelationChange';
 export { validateUpsertNpcStatBlock } from './validation/validateNpcStatBlock';

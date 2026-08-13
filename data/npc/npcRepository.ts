@@ -46,6 +46,19 @@ export const npcRepository: INpcRepository = {
     return rows.map(mapNpc);
   },
 
+  searchByName: async ({ campaignId, name }) => {
+    const q = name.trim();
+    if (!q) return [];
+    const rows = await db.npc.findMany({
+      where: {
+        campaignId,
+        name: { contains: q, mode: 'insensitive' },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map(mapNpc);
+  },
+
   update: async (id, input: IUpdateNpc) => {
     const row = await db.npc.update({
       where: { id },

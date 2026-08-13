@@ -22,6 +22,7 @@ export const openApiDocument = {
     { name: 'MonsterTemplates' },
     { name: 'DiceRolls' },
     { name: 'Coins' },
+    { name: 'NpcChat' },
   ],
   paths,
   components: {
