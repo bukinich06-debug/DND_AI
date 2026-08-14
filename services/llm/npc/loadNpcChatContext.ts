@@ -5,6 +5,7 @@ import { listNpcAcquaintancesDetailed } from '@/services/npc/acquaintance/listNp
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { listNpcKnowledgeForAgent } from '@/services/npc/knowledge/listNpcKnowledgeForAgent';
 import { listNpcMemories } from '@/services/npc/memory/listNpcMemories';
+import { listNpcMemoriesByAboutNpc } from '@/services/npc/memory/listNpcMemoriesByAboutNpc';
 import { getNpcRelationOrDefault } from '@/services/npc/relation/getNpcRelationOrDefault';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 
@@ -42,6 +43,12 @@ export interface INpcChatContext {
     importance: number;
     aboutName: string | null;
     aboutTitle: string | null;
+  }>;
+  aboutMeMemories: Array<{
+    summary: string;
+    kind: string;
+    importance: number;
+    fromName: string;
   }>;
   acquaintances: Array<{
     otherNpcId: string;
@@ -95,6 +102,20 @@ export const loadNpcChatContext = async ({
     };
   });
 
+  const aboutMeRaw = (await listNpcMemoriesByAboutNpc(npcId)).slice(0, MEMORY_LIMIT);
+  const fromIds = [...new Set(aboutMeRaw.map((m) => m.npcId))];
+  const fromById = new Map<string, string>();
+  for (const id of fromIds) {
+    const from = await npcRepository.getById(id);
+    if (from) fromById.set(id, from.name);
+  }
+  const aboutMeMemories = aboutMeRaw.map((m) => ({
+    summary: m.summary,
+    kind: m.kind,
+    importance: m.importance,
+    fromName: fromById.get(m.npcId) ?? 'неизвестный',
+  }));
+
   const acquaintances = await listNpcAcquaintancesDetailed(npcId);
 
   const openKnowledge = await listNpcKnowledgeForAgent(npcId, {
@@ -129,6 +150,7 @@ export const loadNpcChatContext = async ({
       note: relation.note,
     },
     memories,
+    aboutMeMemories,
     acquaintances,
     knowledge,
   };

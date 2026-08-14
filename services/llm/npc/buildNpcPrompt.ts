@@ -16,6 +16,13 @@ const formatMemories = (ctx: INpcChatContext) => {
     .join('\n');
 };
 
+const formatAboutMeMemories = (ctx: INpcChatContext) => {
+  if (ctx.aboutMeMemories.length === 0) return 'Пока никто не рассказывал о тебе зафиксированных фактов.';
+  return ctx.aboutMeMemories
+    .map((m) => `- [${m.kind}, от ${m.fromName}] ${m.summary}`)
+    .join('\n');
+};
+
 const formatAcquaintances = (ctx: INpcChatContext) => {
   if (ctx.acquaintances.length === 0) return 'Пока никого из знакомых не зафиксировано.';
   return ctx.acquaintances
@@ -70,6 +77,10 @@ ${formatAcquaintances(ctx)}
 
 ## Воспоминания (стартовый снимок)
 ${formatMemories(ctx)}
+
+## Что о тебе известно (из рассказов других)
+${formatAboutMeMemories(ctx)}
+Опирайся на эти факты о себе и семье. Не отрицай известных родственников и связи без веской причины.
 
 ## Что можешь сказать сразу (открытые знания, снимок)
 ${formatKnowledge(ctx)}

@@ -25,6 +25,7 @@ export interface INpcMemoryRepository {
   create: (input: ICreateNpcMemory) => Promise<INpcMemory>;
   getById: (id: string) => Promise<INpcMemory | null>;
   listByNpcId: (npcId: string, filter?: IListNpcMemoriesFilter) => Promise<INpcMemory[]>;
+  listByAboutNpcId: (aboutNpcId: string) => Promise<INpcMemory[]>;
   update: (id: string, input: IUpdateNpcMemory) => Promise<INpcMemory>;
   delete: (id: string) => Promise<void>;
 }

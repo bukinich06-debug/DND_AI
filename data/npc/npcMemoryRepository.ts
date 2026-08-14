@@ -52,6 +52,14 @@ export const npcMemoryRepository: INpcMemoryRepository = {
     return rows.map(mapMemory);
   },
 
+  listByAboutNpcId: async (aboutNpcId) => {
+    const rows = await db.npcMemory.findMany({
+      where: { aboutNpcId },
+      orderBy: [{ importance: 'desc' }, { id: 'asc' }],
+    });
+    return rows.map(mapMemory);
+  },
+
   update: async (id, input: IUpdateNpcMemory) => {
     const row = await db.npcMemory.update({
       where: { id },

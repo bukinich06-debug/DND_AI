@@ -98,6 +98,7 @@ export const updateMentionedNpcTool: ILlmTool = {
     const speakerId = ctx.npcId.trim();
     if (parsed.npcId === speakerId) throw new Error('Нельзя обновить самого speaker.');
 
+    const speaker = await getNpc(speakerId);
     const target = await getNpc(parsed.npcId);
     if (target.campaignId !== ctx.campaignId) throw new Error('NPC из другой кампании.');
 
@@ -128,6 +129,12 @@ export const updateMentionedNpcTool: ILlmTool = {
         note: parsed.note,
       });
     }
+
+    await ensureNpcAcquaintance({
+      npcId: parsed.npcId,
+      otherNpcId: speakerId,
+      note: `Знакомый: ${speaker.name}`,
+    });
 
     let memory = null;
     if (parsed.memory) {

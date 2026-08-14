@@ -1,6 +1,7 @@
 import { MemoryKind } from '@/domain/shared';
 import { ensureNpcAcquaintance } from '@/services/npc/acquaintance/ensureNpcAcquaintance';
 import { createNpc } from '@/services/npc/crud/createNpc';
+import { getNpc } from '@/services/npc/crud/getNpc';
 import { createNpcMemoryForAgent } from '@/services/npc/memory/createNpcMemoryForAgent';
 import type { ILlmTool, IToolContext } from './types';
 
@@ -88,6 +89,8 @@ export const createMentionedNpcTool: ILlmTool = {
     const parsed = parseArgs(args);
     const speakerId = ctx.npcId.trim();
 
+    const speaker = await getNpc(speakerId);
+
     const created = await createNpc({
       campaignId: ctx.campaignId,
       name: parsed.name,
@@ -104,6 +107,12 @@ export const createMentionedNpcTool: ILlmTool = {
       npcId: speakerId,
       otherNpcId: created.id,
       note: parsed.note ?? `Упомянут в разговоре: ${parsed.name}`,
+    });
+
+    await ensureNpcAcquaintance({
+      npcId: created.id,
+      otherNpcId: speakerId,
+      note: `Знакомый: ${speaker.name}`,
     });
 
     let memory = null;

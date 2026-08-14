@@ -58,12 +58,14 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Подключены все tools из оглавления ниже (`npcTools.ts`). Post-hook tools (`search_npc`, `ensure_npc_acquaintance`, `create_mentioned_npc`, `update_mentioned_npc`) в диалог **не** входят.
 
+Preload чата: character, relation, собственные memories, **about-me** (memories других NPC с `aboutNpcId` = этот NPC), acquaintances, open knowledge.
+
 ### Post-hook: resolveMentionedNpcs
 
 После ответа NPC отдельный LLM-pass смотрит `say`/`do`, хвост диалога и preload знакомых speaker’а:
 
 1. Уточнение к уже знакомому (роль → имя и т.п.) → `update_mentioned_npc`
-2. Новое имя → `search_npc` → найден: `ensure_npc_acquaintance`; нет: `create_mentioned_npc` (stub + acquaintance + optional memory)
+2. Новое имя → `search_npc` → найден: `ensure_npc_acquaintance`; нет: `create_mentioned_npc` (stub + двустороннее acquaintance + optional memory)
 3. Роль без личного имени и нет match → create с provisional name (`Муж <speaker>`) + `title`
 
 Registry: `services/llm/hooks/npc/mentionTools.ts`.
@@ -523,7 +525,7 @@ Post-hook. Upsert «speaker (`ctx.npcId`) знает otherNpc».
 
 ## `create_mentioned_npc`
 
-Post-hook. Stub NPC + acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
+Post-hook. Stub NPC + **двустороннее** acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
 
 **Args**
 
@@ -544,7 +546,7 @@ Post-hook. Stub NPC + acquaintance со speaker + optional memory (`aboutNpcId` 
 
 ## `update_mentioned_npc`
 
-Post-hook. Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null).
+Post-hook. Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null). Всегда ensure обратного acquaintance (other → speaker).
 
 **Args**
 
