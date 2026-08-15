@@ -51,6 +51,19 @@ export const locationRepository: ILocationRepository = {
     return rows.map(mapLocation);
   },
 
+  searchByName: async ({ campaignId, name }) => {
+    const q = name.trim();
+    if (!q) return [];
+    const rows = await db.location.findMany({
+      where: {
+        campaignId,
+        OR: [{ name: { contains: q, mode: 'insensitive' } }, { tags: { hasSome: [q, q.toLowerCase()] } }],
+      },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map(mapLocation);
+  },
+
   update: async (id, input: IUpdateLocation) => {
     const row = await db.location.update({
       where: { id },

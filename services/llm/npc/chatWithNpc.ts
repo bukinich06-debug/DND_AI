@@ -7,6 +7,7 @@ import { chatHookKey } from '@/services/llm/hooks/types';
 import { waitForHooks } from '@/services/llm/hooks/store/hookLock';
 import { createTurn } from '@/services/llm/hooks/store/hookLogStore';
 import { runAfterAgent } from '@/services/llm/hooks/runAfterAgent';
+import { resolveMentionedLocationsHook } from '@/services/llm/hooks/location/resolveMentionedLocations';
 import { resolveMentionedNpcsHook } from '@/services/llm/hooks/npc/resolveMentionedNpcs';
 
 interface IChatMessage {
@@ -43,7 +44,7 @@ const parseMessages = (messages: unknown): IChatMessage[] => {
   });
 };
 
-const NPC_HOOKS = [resolveMentionedNpcsHook];
+const NPC_HOOKS = [resolveMentionedLocationsHook, resolveMentionedNpcsHook];
 
 export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithNpcResult> => {
   const messages = parseMessages(input.messages);

@@ -103,6 +103,12 @@ export const useNpcChat = ({ campaignId, playerId, npcId }: IUseNpcChatParams) =
         mergeHookTurn([
           {
             turnId,
+            name: 'resolveMentionedLocations',
+            status: 'running',
+            toolCalls: [],
+          },
+          {
+            turnId,
             name: 'resolveMentionedNpcs',
             status: 'running',
             toolCalls: [],

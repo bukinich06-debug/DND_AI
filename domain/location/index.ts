@@ -1,6 +1,15 @@
-export type { ICreateLocation, ILocation, ILocationRepository, IUpdateLocation } from './types';
+export type {
+  ICreateLocation,
+  ILocation,
+  ILocationRepository,
+  ISearchLocationsByNameParams,
+  IUpdateLocation,
+} from './types';
 export { findPath, getEdgeDays } from './helpers/findPath';
 export type { IPathEdge } from './helpers/findPath';
+export { buildMentionAnchor, resolveMentionParentId } from './helpers/mentionAnchor';
+export type { IMentionAnchor } from './helpers/mentionAnchor';
+export { findInChain, walkAncestors } from './helpers/walkAncestors';
 export {
   validateCreateLocation,
   validateUpdateLocation,

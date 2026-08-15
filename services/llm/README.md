@@ -18,7 +18,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 |-----|------|
 | Оркестрация | `services/llm/npc/chatWithNpc.ts` |
 | Tool loop | `runNpcToolLoop.ts`, registry `npcTools.ts` |
-| Post-hooks | `services/llm/hooks/` (`runAfterAgent`, `hookLock`, `resolveMentionedNpcs`) |
+| Post-hooks | `services/llm/hooks/` (`runAfterAgent`, `hookLock`, `resolveMentionedLocations`, `resolveMentionedNpcs`) |
 | Контекст / prompt / parse | `loadNpcChatContext.ts`, `buildNpcPrompt.ts`, `parseNpcReply.ts` |
 | Provider | `services/llm/providers/sendDeepseekChat.ts` (`DEEPSEEK_API_KEY`, OpenAI-compatible `tools`) |
 | HTTP | `POST /api/npc-chat`, статус хуков `GET /api/npc-chat/hooks?turnId=` |
@@ -56,9 +56,20 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 `toolCalls` — все вызовы за этот send (пустой массив, если tools не нужны).  
 `turnId` — для poll `GET /api/npc-chat/hooks?turnId=` → `{ hooks: [{ turnId, name, status, toolCalls, error? }] }` (`running` | `done` | `failed`).
 
-Подключены все tools из оглавления ниже (`npcTools.ts`). Post-hook tools (`search_npc`, `ensure_npc_acquaintance`, `create_mentioned_npc`, `update_mentioned_npc`) в диалог **не** входят.
+Подключены все tools из оглавления ниже (`npcTools.ts`). Post-hook tools (`search_npc`, `ensure_npc_acquaintance`, `create_mentioned_npc`, `update_mentioned_npc`, `search_location`, `create_mentioned_location`, `update_mentioned_location`, `ensure_location_link`) в диалог **не** входят.
 
 Preload чата: character, relation, собственные memories, **about-me** (memories других NPC с `aboutNpcId` = этот NPC), acquaintances, open knowledge.
+
+### Post-hook: resolveMentionedLocations
+
+После ответа NPC отдельный LLM-pass смотрит `say`/`do`, хвост диалога и снимок мест (chain / here / neighbors / roads):
+
+1. Уточнение к уже известному месту → `update_mentioned_location`
+2. Нет в списках → `search_location` → найден: при необходимости `ensure_location_link`; нет: `create_mentioned_location` (stub, `parentId` ставит сервер)
+3. Новое поселение → stub + дорога от текущего settlement (`days` из фразы, иначе 1)
+4. «Кузня в деревне Б» → сначала поселение Б, затем building с `containerId`
+
+Registry: `services/llm/hooks/location/mentionLocationTools.ts`. Идёт **перед** `resolveMentionedNpcs`.
 
 ### Post-hook: resolveMentionedNpcs
 
@@ -99,6 +110,10 @@ Registry: `services/llm/hooks/npc/mentionTools.ts`.
 | `ensure_npc_acquaintance` | `tools/ensureNpcAcquaintanceTool.ts` | Знакомство NPC↔NPC (post-hook) |
 | `create_mentioned_npc` | `tools/createMentionedNpcTool.ts` | Stub NPC из упоминания (post-hook) |
 | `update_mentioned_npc` | `tools/updateMentionedNpcTool.ts` | Update stub / знакомого (post-hook) |
+| `search_location` | `tools/searchLocationTool.ts` | Поиск локации (post-hook) |
+| `create_mentioned_location` | `tools/createMentionedLocationTool.ts` | Stub локации из упоминания (post-hook) |
+| `update_mentioned_location` | `tools/updateMentionedLocationTool.ts` | Update stub / известного места (post-hook) |
+| `ensure_location_link` | `tools/ensureLocationLinkTool.ts` | Дорога settlement↔settlement (post-hook) |
 
 ---
 
@@ -563,6 +578,76 @@ Post-hook. Partial update уже известного speaker’у NPC (имя, 
 | `note` | string | нет | Как знакомы (ensure acquaintance) |
 
 **Return** — `{ npc, acquaintance, memory }`. Нужно хотя бы одно optional-поле.
+
+---
+
+## `search_location`
+
+Post-hook. Ищет локацию в кампании по имени (`contains`, без регистра) или точному тегу. Ближе к текущей локации игрока — выше в списке.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `name` | string | да | Название / часть / тег |
+
+**Return** — массив `{ id, name, kind, parentId, tags, summary }`.
+
+---
+
+## `create_mentioned_location`
+
+Post-hook. Stub локации. **`parentId` ставит сервер** (не передавать): здание → текущее поселение или `containerId`; поселение → тот же родитель, что у текущей деревни, плюс `LocationLink`. Пустые поля → `"неизвестно"`. Тег `auto:mentioned-by:{speakerId}`.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `name` | string | да | Как назвали место |
+| `kind` | LocationKind | да | `building` / `settlement` / `room` / … |
+| `containerId` | string | нет | Уже найденный контейнер (деревня Б для кузни в Б) |
+| `tags` | string[] | нет | Роли-синонимы (`smithy`, `кузница`) |
+| `days` | number | нет | Дни пути для нового поселения (дефолт 1) |
+| `summary` | string | нет | Кратко (дефолт `неизвестно`) |
+| `description` | string | нет | Описание (дефолт `неизвестно`) |
+| `features` | string | нет | Особенности (дефолт `неизвестно`) |
+
+**Return** — `{ location, link }`. `link` не null, если создали settlement и есть текущее поселение.
+
+---
+
+## `update_mentioned_location`
+
+Post-hook. Partial update известной локации. `tags` сливаются с существующими.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `locationId` | string | да | ID локации |
+| `name` | string | нет | Новое название |
+| `summary` | string | нет | Краткое описание |
+| `description` | string | нет | Описание |
+| `tags` | string[] | нет | Добавить теги |
+
+**Return** — обновлённая локация. Нужно хотя бы одно optional-поле.
+
+---
+
+## `ensure_location_link`
+
+Post-hook. Upsert дороги между двумя **settlement**. Если ребро уже есть в любую сторону — возвращает его. `days` по умолчанию 1.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `fromId` | string | да | ID поселения |
+| `toId` | string | да | ID другого поселения |
+| `days` | number | нет | Дни пути (дефолт 1) |
+| `label` | string | нет | Подпись |
+
+**Return** — запись `LocationLink`.
 
 ---
 

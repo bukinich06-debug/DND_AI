@@ -89,7 +89,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 
 ### NPC chat agent
 
-Диалог с NPC через DeepSeek: preload характера/relation/memories/about-me (факты о себе по `aboutNpcId`)/acquaintances/knowledge + **tool loop** (все LLM tools). Ответ `{ say, do, toolCalls }`. После ответа — **post-hooks** (фон): `resolveMentionedNpcs` по reply + хвосту диалога + знакомым speaker’а создаёт stub или **обновляет** уже известного (create vs update, двустороннее знакомство); следующий запрос к тому же чату ждёт завершения хука (lock, timeout 90s). Тест UI с логом tools.
+Диалог с NPC через DeepSeek: preload характера/relation/memories/about-me (факты о себе по `aboutNpcId`)/acquaintances/knowledge + **tool loop** (все LLM tools). Ответ `{ say, do, toolCalls }`. После ответа — **post-hooks** (фон): сначала `resolveMentionedLocations` (места из реплики → поиск / stub в дереве + дорога между поселениями), затем `resolveMentionedNpcs` (stub или обновление знакомого, двустороннее знакомство); следующий запрос к тому же чату ждёт завершения хука (lock, timeout 90s). Тест UI с логом tools.
 
 | Слой | Путь |
 |------|------|
