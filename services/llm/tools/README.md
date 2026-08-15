@@ -6,114 +6,50 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
----
-
-## NPC chat
-
-Диалог с NPC-агентом (DeepSeek). Preload контекста в system prompt + **tool loop** (все LLM tools).
-
-После ответа — фоновые **post-hooks** (`services/llm/hooks/`): следующий запрос с тем же `campaignId+npcId+playerId` ждёт завершения предыдущего хука (in-memory lock, timeout 90s).
-
-| Что | Путь |
-|-----|------|
-| Оркестрация | `services/llm/npc/chatWithNpc.ts` |
-| Tool loop | `runNpcToolLoop.ts`, registry `npcTools.ts` |
-| Post-hooks | `services/llm/hooks/` (`runAfterAgent`, `hookLock`, `resolveMentionedLocations`, `resolveMentionedNpcs`) |
-| Контекст / prompt / parse | `loadNpcChatContext.ts`, `buildNpcPrompt.ts`, `parseNpcReply.ts` |
-| Provider | `services/llm/providers/sendDeepseekChat.ts` (`DEEPSEEK_API_KEY`, OpenAI-compatible `tools`) |
-| HTTP | `POST /api/npc-chat`, статус хуков `GET /api/npc-chat/hooks?turnId=` |
-| Тест UI | `/npc-chat` (hooks слева, чат, tools справа) |
-
-**Request**
-
-```ts
-{
-  campaignId: string
-  npcId: string
-  playerId: string
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>
-}
-```
-
-**Response**
-
-```ts
-{
-  say: string
-  do: string | null
-  toolCalls: Array<{
-    name: string
-    args: unknown
-    ok: boolean
-    result?: unknown
-    error?: string
-  }>
-  turnId: string
-}
-```
-
-`do` — только важное наблюдаемое действие; иначе `null`. В историю ассистента кладётся `say`.  
-`toolCalls` — все вызовы за этот send (пустой массив, если tools не нужны).  
-`turnId` — для poll `GET /api/npc-chat/hooks?turnId=` → `{ hooks: [{ turnId, name, status, toolCalls, error? }] }` (`running` | `done` | `failed`).
-
-Подключены все tools из оглавления ниже (`npcTools.ts`). Post-hook tools (`search_npc`, `ensure_npc_acquaintance`, `create_mentioned_npc`, `update_mentioned_npc`, `search_location`, `create_mentioned_location`, `update_mentioned_location`, `ensure_location_link`) в диалог **не** входят.
-
-Preload чата: character, relation, собственные memories, **about-me** (memories других NPC с `aboutNpcId` = этот NPC), acquaintances, open knowledge.
-
-### Post-hook: resolveMentionedLocations
-
-После ответа NPC отдельный LLM-pass смотрит `say`/`do`, хвост диалога и снимок мест (chain / here / neighbors / roads):
-
-1. Уточнение к уже известному месту → `update_mentioned_location`
-2. Нет в списках → `search_location` → найден: при необходимости `ensure_location_link`; нет: `create_mentioned_location` (stub, `parentId` ставит сервер)
-3. Новое поселение → stub + дорога от текущего settlement (`days` из фразы, иначе 1)
-4. «Кузня в деревне Б» → сначала поселение Б, затем building с `containerId`
-
-Registry: `services/llm/hooks/location/mentionLocationTools.ts`. Идёт **перед** `resolveMentionedNpcs`.
-
-### Post-hook: resolveMentionedNpcs
-
-После ответа NPC отдельный LLM-pass смотрит `say`/`do`, хвост диалога и preload знакомых speaker’а:
-
-1. Уточнение к уже знакомому (роль → имя и т.п.) → `update_mentioned_npc`
-2. Новое имя → `search_npc` → найден: `ensure_npc_acquaintance`; нет: `create_mentioned_npc` (stub + двустороннее acquaintance + optional memory)
-3. Роль без личного имени и нет match → create с provisional name (`Муж <speaker>`) + `title`
-
-Registry: `services/llm/hooks/npc/mentionTools.ts`.
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
 ## Оглавление
 
+### Диалог (`npcTools.ts`)
+
 | name | Файл | Назначение |
 |------|------|------------|
-| `roll_dice` | `tools/rollDiceTool.ts` | Бросок кубика |
-| `get_coins` | `tools/getCoinsTool.ts` | Баланс монет |
-| `transfer_coins` | `tools/transferCoinsTool.ts` | Перевод монет (покупка / лут) |
-| `search_player_items` | `tools/searchPlayerItemsTool.ts` | Инвентарь / поиск предмета |
-| `get_player_proficiencies` | `tools/getPlayerProficienciesTool.ts` | Навыки и владения |
-| `get_player_conditions` | `tools/getPlayerConditionsTool.ts` | Активные состояния |
-| `add_player_condition` | `tools/addPlayerConditionTool.ts` | Наложить состояние |
-| `remove_player_condition` | `tools/removePlayerConditionTool.ts` | Снять состояние |
-| `get_player_location` | `tools/getPlayerLocationTool.ts` | Текущая локация / travel |
-| `move_player` | `tools/movePlayerTool.ts` | Мгновенное перемещение |
-| `start_travel` | `tools/startTravelTool.ts` | Начать путешествие |
-| `advance_travel` | `tools/advanceTravelTool.ts` | Продвинуть путь на дни |
-| `get_npc_relation` | `tools/getNpcRelationTool.ts` | Отношение NPC к игроку |
-| `improve_npc_relation` | `tools/improveNpcRelationTool.ts` | Улучшить отношение (reason→delta) |
-| `worsen_npc_relation` | `tools/worsenNpcRelationTool.ts` | Ухудшить отношение (reason→delta) |
-| `list_npc_memories` | `tools/listNpcMemoriesTool.ts` | Воспоминания NPC |
-| `add_npc_memory` | `tools/addNpcMemoryTool.ts` | Добавить воспоминание |
-| `list_npc_knowledge` | `tools/listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
-| `get_npc_knowledge` | `tools/getNpcKnowledgeTool.ts` | Одно знание NPC |
-| `search_npc` | `tools/searchNpcTool.ts` | Поиск NPC (post-hook) |
-| `ensure_npc_acquaintance` | `tools/ensureNpcAcquaintanceTool.ts` | Знакомство NPC↔NPC (post-hook) |
-| `create_mentioned_npc` | `tools/createMentionedNpcTool.ts` | Stub NPC из упоминания (post-hook) |
-| `update_mentioned_npc` | `tools/updateMentionedNpcTool.ts` | Update stub / знакомого (post-hook) |
-| `search_location` | `tools/searchLocationTool.ts` | Поиск локации (post-hook) |
-| `create_mentioned_location` | `tools/createMentionedLocationTool.ts` | Stub локации из упоминания (post-hook) |
-| `update_mentioned_location` | `tools/updateMentionedLocationTool.ts` | Update stub / известного места (post-hook) |
-| `ensure_location_link` | `tools/ensureLocationLinkTool.ts` | Дорога settlement↔settlement (post-hook) |
+| `roll_dice` | `rollDiceTool.ts` | Бросок кубика |
+| `get_coins` | `getCoinsTool.ts` | Баланс монет |
+| `transfer_coins` | `transferCoinsTool.ts` | Перевод монет (покупка / лут) |
+| `search_player_items` | `searchPlayerItemsTool.ts` | Инвентарь / поиск предмета |
+| `get_player_proficiencies` | `getPlayerProficienciesTool.ts` | Навыки и владения |
+| `get_player_conditions` | `getPlayerConditionsTool.ts` | Активные состояния |
+| `add_player_condition` | `addPlayerConditionTool.ts` | Наложить состояние |
+| `remove_player_condition` | `removePlayerConditionTool.ts` | Снять состояние |
+| `get_player_location` | `getPlayerLocationTool.ts` | Текущая локация / travel |
+| `move_player` | `movePlayerTool.ts` | Мгновенное перемещение |
+| `start_travel` | `startTravelTool.ts` | Начать путешествие |
+| `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь на дни |
+| `get_npc_relation` | `getNpcRelationTool.ts` | Отношение NPC к игроку |
+| `improve_npc_relation` | `improveNpcRelationTool.ts` | Улучшить отношение (reason→delta) |
+| `worsen_npc_relation` | `worsenNpcRelationTool.ts` | Ухудшить отношение (reason→delta) |
+| `list_npc_memories` | `listNpcMemoriesTool.ts` | Воспоминания NPC |
+| `add_npc_memory` | `addNpcMemoryTool.ts` | Добавить воспоминание |
+| `list_npc_knowledge` | `listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
+| `get_npc_knowledge` | `getNpcKnowledgeTool.ts` | Одно знание NPC |
+
+### Post-hook
+
+Registry: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.ts`](../hooks/location/mentionLocationTools.ts). В диалог **не** входят. Поток: [hooks README](../hooks/README.md).
+
+| name | Файл | Назначение |
+|------|------|------------|
+| `search_npc` | `searchNpcTool.ts` | Поиск NPC |
+| `ensure_npc_acquaintance` | `ensureNpcAcquaintanceTool.ts` | Знакомство NPC↔NPC |
+| `create_mentioned_npc` | `createMentionedNpcTool.ts` | Stub NPC из упоминания |
+| `update_mentioned_npc` | `updateMentionedNpcTool.ts` | Update stub / знакомого |
+| `search_location` | `searchLocationTool.ts` | Поиск локации |
+| `create_mentioned_location` | `createMentionedLocationTool.ts` | Stub локации из упоминания |
+| `update_mentioned_location` | `updateMentionedLocationTool.ts` | Update stub / известного места |
+| `ensure_location_link` | `ensureLocationLinkTool.ts` | Дорога settlement↔settlement |
 
 ---
 
@@ -511,7 +447,7 @@ Registry: `services/llm/hooks/npc/mentionTools.ts`.
 
 ## `search_npc`
 
-Post-hook. Поиск NPC в кампании по имени. Приоритет — знакомые speaker (`ctx.npcId`).
+Post-hook ([hooks README](../hooks/README.md)). Поиск NPC в кампании по имени. Приоритет — знакомые speaker (`ctx.npcId`).
 
 **Args**
 
@@ -525,7 +461,7 @@ Post-hook. Поиск NPC в кампании по имени. Приорите�
 
 ## `ensure_npc_acquaintance`
 
-Post-hook. Upsert «speaker (`ctx.npcId`) знает otherNpc».
+Post-hook ([hooks README](../hooks/README.md)). Upsert «speaker (`ctx.npcId`) знает otherNpc».
 
 **Args**
 
@@ -540,7 +476,7 @@ Post-hook. Upsert «speaker (`ctx.npcId`) знает otherNpc».
 
 ## `create_mentioned_npc`
 
-Post-hook. Stub NPC + **двустороннее** acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
+Post-hook ([hooks README](../hooks/README.md)). Stub NPC + **двустороннее** acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
 
 **Args**
 
@@ -561,7 +497,7 @@ Post-hook. Stub NPC + **двустороннее** acquaintance со speaker + o
 
 ## `update_mentioned_npc`
 
-Post-hook. Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null). Всегда ensure обратного acquaintance (other → speaker).
+Post-hook ([hooks README](../hooks/README.md)). Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null). Всегда ensure обратного acquaintance (other → speaker).
 
 **Args**
 
@@ -583,7 +519,7 @@ Post-hook. Partial update уже известного speaker’у NPC (имя, 
 
 ## `search_location`
 
-Post-hook. Ищет локацию в кампании по имени (`contains`, без регистра) или точному тегу. Ближе к текущей локации игрока — выше в списке.
+Post-hook ([hooks README](../hooks/README.md)). Ищет локацию в кампании по имени (`contains`, без регистра) или точному тегу. Ближе к текущей локации игрока — выше в списке.
 
 **Args**
 
@@ -597,7 +533,7 @@ Post-hook. Ищет локацию в кампании по имени (`contain
 
 ## `create_mentioned_location`
 
-Post-hook. Stub локации. **`parentId` ставит сервер** (не передавать): здание → текущее поселение или `containerId`; поселение → тот же родитель, что у текущей деревни, плюс `LocationLink`. Пустые поля → `"неизвестно"`. Тег `auto:mentioned-by:{speakerId}`.
+Post-hook ([hooks README](../hooks/README.md)). Stub локации. **`parentId` ставит сервер** (не передавать): здание → текущее поселение или `containerId`; поселение → тот же родитель, что у текущей деревни, плюс `LocationLink`. Пустые поля → `"неизвестно"`. Тег `auto:mentioned-by:{speakerId}`.
 
 **Args**
 
@@ -618,7 +554,7 @@ Post-hook. Stub локации. **`parentId` ставит сервер** (не �
 
 ## `update_mentioned_location`
 
-Post-hook. Partial update известной локации. `tags` сливаются с существующими.
+Post-hook ([hooks README](../hooks/README.md)). Partial update известной локации. `tags` сливаются с существующими.
 
 **Args**
 
@@ -636,7 +572,7 @@ Post-hook. Partial update известной локации. `tags` сливаю
 
 ## `ensure_location_link`
 
-Post-hook. Upsert дороги между двумя **settlement**. Если ребро уже есть в любую сторону — возвращает его. `days` по умолчанию 1.
+Post-hook ([hooks README](../hooks/README.md)). Upsert дороги между двумя **settlement**. Если ребро уже есть в любую сторону — возвращает его. `days` по умолчанию 1.
 
 **Args**
 
@@ -654,4 +590,5 @@ Post-hook. Upsert дороги между двумя **settlement**. Если р
 ## Как добавлять tool
 
 1. `services/llm/tools/<name>Tool.ts` — объект `ILlmTool`
-2. Строка в оглавлении и секция в этом README
+2. Диалог → строка в `npcTools.ts`. Только хук → registry в `hooks/`
+3. Строка в оглавлении и секция в этом README

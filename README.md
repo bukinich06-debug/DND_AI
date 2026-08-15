@@ -17,7 +17,7 @@
 Tools дают мастеру доступ к состоянию кампании: монеты, инвентарь, владения, conditions, броски кубиков и связанные мутации.
 
 - Код: [`services/llm/tools/`](services/llm/tools/)
-- Каталог и контракты: [`services/llm/README.md`](services/llm/README.md)
+- Каталог и контракты: [`services/llm/tools/README.md`](services/llm/tools/README.md)
 
 Контекст tool всегда включает `campaignId` (в args его не передают).
 
