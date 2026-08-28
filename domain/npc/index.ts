@@ -28,7 +28,7 @@ export type {
   INpcKnowledgeRepository,
   IUpdateNpcKnowledge,
 } from './knowledgeTypes';
-export type { INpcLocation, INpcLocationRepository, ISetNpcLocation } from './locationTypes';
+export type { INpcAtLocation, INpcLocation, INpcLocationRepository, ISetNpcLocation } from './locationTypes';
 export type {
   ICreateNpcMemory,
   IListNpcMemoriesFilter,

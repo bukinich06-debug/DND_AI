@@ -658,6 +658,15 @@ export const schemas = {
     },
   },
 
+  NpcAtLocation: {
+    type: 'object',
+    required: ['npc', 'role', 'isPrimary'],
+    properties: {
+      npc: { $ref: '#/components/schemas/Npc' },
+      role: { type: 'string', nullable: true },
+      isPrimary: { type: 'boolean' },
+    },
+  },
   NpcLocation: {
     type: 'object',
     required: ['npcId', 'locationId', 'role', 'isPrimary'],

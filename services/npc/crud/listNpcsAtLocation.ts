@@ -2,12 +2,7 @@
 
 import { locationRepository } from '@/data/location';
 import { npcLocationRepository, npcRepository } from '@/data/npc';
-import type { INpc } from '@/domain/npc';
-
-interface INpcAtLocation {
-  npc: INpc;
-  role: string | null;
-}
+import type { INpcAtLocation } from '@/domain/npc';
 
 export const listNpcsAtLocation = async (locationId: string): Promise<INpcAtLocation[]> => {
   if (!locationId.trim()) throw new Error('Локация обязательна.');
@@ -19,7 +14,8 @@ export const listNpcsAtLocation = async (locationId: string): Promise<INpcAtLoca
   const here: INpcAtLocation[] = [];
   for (const link of links) {
     const npc = await npcRepository.getById(link.npcId);
-    if (npc && npc.campaignId === location.campaignId) here.push({ npc, role: link.role });
+    if (npc && npc.campaignId === location.campaignId)
+      here.push({ npc, role: link.role, isPrimary: link.isPrimary });
   }
   return here;
 };

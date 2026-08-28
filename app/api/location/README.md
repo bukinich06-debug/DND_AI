@@ -57,6 +57,12 @@ NpcLocation {
   role: string | null
   isPrimary: boolean
 }
+
+NpcAtLocation {
+  npc: Npc            // как GET /api/npcs
+  role: string | null
+  isPrimary: boolean
+}
 ```
 
 ---
@@ -261,6 +267,19 @@ Content-Type: application/json
 ```
 
 `days` опционален, целое ≥ 1. `playerId` обязателен.
+
+### `GET /api/location/player/npcs`
+
+NPC в той же локации, где стоит игрок (`player.locationId`). В travel — текущее место, не destination. Нет локации — `[]`.
+
+| | |
+|--|--|
+| Query | `playerId` (обязателен) |
+| 200 | `NpcAtLocation[]` |
+
+```
+GET /api/location/player/npcs?playerId={playerId}
+```
 
 ---
 

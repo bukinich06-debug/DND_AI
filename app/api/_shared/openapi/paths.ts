@@ -210,6 +210,20 @@ export const paths = {
       },
     },
   },
+  '/api/location/player/npcs': {
+    get: {
+      tags: ['Location'],
+      summary: 'NPC в текущей локации игрока',
+      parameters: [playerIdQuery],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('NpcAtLocation') }),
+        },
+        ...errorResponses,
+      },
+    },
+  },
   '/api/location/npcs/{npcId}': {
     get: {
       tags: ['Location'],
