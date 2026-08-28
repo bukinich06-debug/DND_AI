@@ -29,6 +29,7 @@ export const advanceTravel = async (input: IAdvanceTravel): Promise<IPlayerLocat
   let legIndex = player.travelLegIndex;
   let locationId = player.locationId;
   const route = player.travelRoute;
+  const destinationId = player.travelDestinationId;
   let remaining = input.days ?? 1;
 
   const links = await locationLinkRepository.listByCampaignId(input.campaignId);
@@ -45,25 +46,24 @@ export const advanceTravel = async (input: IAdvanceTravel): Promise<IPlayerLocat
 
     if (legIndex >= route.length - 1) {
       const updated = await playerRepository.updateLocationState(player.id, {
-        locationId: route[legIndex],
+        locationId: destinationId,
         ...clearTravelState,
       });
       return buildPlayerLocation(updated);
     }
 
+    locationId = route[legIndex];
     const fromId = route[legIndex];
     legIndex += 1;
     const toId = route[legIndex];
     const nextDays = getEdgeDays(fromId, toId, edges);
     if (nextDays == null) throw new Error('Путь прерван: нет ребра между локациями маршрута.');
-
-    locationId = toId;
     daysLeft = nextDays;
   }
 
   const updated = await playerRepository.updateLocationState(player.id, {
     locationId,
-    travelDestinationId: player.travelDestinationId,
+    travelDestinationId: destinationId,
     travelRoute: route,
     travelLegIndex: legIndex,
     travelDaysLeft: daysLeft,

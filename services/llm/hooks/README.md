@@ -23,7 +23,7 @@ Post-hooks после ответа агента. Идут в фоне. След�
 | Люди (NPC) | `npc/resolveMentionedNpcs.ts` |
 | Места (world) | `world/resolveWorldLocations.ts` |
 | Люди (world) | `world/resolveWorldNpcs.ts` |
-| HTTP | `POST /api/npc-chat`, `POST /api/location-look`, статус `GET /api/npc-chat/hooks?turnId=` |
+| HTTP | `POST /api/npc-chat`, `POST /api/location/look`, статус `GET /api/npc-chat/hooks?turnId=` |
 | Тест UI | `/npc-chat` (hooks слева, чат, tools справа) |
 
 ---
@@ -120,7 +120,7 @@ Look по `kind` (`lookCast`):
 
 В хуки: `source: 'world'`, `locationId`, `reply.say = look`, `reply.do = null`, `messages: []`. Speaker нет. Новые NPC сажаются в текущую локацию.
 
-HTTP: `POST /api/location-look`. Poll хуков — тот же `GET /api/npc-chat/hooks?turnId=`.
+HTTP: `POST /api/location/look`. Poll хуков — тот же `GET /api/npc-chat/hooks?turnId=`.
 
 **Request**
 

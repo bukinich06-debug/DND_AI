@@ -2,13 +2,13 @@ import { noContent, toErrorResponse } from '@/app/api/_shared/respond';
 import { removeNpcLocation } from '@/services/npc/crud/removeNpcLocation';
 
 interface IParams {
-  params: Promise<{ id: string; locationId: string }>;
+  params: Promise<{ npcId: string; locationId: string }>;
 }
 
 export const DELETE = async (_req: Request, { params }: IParams) => {
   try {
-    const { id, locationId } = await params;
-    await removeNpcLocation(id, locationId);
+    const { npcId, locationId } = await params;
+    await removeNpcLocation(npcId, locationId);
     return noContent();
   } catch (e) {
     return toErrorResponse(e);

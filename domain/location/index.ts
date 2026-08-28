@@ -11,6 +11,7 @@ export { buildMentionAnchor, resolveMentionParentId } from './helpers/mentionAnc
 export type { IMentionAnchor } from './helpers/mentionAnchor';
 export { lookCast } from './helpers/lookCast';
 export type { LookCast } from './helpers/lookCast';
+export { settlementOf } from './helpers/settlementOf';
 export { findInChain, walkAncestors } from './helpers/walkAncestors';
 export {
   validateCreateLocation,

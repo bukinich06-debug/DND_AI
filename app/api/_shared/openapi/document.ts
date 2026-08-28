@@ -10,8 +10,7 @@ export const openApiDocument = {
   },
   tags: [
     { name: 'Campaigns' },
-    { name: 'Locations' },
-    { name: 'LocationLinks' },
+    { name: 'Location' },
     { name: 'Items' },
     { name: 'Players' },
     { name: 'Npcs' },
@@ -23,7 +22,6 @@ export const openApiDocument = {
     { name: 'DiceRolls' },
     { name: 'Coins' },
     { name: 'NpcChat' },
-    { name: 'LocationLook' },
   ],
   paths,
   components: {

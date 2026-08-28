@@ -74,7 +74,7 @@ export const useLocationLookSelects = () => {
         setLoadError(null);
         const [playersRes, locationsRes] = await Promise.all([
           fetch(`/api/players?campaignId=${encodeURIComponent(campaignId)}`),
-          fetch(`/api/locations?campaignId=${encodeURIComponent(campaignId)}`),
+          fetch(`/api/location?campaignId=${encodeURIComponent(campaignId)}`),
         ]);
         const playersData = await playersRes.json();
         const locationsData = await locationsRes.json();
@@ -103,7 +103,7 @@ export const useLocationLookSelects = () => {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`/api/players/${encodeURIComponent(playerId)}/location`);
+        const res = await fetch(`/api/location/player?playerId=${encodeURIComponent(playerId)}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Не удалось загрузить локацию игрока.');
         if (cancelled) return;

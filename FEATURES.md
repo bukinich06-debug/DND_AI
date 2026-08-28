@@ -74,7 +74,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | domain | [`domain/player/`](domain/player/), [`domain/location/`](domain/location/) (path) |
 | services | [`services/player/location/`](services/player/location/) |
 | tools | [`getPlayerLocationTool.ts`](services/llm/tools/getPlayerLocationTool.ts) — [`get_player_location`](services/llm/tools/README.md#get_player_location); [`movePlayerTool.ts`](services/llm/tools/movePlayerTool.ts) — [`move_player`](services/llm/tools/README.md#move_player); [`startTravelTool.ts`](services/llm/tools/startTravelTool.ts) — [`start_travel`](services/llm/tools/README.md#start_travel); [`advanceTravelTool.ts`](services/llm/tools/advanceTravelTool.ts) — [`advance_travel`](services/llm/tools/README.md#advance_travel) |
-| API | [`app/api/players/[id]/location/`](app/api/players/%5Bid%5D/location/) |
+| API | [`app/api/location/player/`](app/api/location/player/) |
 
 ### NPC: отношения, память, знания
 
@@ -108,8 +108,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 |----------|--------|----------|-----|
 | Campaigns | [`domain/campaign/`](domain/campaign/) | [`services/campaign/`](services/campaign/) | [`app/api/campaigns/`](app/api/campaigns/) |
 | Players | [`domain/player/`](domain/player/) | [`services/player/crud/`](services/player/crud/) | [`app/api/players/`](app/api/players/) |
-| Locations (+ children) | [`domain/location/`](domain/location/) | [`services/location/`](services/location/) | [`app/api/locations/`](app/api/locations/) |
-| Location links | [`domain/location-link/`](domain/location-link/) | [`services/location-link/`](services/location-link/) | [`app/api/location-links/`](app/api/location-links/) |
+| Locations (+ children, links, player, npc, look) | [`domain/location/`](domain/location/), [`domain/location-link/`](domain/location-link/) | [`services/location/`](services/location/), [`services/location-link/`](services/location-link/), [`services/player/location/`](services/player/location/) | [`app/api/location/`](app/api/location/) |
 | Items | [`domain/item/`](domain/item/) | [`services/item/crud/`](services/item/crud/) | [`app/api/items/`](app/api/items/) |
 | NPCs (+ locations, knowledge, relations, memories, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
 | Quests (+ quest↔npc) | [`domain/quest/`](domain/quest/) | [`services/quest/`](services/quest/) | [`app/api/quests/`](app/api/quests/) |

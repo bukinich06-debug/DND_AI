@@ -456,6 +456,22 @@ export const schemas = {
       travel: { allOf: [{ $ref: '#/components/schemas/PlayerTravel' }], nullable: true },
     },
   },
+  SetPlayerLocation: {
+    type: 'object',
+    required: ['playerId', 'locationId'],
+    properties: {
+      playerId: { type: 'string' },
+      locationId: { type: 'string' },
+    },
+  },
+  AdvanceTravel: {
+    type: 'object',
+    required: ['playerId'],
+    properties: {
+      playerId: { type: 'string' },
+      days: { type: 'integer', minimum: 1 },
+    },
+  },
 
   LocationLink: {
     type: 'object',

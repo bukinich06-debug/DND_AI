@@ -20,7 +20,7 @@ const parseArgs = (args: unknown): IArgs => {
 export const startTravelTool: ILlmTool = {
   name: 'start_travel',
   description:
-    'Начинает путешествие игрока к удалённой локации по графу дорог (LocationLink). Ставит игрока на первый отрезок пути и считает дни. Нужна текущая локация и существующий путь. Для коротких перемещений внутри места — move_player.',
+    'Начинает путешествие к удалённой локации по дорогам между поселениями. Игрок остаётся в текущем месте, пока отрезок не пройден (advance_travel). Нужен путь settlement↔settlement. Для коротких перемещений внутри поселения — move_player.',
   parameters: {
     type: 'object',
     properties: {

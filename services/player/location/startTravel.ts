@@ -4,7 +4,7 @@ import { campaignRepository } from '@/data/campaign';
 import { locationRepository } from '@/data/location';
 import { locationLinkRepository } from '@/data/location-link';
 import { playerRepository } from '@/data/player';
-import { findPath, getEdgeDays } from '@/domain/location';
+import { findPath, getEdgeDays, settlementOf } from '@/domain/location';
 import { validateStartTravel, type IPlayerLocation, type IStartTravel } from '@/domain/player';
 import { buildPlayerLocation } from './helpers/buildPlayerLocation';
 
@@ -25,9 +25,17 @@ export const startTravel = async (input: IStartTravel): Promise<IPlayerLocation>
 
   if (player.locationId === destination.id) throw new Error('Игрок уже в целевой локации.');
 
+  const locations = await locationRepository.listByCampaignId(input.campaignId);
+  const byId = new Map(locations.map((loc) => [loc.id, loc]));
+  const fromSettlement = settlementOf(player.locationId, byId);
+  const toSettlement = settlementOf(destination.id, byId);
+  if (!fromSettlement || !toSettlement) throw new Error('Путь до цели не найден.');
+  if (fromSettlement.id === toSettlement.id)
+    throw new Error('Цель в том же поселении — используйте мгновенное перемещение.');
+
   const links = await locationLinkRepository.listByCampaignId(input.campaignId);
   const edges = links.map((link) => ({ fromId: link.fromId, toId: link.toId, days: link.days }));
-  const path = findPath(player.locationId, destination.id, edges);
+  const path = findPath(fromSettlement.id, toSettlement.id, edges);
   if (!path || path.length < 2) throw new Error('Путь до цели не найден.');
 
   const route = path.slice(1);
@@ -35,7 +43,7 @@ export const startTravel = async (input: IStartTravel): Promise<IPlayerLocation>
   if (firstDays == null) throw new Error('Путь до цели не найден.');
 
   const updated = await playerRepository.updateLocationState(player.id, {
-    locationId: route[0],
+    locationId: player.locationId,
     travelDestinationId: destination.id,
     travelRoute: route,
     travelLegIndex: 0,

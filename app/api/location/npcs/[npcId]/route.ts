@@ -5,13 +5,13 @@ import { listNpcLocations } from '@/services/npc/crud/listNpcLocations';
 import { setNpcLocation } from '@/services/npc/crud/setNpcLocation';
 
 interface IParams {
-  params: Promise<{ id: string }>;
+  params: Promise<{ npcId: string }>;
 }
 
 export const GET = async (_req: Request, { params }: IParams) => {
   try {
-    const { id } = await params;
-    return ok(await listNpcLocations(id));
+    const { npcId } = await params;
+    return ok(await listNpcLocations(npcId));
   } catch (e) {
     return toErrorResponse(e);
   }
@@ -19,9 +19,9 @@ export const GET = async (_req: Request, { params }: IParams) => {
 
 export const PUT = async (req: Request, { params }: IParams) => {
   try {
-    const { id } = await params;
+    const { npcId } = await params;
     const body = await parseJson<Omit<ISetNpcLocation, 'npcId'>>(req);
-    return ok(await setNpcLocation({ ...body, npcId: id }));
+    return ok(await setNpcLocation({ ...body, npcId }));
   } catch (e) {
     return toErrorResponse(e);
   }

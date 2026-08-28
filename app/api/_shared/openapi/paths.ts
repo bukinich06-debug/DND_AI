@@ -31,6 +31,20 @@ const campaignIdQuery = {
   schema: { type: 'string' },
 };
 
+const playerIdQuery = {
+  name: 'playerId',
+  in: 'query' as const,
+  required: true,
+  schema: { type: 'string' },
+};
+
+const npcIdParam = {
+  name: 'npcId',
+  in: 'path' as const,
+  required: true,
+  schema: { type: 'string' },
+};
+
 const crudById = (tag: string, entity: string) => ({
   get: {
     tags: [tag],
@@ -132,11 +146,11 @@ export const paths = {
   },
   '/api/campaigns/{id}': crudById('Campaigns', 'Campaign'),
 
-  '/api/locations': listCreateByCampaign('Locations', 'Location', 'CreateLocation'),
-  '/api/locations/{id}': crudById('Locations', 'Location'),
-  '/api/locations/{id}/children': {
+  '/api/location': listCreateByCampaign('Location', 'Location', 'CreateLocation'),
+  '/api/location/{id}': crudById('Location', 'Location'),
+  '/api/location/{id}/children': {
     get: {
-      tags: ['Locations'],
+      tags: ['Location'],
       summary: 'Дочерние локации',
       parameters: [idParam],
       responses: {
@@ -148,17 +162,28 @@ export const paths = {
       },
     },
   },
-
-  '/api/items': listCreateByCampaign('Items', 'Item', 'CreateItem'),
-  '/api/items/{id}': crudById('Items', 'Item'),
-
-  '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
-  '/api/players/{id}': crudById('Players', 'Player'),
-  '/api/players/{id}/location': {
+  '/api/location/links': listCreateByCampaign('Location', 'LocationLink', 'CreateLocationLink'),
+  '/api/location/links/{id}': crudById('Location', 'LocationLink'),
+  '/api/location/player': {
     get: {
-      tags: ['Players'],
+      tags: ['Location'],
       summary: 'Текущая локация игрока',
-      parameters: [idParam],
+      parameters: [playerIdQuery],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('PlayerLocation')),
+        },
+        ...errorResponses,
+      },
+    },
+    patch: {
+      tags: ['Location'],
+      summary: 'Сменить локацию игрока',
+      requestBody: {
+        required: true,
+        ...json(ref('SetPlayerLocation')),
+      },
       responses: {
         '200': {
           description: 'OK',
@@ -168,9 +193,95 @@ export const paths = {
       },
     },
   },
+  '/api/location/player/advance': {
+    post: {
+      tags: ['Location'],
+      summary: 'Продвинуть путешествие на дни',
+      requestBody: {
+        required: true,
+        ...json(ref('AdvanceTravel')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('PlayerLocation')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/location/npcs/{npcId}': {
+    get: {
+      tags: ['Location'],
+      summary: 'Локации NPC',
+      parameters: [npcIdParam],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('NpcLocation') }),
+        },
+        ...errorResponses,
+      },
+    },
+    put: {
+      tags: ['Location'],
+      summary: 'Привязать локацию к NPC',
+      parameters: [npcIdParam],
+      requestBody: {
+        required: true,
+        ...json(ref('SetNpcLocationBody')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('NpcLocation')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/location/npcs/{npcId}/{locationId}': {
+    delete: {
+      tags: ['Location'],
+      summary: 'Отвязать локацию от NPC',
+      parameters: [
+        npcIdParam,
+        {
+          name: 'locationId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '204': { description: 'Удалено' },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/location/look': {
+    post: {
+      tags: ['Location'],
+      summary: 'Осмотр текущей локации игрока (world-агент)',
+      requestBody: {
+        required: true,
+        ...json(ref('LocationLookRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('LocationLookReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 
-  '/api/location-links': listCreateByCampaign('LocationLinks', 'LocationLink', 'CreateLocationLink'),
-  '/api/location-links/{id}': crudById('LocationLinks', 'LocationLink'),
+  '/api/items': listCreateByCampaign('Items', 'Item', 'CreateItem'),
+  '/api/items/{id}': crudById('Items', 'Item'),
+
+  '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
+  '/api/players/{id}': crudById('Players', 'Player'),
 
   '/api/npcs': listCreateByCampaign('Npcs', 'Npc', 'CreateNpc'),
   '/api/npcs/{id}': crudById('Npcs', 'Npc'),
@@ -321,55 +432,6 @@ export const paths = {
           description: 'Создано',
           ...json(ref('NpcMemory')),
         },
-        ...errorResponses,
-      },
-    },
-  },
-  '/api/npcs/{id}/locations': {
-    get: {
-      tags: ['Npcs'],
-      summary: 'Локации NPC',
-      parameters: [idParam],
-      responses: {
-        '200': {
-          description: 'OK',
-          ...json({ type: 'array', items: ref('NpcLocation') }),
-        },
-        ...errorResponses,
-      },
-    },
-    put: {
-      tags: ['Npcs'],
-      summary: 'Привязать локацию к NPC',
-      parameters: [idParam],
-      requestBody: {
-        required: true,
-        ...json(ref('SetNpcLocationBody')),
-      },
-      responses: {
-        '200': {
-          description: 'OK',
-          ...json(ref('NpcLocation')),
-        },
-        ...errorResponses,
-      },
-    },
-  },
-  '/api/npcs/{id}/locations/{locationId}': {
-    delete: {
-      tags: ['Npcs'],
-      summary: 'Отвязать локацию от NPC',
-      parameters: [
-        idParam,
-        {
-          name: 'locationId',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-        },
-      ],
-      responses: {
-        '204': { description: 'Удалено' },
         ...errorResponses,
       },
     },
@@ -674,7 +736,7 @@ export const paths = {
 
   '/api/npc-chat/hooks': {
     get: {
-      tags: ['NpcChat', 'LocationLook'],
+      tags: ['NpcChat', 'Location'],
       summary: 'Статус post-hooks по turnId (NPC-чат и world look)',
       parameters: [
         {
@@ -688,24 +750,6 @@ export const paths = {
         '200': {
           description: 'OK',
           ...json(ref('NpcChatHooksReply')),
-        },
-        ...errorResponses,
-      },
-    },
-  },
-
-  '/api/location-look': {
-    post: {
-      tags: ['LocationLook'],
-      summary: 'Осмотр текущей локации игрока (world-агент)',
-      requestBody: {
-        required: true,
-        ...json(ref('LocationLookRequest')),
-      },
-      responses: {
-        '200': {
-          description: 'OK',
-          ...json(ref('LocationLookReply')),
         },
         ...errorResponses,
       },
