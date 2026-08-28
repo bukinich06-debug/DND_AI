@@ -1,6 +1,9 @@
 # LLM hooks
 
-Post-hooks после ответа NPC-агента. Идут в фоне. Следующий запрос с тем же `campaignId+npcId+playerId` ждёт завершения предыдущего хука (in-memory lock, timeout 90s).
+Post-hooks после ответа агента. Идут в фоне. Следующий запрос с тем же lock-ключом ждёт завершения предыдущего хука (in-memory lock, timeout 90s).
+
+- NPC-чат: `chatHookKey(campaignId, npcId, playerId)`
+- World look: `worldHookKey(campaignId, playerId, locationId)` = `campaignId:world:playerId:locationId`
 
 Контракты tools: [`../tools/README.md`](../tools/README.md).
 
@@ -10,14 +13,17 @@ Post-hooks после ответа NPC-агента. Идут в фоне. Сл�
 
 | Что | Путь |
 |-----|------|
-| Триггер | `services/llm/npc/chatWithNpc.ts` |
+| Триггер NPC | `services/llm/npc/chatWithNpc.ts` |
+| Триггер world | `services/llm/world/describeLocation.ts` |
 | Запуск очереди | `runAfterAgent.ts` |
 | Lock | `store/hookLock.ts` |
 | Лог / `turnId` | `store/hookLogStore.ts` |
-| Контекст | `types.ts` (`IHookContext`, `IAgentHook`) |
-| Места | `location/resolveMentionedLocations.ts` |
-| Люди | `npc/resolveMentionedNpcs.ts` |
-| HTTP | `POST /api/npc-chat`, статус `GET /api/npc-chat/hooks?turnId=` |
+| Контекст | `types.ts` (`IHookContext`, `IAgentHook`, `source`) |
+| Места (NPC) | `location/resolveMentionedLocations.ts` |
+| Люди (NPC) | `npc/resolveMentionedNpcs.ts` |
+| Места (world) | `world/resolveWorldLocations.ts` |
+| Люди (world) | `world/resolveWorldNpcs.ts` |
+| HTTP | `POST /api/npc-chat`, `POST /api/location-look`, статус `GET /api/npc-chat/hooks?turnId=` |
 | Тест UI | `/npc-chat` (hooks слева, чат, tools справа) |
 
 ---
@@ -65,7 +71,9 @@ Preload чата: character, relation, собственные memories, **about-
 
 ### `IHookContext`
 
-`campaignId`, `npcId`, `playerId`, `reply` (`say`/`do`), `messages`, `speakerName`, `playerName`, `turnId`.
+Всегда: `campaignId`, `playerId`, `reply` (`say`/`do`), `messages`, `playerName`, `turnId`, `source` (`npc` | `world`).
+
+NPC: `npcId`, `speakerName`. World: `locationId`, без speaker.
 
 ---
 
@@ -96,9 +104,77 @@ Registry: `npc/mentionTools.ts`.
 
 ---
 
+## World-агент (`describeLocation`)
+
+Игрок осматривается. Если `description` текущей локации уже не stub (`неизвестно`) — look из кэша, хуки не запускаются (`cached: true`, `turnId: null`). Иначе один LLM-вызов без tools пишет look, сразу `updateLocation({ description: look })`, затем фоном хуки.
+
+Look по `kind` (`lookCast`):
+
+- **people** (`building` / `room` / `dungeon` / `wilderness` / `other`) — каждый NPC из `npcsHere` в тексте, с занятием из title/role/habits.
+- **places** (`settlement` / `district` / `region`) — не именные NPC; дочерние места + массовка.
+
+1. `waitForHooks(worldHookKey)`
+2. LLM look → persist `description`
+3. `createTurn` → `turnId` в ответе
+4. `runAfterAgent` **последовательно**: `resolveWorldLocations`, затем `resolveWorldNpcs`
+
+В хуки: `source: 'world'`, `locationId`, `reply.say = look`, `reply.do = null`, `messages: []`. Speaker нет. Новые NPC сажаются в текущую локацию.
+
+HTTP: `POST /api/location-look`. Poll хуков — тот же `GET /api/npc-chat/hooks?turnId=`.
+
+**Request**
+
+```ts
+{
+  campaignId: string
+  playerId: string
+}
+```
+
+**Response**
+
+```ts
+{
+  look: string
+  locationId: string
+  cached: boolean
+  turnId: string | null
+}
+```
+
+`cached: true` — look уже был в `description`, LLM и хуки не вызывались. `turnId` тогда `null`.
+
+---
+
+## `resolveWorldLocations`
+
+После look отдельный LLM-pass смотрит текст и снимок **текущей** локации. До 5 раундов; финал: `DONE`.
+
+Preload: `world/helpers/loadWorldHookContext.ts` → `current` / `parent` / `children` (без секретов) / `currentLocationId`.
+
+1. Уточнение к ребёнку или родителю → [`update_mentioned_location`](../tools/README.md#update_mentioned_location). **Не** затирать `description` текущей локации (look уже записан)
+2. Нет в списках → [`search_location`](../tools/README.md#search_location) → нет: [`create_mentioned_location`](../tools/README.md#create_mentioned_location). **Без** `ensure_location_link`
+3. Комната / закуток → `kind=room` (сервер — child текущего здания). Не плодить соседние поселения из осмотра таверны
+
+Registry: `world/worldLocationTools.ts`. Идёт **перед** `resolveWorldNpcs`.
+
+---
+
+## `resolveWorldNpcs`
+
+После look отдельный LLM-pass смотрит текст и NPC **здесь**. До 5 раундов; финал: `DONE`.
+
+1. Уточнение к человеку из `npcsHere` → [`update_mentioned_npc`](../tools/README.md#update_mentioned_npc) (только карточка, без acquaintance/memory)
+2. Новое имя или устойчивая роль → [`search_npc`](../tools/README.md#search_npc) → нет: [`create_mentioned_npc`](../tools/README.md#create_mentioned_npc). Посадка в `ctx.locationId`. **Без** `ensure_npc_acquaintance`
+3. Массовку без сущности игнорировать. Без личного имени: `title`=роль, `name`=роль
+
+Registry: `world/worldNpcTools.ts`.
+
+---
+
 ## Как добавлять hook
 
 1. `IAgentHook` (`name` + `run`) в `hooks/`
 2. Свой registry tools, если нужны отдельные tools (и секция в [tools README](../tools/README.md))
-3. Вставить в `NPC_HOOKS` в `chatWithNpc.ts` (порядок важен)
+3. Вставить в `NPC_HOOKS` в `chatWithNpc.ts` или `WORLD_HOOKS` в `describeLocation.ts` (порядок важен)
 4. Секция в этом README

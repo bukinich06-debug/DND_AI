@@ -613,6 +613,29 @@ export const paths = {
     },
   },
 
+  '/api/coins': {
+    get: {
+      tags: ['Coins'],
+      summary: 'Баланс монет игрока',
+      parameters: [
+        campaignIdQuery,
+        {
+          name: 'playerId',
+          in: 'query' as const,
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('CoinBalance')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
   '/api/coins/transfer': {
     post: {
       tags: ['Coins'],
@@ -651,8 +674,8 @@ export const paths = {
 
   '/api/npc-chat/hooks': {
     get: {
-      tags: ['NpcChat'],
-      summary: 'Статус post-hooks по turnId',
+      tags: ['NpcChat', 'LocationLook'],
+      summary: 'Статус post-hooks по turnId (NPC-чат и world look)',
       parameters: [
         {
           name: 'turnId',
@@ -665,6 +688,24 @@ export const paths = {
         '200': {
           description: 'OK',
           ...json(ref('NpcChatHooksReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
+  '/api/location-look': {
+    post: {
+      tags: ['LocationLook'],
+      summary: 'Осмотр текущей локации игрока (world-агент)',
+      requestBody: {
+        required: true,
+        ...json(ref('LocationLookRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('LocationLookReply')),
         },
         ...errorResponses,
       },

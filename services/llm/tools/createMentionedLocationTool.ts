@@ -1,11 +1,10 @@
-import { LocationKind } from '@/domain/shared';
+import { LocationKind, STUB_UNKNOWN } from '@/domain/shared';
 import { resolveMentionParentId } from '@/domain/location';
 import { createLocation } from '@/services/location/crud/createLocation';
 import { loadMentionAnchor } from '@/services/location/helpers/loadMentionAnchor';
 import { ensureLocationLink } from '@/services/location-link/crud/ensureLocationLink';
 import type { ILlmTool, IToolContext } from './types';
 
-const STUB_UNKNOWN = 'неизвестно';
 const kinds = new Set<string>(Object.values(LocationKind));
 
 interface IArgs {

@@ -10,6 +10,9 @@ export default function Home() {
       <p>
         <Link href="/npc-chat">NPC chat (тест)</Link>
       </p>
+      <p>
+        <Link href="/location-look">Location look (тест)</Link>
+      </p>
     </main>
   );
 }

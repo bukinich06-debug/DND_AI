@@ -15,6 +15,11 @@ export const npcLocationRepository: INpcLocationRepository = {
     return rows.map(mapLink);
   },
 
+  listByLocationId: async (locationId) => {
+    const rows = await db.npcLocation.findMany({ where: { locationId } });
+    return rows.map(mapLink);
+  },
+
   set: async (input: ISetNpcLocation) => {
     const isPrimary = input.isPrimary ?? false;
 

@@ -2,6 +2,7 @@ export interface IToolContext {
   campaignId: string;
   npcId?: string;
   playerId?: string;
+  locationId?: string;
 }
 
 export interface ILlmTool {

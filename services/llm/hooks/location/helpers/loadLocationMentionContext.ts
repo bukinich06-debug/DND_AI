@@ -6,7 +6,7 @@ import { loadMentionAnchor } from '@/services/location/helpers/loadMentionAnchor
 interface ILoadParams {
   campaignId: string;
   playerId: string;
-  npcId: string;
+  npcId?: string;
 }
 
 const compact = (loc: ILocation) => ({

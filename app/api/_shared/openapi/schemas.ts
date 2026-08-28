@@ -1167,4 +1167,23 @@ export const schemas = {
       },
     },
   },
+
+  LocationLookRequest: {
+    type: 'object',
+    required: ['campaignId', 'playerId'],
+    properties: {
+      campaignId: { type: 'string' },
+      playerId: { type: 'string' },
+    },
+  },
+  LocationLookReply: {
+    type: 'object',
+    required: ['look', 'locationId', 'cached', 'turnId'],
+    properties: {
+      look: { type: 'string' },
+      locationId: { type: 'string' },
+      cached: { type: 'boolean' },
+      turnId: { type: 'string', nullable: true },
+    },
+  },
 } as const;

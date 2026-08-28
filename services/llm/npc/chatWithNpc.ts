@@ -84,6 +84,7 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
       messages,
       speakerName: chatCtx.npc.name,
       playerName: chatCtx.player.name,
+      source: 'npc',
     },
   });
 

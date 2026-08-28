@@ -72,11 +72,11 @@ const parseArgs = (args: unknown): IArgs => {
 export const updateMentionedNpcTool: ILlmTool = {
   name: 'update_mentioned_npc',
   description:
-    'Обновляет уже известного speaker’у NPC (имя, роль, note и т.д.). Вызывай, когда ответ уточняет существующего знакомого (например роль «муж» → имя «Грэг»), а не создаёт нового.',
+    'Обновляет уже известного NPC (имя, роль, поля stub). С speaker — ещё note/memory и acquaintance. Без speaker — только карточка. Вызывай, когда текст уточняет существующего человека, а не создаёт нового.',
   parameters: {
     type: 'object',
     properties: {
-      npcId: { type: 'string', description: 'ID знакомого NPC (из списка acquaintances)' },
+      npcId: { type: 'string', description: 'ID уже известного NPC' },
       name: { type: 'string', description: 'Новое имя' },
       title: { type: 'string', description: 'Титул / роль' },
       appearance: { type: 'string', description: 'Внешность' },
@@ -85,20 +85,18 @@ export const updateMentionedNpcTool: ILlmTool = {
       habits: { type: 'string', description: 'Привычки' },
       memory: {
         type: 'string',
-        description: 'Новый факт о нём для памяти speaker: с именем/ролью в тексте',
+        description: 'Новый факт о нём для памяти speaker: с именем/ролью в тексте. Только если есть speaker.',
       },
-      note: { type: 'string', description: 'Как speaker его знает' },
+      note: { type: 'string', description: 'Как speaker его знает. Только если есть speaker.' },
     },
     required: ['npcId'],
     additionalProperties: false,
   },
   execute: async (args: unknown, ctx: IToolContext) => {
-    if (!ctx.npcId?.trim()) throw new Error('npcId спикера обязателен в контексте.');
     const parsed = parseArgs(args);
-    const speakerId = ctx.npcId.trim();
-    if (parsed.npcId === speakerId) throw new Error('Нельзя обновить самого speaker.');
+    const speakerId = ctx.npcId?.trim() || '';
+    if (speakerId && parsed.npcId === speakerId) throw new Error('Нельзя обновить самого speaker.');
 
-    const speaker = await getNpc(speakerId);
     const target = await getNpc(parsed.npcId);
     if (target.campaignId !== ctx.campaignId) throw new Error('NPC из другой кампании.');
 
@@ -120,6 +118,10 @@ export const updateMentionedNpcTool: ILlmTool = {
           ...(parsed.habits !== undefined ? { habits: parsed.habits } : {}),
         })
       : target;
+
+    if (!speakerId) return { npc, acquaintance: null, memory: null };
+
+    const speaker = await getNpc(speakerId);
 
     let acquaintance = null;
     if (parsed.note !== undefined) {

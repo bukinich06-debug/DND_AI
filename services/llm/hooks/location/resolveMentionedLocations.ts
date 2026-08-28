@@ -1,48 +1,15 @@
-import {
-  sendDeepseekChat,
-  type IDeepseekMessage,
-  type IDeepseekToolCall,
-} from '@/services/llm/providers/sendDeepseekChat';
-import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
-import type { IToolContext } from '@/services/llm/tools/types';
-import { appendToolCall } from '../store/hookLogStore';
+import { runHookToolLoop } from '../helpers/runHookToolLoop';
 import type { IAgentHook, IHookContext, IHookToolCall } from '../types';
 import { loadLocationMentionContext } from './helpers/loadLocationMentionContext';
-import { mentionLocationToolByName, mentionLocationTools } from './mentionLocationTools';
+import { mentionLocationTools } from './mentionLocationTools';
 
-const MAX_ROUNDS = 5;
-const RECENT_MESSAGE_COUNT = 6;
 const HOOK_NAME = 'resolveMentionedLocations';
+const RECENT_MESSAGE_COUNT = 6;
 
-const parseToolArgs = (raw: string): unknown => {
-  if (!raw.trim()) return {};
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    throw new Error('Некорректный JSON аргументов tool.');
-  }
-};
+const buildSystemPrompt = (ctx: IHookContext) => {
+  if (!ctx.npcId?.trim() || !ctx.speakerName?.trim()) throw new Error('npcId спикера обязателен.');
 
-const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<IHookToolCall> => {
-  const name = call.function?.name?.trim() || '';
-  let args: unknown = {};
-  try {
-    args = parseToolArgs(call.function?.arguments ?? '');
-    const tool = mentionLocationToolByName.get(name);
-    if (!tool) throw new Error(`Неизвестный tool: ${name || '(пусто)'}.`);
-    const result = await tool.execute(args, ctx);
-    return { name, args, ok: true, result };
-  } catch (e) {
-    return {
-      name: name || 'unknown',
-      args,
-      ok: false,
-      error: e instanceof Error ? e.message : 'Ошибка tool.',
-    };
-  }
-};
-
-const buildSystemPrompt = (ctx: IHookContext) => `Ты post-processor после ответа NPC-агента.
+  return `Ты post-processor после ответа NPC-агента.
 Задача: зафиксировать в БД места, которые упомянул speaker — найти существующие или создать stub.
 
 Speaker: ${ctx.speakerName} (npcId=${ctx.npcId})
@@ -65,14 +32,11 @@ campaignId: ${ctx.campaignId}
 - При create не выдумывай summary/description/features — опусти поля. tags: роль (smithy, кузница).
 - Не вызывай tools, если нечего делать.
 - Когда закончишь, ответь обычным текстом без tool calls: DONE.`;
+};
 
 const runMentionLoop = async (ctx: IHookContext): Promise<IHookToolCall[]> => {
-  const toolCtx: IToolContext = {
-    campaignId: ctx.campaignId,
-    npcId: ctx.npcId,
-    playerId: ctx.playerId,
-  };
-  const openAiTools = mentionLocationTools.map(toOpenAiCompatibleTool);
+  if (!ctx.npcId?.trim()) throw new Error('npcId спикера обязателен.');
+
   const places = await loadLocationMentionContext({
     campaignId: ctx.campaignId,
     playerId: ctx.playerId,
@@ -85,37 +49,13 @@ const runMentionLoop = async (ctx: IHookContext): Promise<IHookToolCall[]> => {
     ...places,
   });
 
-  const history: IDeepseekMessage[] = [
-    { role: 'system', content: buildSystemPrompt(ctx) },
-    { role: 'user', content: userContent },
-  ];
-  const toolCalls: IHookToolCall[] = [];
-
-  for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, tools: openAiTools });
-    const calls = assistant.tool_calls;
-
-    if (!calls || calls.length === 0) return toolCalls;
-
-    history.push({
-      role: 'assistant',
-      content: assistant.content ?? null,
-      tool_calls: calls,
-    });
-
-    for (const call of calls) {
-      const log = await runOneTool(call, toolCtx);
-      toolCalls.push(log);
-      appendToolCall(ctx.turnId, HOOK_NAME, log);
-      history.push({
-        role: 'tool',
-        tool_call_id: call.id,
-        content: JSON.stringify(log.ok ? { ok: true, result: log.result } : { ok: false, error: log.error }),
-      });
-    }
-  }
-
-  return toolCalls;
+  return runHookToolLoop({
+    ctx,
+    hookName: HOOK_NAME,
+    tools: mentionLocationTools,
+    system: buildSystemPrompt(ctx),
+    userContent,
+  });
 };
 
 export const resolveMentionedLocationsHook: IAgentHook = {

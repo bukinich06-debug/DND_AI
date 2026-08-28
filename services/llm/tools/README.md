@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/location-look`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
@@ -36,9 +36,15 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `list_npc_knowledge` | `listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
 | `get_npc_knowledge` | `getNpcKnowledgeTool.ts` | Одно знание NPC |
 
+### World look (`describeLocation.ts`)
+
+Нет tool loop. Если `description` не stub — кэш, без LLM. Иначе один вызов модели → persist `description` → post-hooks.
+
+Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/location-look`.
+
 ### Post-hook
 
-Registry: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.ts`](../hooks/location/mentionLocationTools.ts). В диалог **не** входят. Поток: [hooks README](../hooks/README.md).
+NPC: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.ts`](../hooks/location/mentionLocationTools.ts). World: [`worldNpcTools.ts`](../hooks/world/worldNpcTools.ts), [`worldLocationTools.ts`](../hooks/world/worldLocationTools.ts) — без `ensure_npc_acquaintance` / `ensure_location_link`; create NPC сажает в `ctx.locationId`. В диалог **не** входят. Поток: [hooks README](../hooks/README.md).
 
 | name | Файл | Назначение |
 |------|------|------------|
@@ -476,7 +482,11 @@ Post-hook ([hooks README](../hooks/README.md)). Upsert «speaker (`ctx.npcId`) �
 
 ## `create_mentioned_npc`
 
-Post-hook ([hooks README](../hooks/README.md)). Stub NPC + **двустороннее** acquaintance со speaker + optional memory (`aboutNpcId` = новый NPC, `playerId` null). Только для **нового** человека: сначала acquaintances + `search_npc`; уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
+Post-hook ([hooks README](../hooks/README.md)). Stub NPC из упоминания. Только для **нового** человека: сначала `search_npc` (и acquaintances, если есть speaker); уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
+
+- Есть `ctx.npcId` (NPC-чат) — двустороннее acquaintance + optional memory (`aboutNpcId` = новый NPC, `playerId` null). `dmNotes` = `auto:mentioned-by:{speakerId}`.
+- Нет speaker (world look) — без acquaintance/memory. `dmNotes` = `auto:described-at:{locationId}` или `auto:mentioned`.
+- Есть `ctx.locationId` — `setNpcLocation` (`isPrimary: true`, `role` из `title` если есть).
 
 **Args**
 
@@ -488,32 +498,35 @@ Post-hook ([hooks README](../hooks/README.md)). Stub NPC + **двусторон�
 | `speech` | string | нет | Речь (дефолт `неизвестно`) |
 | `habits` | string | нет | Привычки (дефолт `неизвестно`) |
 | `title` | string | нет | Титул / роль |
-| `memory` | string | нет | Факт о нём (с именем/ролью в тексте) |
-| `note` | string | нет | Как знакомы |
+| `memory` | string | нет | Факт о нём (с именем/ролью в тексте). Только со speaker |
+| `note` | string | нет | Как знакомы. Только со speaker |
 
-**Return** — `{ npc, acquaintance, memory }`. `dmNotes` = `auto:mentioned-by:{speakerId}`.
+**Return** — `{ npc, acquaintance, memory, location }`. `acquaintance` / `memory` / `location` могут быть `null`.
 
 ---
 
 ## `update_mentioned_npc`
 
-Post-hook ([hooks README](../hooks/README.md)). Partial update уже известного speaker’у NPC (имя, роль, note, поля stub) + optional memory (`aboutNpcId` = этот NPC, `playerId` null). Всегда ensure обратного acquaintance (other → speaker).
+Post-hook ([hooks README](../hooks/README.md)). Partial update уже известного NPC.
+
+- Есть `ctx.npcId` (NPC-чат) — карточка + optional note/memory (`aboutNpcId` = этот NPC, `playerId` null) + reverse acquaintance (other → speaker).
+- Нет speaker (world look) — только патч карточки; `acquaintance` и `memory` = `null`.
 
 **Args**
 
 | Параметр | Тип | Обяз. | Описание |
 |----------|-----|-------|----------|
-| `npcId` | string | да | ID знакомого NPC |
+| `npcId` | string | да | ID уже известного NPC |
 | `name` | string | нет | Новое имя |
 | `title` | string | нет | Титул / роль |
 | `appearance` | string | нет | Внешность |
 | `personality` | string | нет | Характер |
 | `speech` | string | нет | Речь |
 | `habits` | string | нет | Привычки |
-| `memory` | string | нет | Факт о нём (с именем/ролью в тексте) |
-| `note` | string | нет | Как знакомы (ensure acquaintance) |
+| `memory` | string | нет | Факт о нём (с именем/ролью в тексте). Только со speaker |
+| `note` | string | нет | Как знакомы (ensure acquaintance). Только со speaker |
 
-**Return** — `{ npc, acquaintance, memory }`. Нужно хотя бы одно optional-поле.
+**Return** — `{ npc, acquaintance, memory }`. Нужно хотя бы одно optional-поле. Без speaker `acquaintance`/`memory` = `null`.
 
 ---
 

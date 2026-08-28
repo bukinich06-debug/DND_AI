@@ -14,6 +14,7 @@ export interface ISetNpcLocation {
 
 export interface INpcLocationRepository {
   listByNpcId: (npcId: string) => Promise<INpcLocation[]>;
+  listByLocationId: (locationId: string) => Promise<INpcLocation[]>;
   set: (input: ISetNpcLocation) => Promise<INpcLocation>;
   remove: (npcId: string, locationId: string) => Promise<void>;
 }
