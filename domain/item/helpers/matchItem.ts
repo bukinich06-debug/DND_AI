@@ -8,7 +8,7 @@ export interface IMatchedItem {
   kind: IItem['kind'];
   quantity: number;
   description: string;
-  properties: unknown;
+  properties: IItem['properties'];
   isMagical: boolean;
   equipSlot: IItem['equipSlot'];
   score: number;

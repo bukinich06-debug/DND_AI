@@ -1,0 +1,29 @@
+[
+  {
+    "key": "leatherArmor",
+    "aliases": ["leather armor", "leather", "кожаный доспех", "кожанка"],
+    "name": "Кожаный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Лёгкий доспех.",
+    "weight": 10,
+    "valueCp": 1000,
+    "isMagical": false,
+    "properties": [{ "type": "ac", "text": "КД 11 + Ловкость", "base": 11, "addDex": true }]
+  },
+  {
+    "key": "chainMail",
+    "aliases": ["chain mail", "chainmail", "кольчуга"],
+    "name": "Кольчуга",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Тяжёлый доспех.",
+    "weight": 55,
+    "valueCp": 7500,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 16", "base": 16, "addDex": false },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." }
+    ]
+  }
+]

@@ -1,4 +1,15 @@
+import type { WeaponMastery } from './catalog/mastery';
 import type { EquipSlot, ItemKind, ItemRarity } from '@/domain/shared';
+
+export type IItemProp =
+  | { type: 'damage'; text: string; dice: string; damageType?: string }
+  | { type: 'range'; text: string; normal: number; long?: number }
+  | { type: 'ac'; text: string; base: number; addDex: boolean }
+  | { type: 'heal'; text: string; dice: string }
+  | { type: 'twoHanded'; text: string }
+  | { type: 'stealthDisadvantage'; text: string }
+  | { type: 'mastery'; text: string; mastery: WeaponMastery }
+  | { type: 'note'; text: string };
 
 export interface IItem {
   id: string;
@@ -12,7 +23,7 @@ export interface IItem {
   coinsCp: number;
   quantity: number;
   isMagical: boolean;
-  properties: unknown;
+  properties: IItemProp[] | null;
   equipSlot: EquipSlot | null;
   playerId: string | null;
   npcId: string | null;
@@ -28,6 +39,26 @@ export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp
 
 export type IUpdateItem = Partial<Omit<ICreateItem, 'campaignId'>>;
 
+export interface IEquipItem {
+  itemId: string;
+  slot: EquipSlot;
+}
+
+export interface IUnequipItem {
+  itemId: string;
+}
+
+export interface IGrantCatalogItem {
+  playerId: string;
+  key: string;
+  quantity?: number;
+}
+
+export interface IEquipItemResult {
+  item: IItem;
+  unequipped: IItem[];
+}
+
 export interface ISearchPlayerItems {
   campaignId: string;
   playerId: string;
@@ -40,7 +71,7 @@ export interface ISearchPlayerItem {
   kind: ItemKind;
   quantity: number;
   description: string;
-  properties: unknown;
+  properties: IItemProp[] | null;
   isMagical: boolean;
   equipSlot: EquipSlot | null;
   toolKey?: string | null;

@@ -38,6 +38,86 @@ export const schemas = {
     type: 'string',
     enum: ['armor', 'mainHand', 'offHand'],
   },
+  WeaponMastery: {
+    type: 'string',
+    enum: ['cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex'],
+  },
+  ItemProp: {
+    oneOf: [
+      {
+        type: 'object',
+        required: ['type', 'text', 'dice'],
+        properties: {
+          type: { type: 'string', enum: ['damage'] },
+          text: { type: 'string' },
+          dice: { type: 'string' },
+          damageType: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text', 'normal'],
+        properties: {
+          type: { type: 'string', enum: ['range'] },
+          text: { type: 'string' },
+          normal: { type: 'number' },
+          long: { type: 'number' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text', 'base', 'addDex'],
+        properties: {
+          type: { type: 'string', enum: ['ac'] },
+          text: { type: 'string' },
+          base: { type: 'number' },
+          addDex: { type: 'boolean' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text', 'dice'],
+        properties: {
+          type: { type: 'string', enum: ['heal'] },
+          text: { type: 'string' },
+          dice: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text'],
+        properties: {
+          type: { type: 'string', enum: ['twoHanded'] },
+          text: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text'],
+        properties: {
+          type: { type: 'string', enum: ['stealthDisadvantage'] },
+          text: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text', 'mastery'],
+        properties: {
+          type: { type: 'string', enum: ['mastery'] },
+          text: { type: 'string' },
+          mastery: { $ref: '#/components/schemas/WeaponMastery' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text'],
+        properties: {
+          type: { type: 'string', enum: ['note'] },
+          text: { type: 'string' },
+        },
+      },
+    ],
+  },
   ItemRarity: {
     type: 'string',
     enum: ['common', 'uncommon', 'rare', 'veryRare', 'legendary', 'artifact'],
@@ -168,7 +248,7 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
-      properties: {},
+      properties: { type: 'array', items: { $ref: '#/components/schemas/ItemProp' }, nullable: true },
       equipSlot: { allOf: [{ $ref: '#/components/schemas/EquipSlot' }], nullable: true },
       playerId: { type: 'string', nullable: true },
       npcId: { type: 'string', nullable: true },
@@ -201,7 +281,7 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
-      properties: {},
+      properties: { type: 'array', items: { $ref: '#/components/schemas/ItemProp' }, nullable: true },
       equipSlot: { allOf: [{ $ref: '#/components/schemas/EquipSlot' }], nullable: true },
       playerId: { type: 'string', nullable: true },
       npcId: { type: 'string', nullable: true },
@@ -220,11 +300,42 @@ export const schemas = {
       coinsCp: { type: 'integer' },
       quantity: { type: 'integer' },
       isMagical: { type: 'boolean' },
-      properties: {},
+      properties: { type: 'array', items: { $ref: '#/components/schemas/ItemProp' }, nullable: true },
       equipSlot: { allOf: [{ $ref: '#/components/schemas/EquipSlot' }], nullable: true },
       playerId: { type: 'string', nullable: true },
       npcId: { type: 'string', nullable: true },
       locationId: { type: 'string', nullable: true },
+    },
+  },
+  EquipItem: {
+    type: 'object',
+    required: ['itemId', 'slot'],
+    properties: {
+      itemId: { type: 'string' },
+      slot: { $ref: '#/components/schemas/EquipSlot' },
+    },
+  },
+  UnequipItem: {
+    type: 'object',
+    required: ['itemId'],
+    properties: {
+      itemId: { type: 'string' },
+    },
+  },
+  GrantCatalogItem: {
+    type: 'object',
+    required: ['key'],
+    properties: {
+      key: { type: 'string' },
+      quantity: { type: 'integer', minimum: 1 },
+    },
+  },
+  EquipItemResult: {
+    type: 'object',
+    required: ['item', 'unequipped'],
+    properties: {
+      item: { $ref: '#/components/schemas/Item' },
+      unequipped: { type: 'array', items: { $ref: '#/components/schemas/Item' } },
     },
   },
 

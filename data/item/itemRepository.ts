@@ -1,7 +1,13 @@
-import type { Item } from '@/generated/client';
-import type { ICreateItem, IItem, IItemRepository, IUpdateItem } from '@/domain/item';
-import type { EquipSlot, ItemKind, ItemRarity } from '@/domain/shared';
 import { db } from '@/data/shared';
+import {
+  parseItemProperties,
+  type ICreateItem,
+  type IItem,
+  type IItemRepository,
+  type IUpdateItem,
+} from '@/domain/item';
+import type { EquipSlot, ItemKind, ItemRarity } from '@/domain/shared';
+import type { Item } from '@/generated/client';
 
 const mapItem = (row: Item): IItem => ({
   id: row.id,
@@ -15,7 +21,7 @@ const mapItem = (row: Item): IItem => ({
   coinsCp: row.coinsCp,
   quantity: row.quantity,
   isMagical: row.isMagical,
-  properties: row.properties,
+  properties: parseItemProperties(row.properties),
   equipSlot: row.equipSlot as EquipSlot | null,
   playerId: row.playerId,
   npcId: row.npcId,

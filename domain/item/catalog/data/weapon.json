@@ -1,0 +1,266 @@
+[
+  {
+    "key": "shortsword",
+    "aliases": ["shortsword", "short sword", "короткий меч"],
+    "name": "Короткий меч",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкое одноручное оружие ближнего боя.",
+    "weight": 2,
+    "valueCp": 1000,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
+      { "type": "note", "text": "Лёгкое, фехтовальное." }
+    ]
+  },
+  {
+    "key": "longbow",
+    "aliases": ["longbow", "long bow", "длинный лук"],
+    "name": "Длинный лук",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Двуручное дальнобойное оружие.",
+    "weight": 2,
+    "valueCp": 5000,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d8 колющий", "dice": "1d8", "damageType": "piercing" },
+      { "type": "range", "text": "Дальность 150/600", "normal": 150, "long": 600 },
+      { "type": "twoHanded", "text": "Двуручное." }
+    ]
+  },
+  {
+    "key": "quarterstaff",
+    "aliases": ["quarterstaff", "staff", "боевой посох", "посох"],
+    "name": "Боевой посох",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Простое рукопашное оружие. Можно держать двумя руками.",
+    "weight": 4,
+    "valueCp": 20,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 дробящий", "dice": "1d6", "damageType": "bludgeoning" },
+      { "type": "note", "text": "Универсальное (1d8)." },
+      { "type": "mastery", "mastery": "topple" }
+    ]
+  },
+  {
+    "key": "mace",
+    "aliases": ["mace", "булава"],
+    "name": "Булава",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Простое одноручное дробящее оружие.",
+    "weight": 4,
+    "valueCp": 500,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 дробящий", "dice": "1d6", "damageType": "bludgeoning" },
+      { "type": "mastery", "mastery": "sap" }
+    ]
+  },
+  {
+    "key": "club",
+    "aliases": ["club", "дубинка"],
+    "name": "Дубинка",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Простое лёгкое дробящее оружие.",
+    "weight": 2,
+    "valueCp": 10,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 дробящий", "dice": "1d4", "damageType": "bludgeoning" },
+      { "type": "note", "text": "Лёгкое." },
+      { "type": "mastery", "mastery": "slow" }
+    ]
+  },
+  {
+    "key": "dagger",
+    "aliases": ["dagger", "кинжал"],
+    "name": "Кинжал",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкое фехтовальное оружие, можно метнуть.",
+    "weight": 1,
+    "valueCp": 200,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 колющий", "dice": "1d4", "damageType": "piercing" },
+      { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "note", "text": "Фехтовальное, лёгкое." },
+      { "type": "mastery", "mastery": "nick" }
+    ]
+  },
+  {
+    "key": "spear",
+    "aliases": ["spear", "копьё", "копье"],
+    "name": "Копьё",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Простое колющее оружие, можно метнуть или взять двумя руками.",
+    "weight": 3,
+    "valueCp": 100,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
+      { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "note", "text": "Универсальное (1d8)." },
+      { "type": "mastery", "mastery": "sap" }
+    ]
+  },
+  {
+    "key": "lightHammer",
+    "aliases": ["light hammer", "лёгкий молот", "легкий молот"],
+    "name": "Лёгкий молот",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкое дробящее оружие, можно метнуть.",
+    "weight": 2,
+    "valueCp": 200,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 дробящий", "dice": "1d4", "damageType": "bludgeoning" },
+      { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "note", "text": "Лёгкое." },
+      { "type": "mastery", "mastery": "nick" }
+    ]
+  },
+  {
+    "key": "javelin",
+    "aliases": ["javelin", "метательное копьё", "метательное копье"],
+    "name": "Метательное копьё",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Простое колющее оружие для броска.",
+    "weight": 2,
+    "valueCp": 50,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
+      { "type": "range", "text": "Метательное 30/120", "normal": 30, "long": 120 },
+      { "type": "mastery", "mastery": "slow" }
+    ]
+  },
+  {
+    "key": "handaxe",
+    "aliases": ["handaxe", "hand axe", "одноручный топор"],
+    "name": "Одноручный топор",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкий рубящий топор, можно метнуть.",
+    "weight": 2,
+    "valueCp": 500,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 рубящий", "dice": "1d6", "damageType": "slashing" },
+      { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "note", "text": "Лёгкое." },
+      { "type": "mastery", "mastery": "vex" }
+    ]
+  },
+  {
+    "key": "greatclub",
+    "aliases": ["greatclub", "great club", "палица"],
+    "name": "Палица",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Тяжёлая двуручная дубина.",
+    "weight": 10,
+    "valueCp": 20,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d8 дробящий", "dice": "1d8", "damageType": "bludgeoning" },
+      { "type": "twoHanded", "text": "Двуручное." },
+      { "type": "mastery", "mastery": "push" }
+    ]
+  },
+  {
+    "key": "sickle",
+    "aliases": ["sickle", "серп"],
+    "name": "Серп",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкое рубящее оружие.",
+    "weight": 2,
+    "valueCp": 100,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 рубящий", "dice": "1d4", "damageType": "slashing" },
+      { "type": "note", "text": "Лёгкое." },
+      { "type": "mastery", "mastery": "nick" }
+    ]
+  },
+  {
+    "key": "dart",
+    "aliases": ["dart", "дротик"],
+    "name": "Дротик",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Лёгкое метательное оружие.",
+    "weight": 0.25,
+    "valueCp": 5,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 колющий", "dice": "1d4", "damageType": "piercing" },
+      { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "note", "text": "Фехтовальное." },
+      { "type": "mastery", "mastery": "vex" }
+    ]
+  },
+  {
+    "key": "shortbow",
+    "aliases": ["shortbow", "short bow", "короткий лук"],
+    "name": "Короткий лук",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Двуручный лук, нужны стрелы.",
+    "weight": 2,
+    "valueCp": 2500,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
+      { "type": "range", "text": "Дальность 80/320", "normal": 80, "long": 320 },
+      { "type": "twoHanded", "text": "Двуручное." },
+      { "type": "note", "text": "Боеприпас: стрела." },
+      { "type": "mastery", "mastery": "vex" }
+    ]
+  },
+  {
+    "key": "lightCrossbow",
+    "aliases": ["light crossbow", "лёгкий арбалет", "легкий арбалет"],
+    "name": "Лёгкий арбалет",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Двуручный арбалет, нужны болты и перезарядка.",
+    "weight": 5,
+    "valueCp": 2500,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d8 колющий", "dice": "1d8", "damageType": "piercing" },
+      { "type": "range", "text": "Дальность 80/320", "normal": 80, "long": 320 },
+      { "type": "twoHanded", "text": "Двуручное." },
+      { "type": "note", "text": "Боеприпас: болт. Перезарядка." },
+      { "type": "mastery", "mastery": "slow" }
+    ]
+  },
+  {
+    "key": "sling",
+    "aliases": ["sling", "праща"],
+    "name": "Праща",
+    "kind": "weapon",
+    "rarity": null,
+    "description": "Дальнобойное оружие, нужны пули.",
+    "weight": null,
+    "valueCp": 10,
+    "isMagical": false,
+    "properties": [
+      { "type": "damage", "text": "1d4 дробящий", "dice": "1d4", "damageType": "bludgeoning" },
+      { "type": "range", "text": "Дальность 30/120", "normal": 30, "long": 120 },
+      { "type": "note", "text": "Боеприпас: пуля." },
+      { "type": "mastery", "mastery": "slow" }
+    ]
+  }
+]

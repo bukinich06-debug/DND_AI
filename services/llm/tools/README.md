@@ -137,7 +137,7 @@ NPC: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.t
 
 Инвентарь игрока или поиск предмета. Перед использованием предмета / инструмента.
 
-Без `query` — весь инвентарь. С `query` — кандидаты: инструменты PHB матчятся по стандартным именам (en/ru); уникальные/магические — по `name`/`description`, эффект бери из `description`/`properties`. `equipSlot`: `null` — в сумке; `armor` — надет доспех; `mainHand` / `offHand` — в руках.
+Без `query` — весь инвентарь. С `query` — кандидаты: инструменты PHB матчятся по стандартным именам (en/ru); уникальные/магические — по `name`/`description`, эффект бери из `description` и `properties` (массив `{ type, text, … }`: `damage`, `range`, `ac`, `heal`, `twoHanded`, `note`). `equipSlot`: `null` — в сумке; `armor` — надет доспех; `mainHand` / `offHand` — в руках.
 
 **Args**
 

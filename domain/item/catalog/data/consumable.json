@@ -1,0 +1,14 @@
+[
+  {
+    "key": "potionOfHealing",
+    "aliases": ["potion of healing", "healing potion", "зелье лечения"],
+    "name": "Зелье лечения",
+    "kind": "consumable",
+    "rarity": "common",
+    "description": "Восстанавливает хиты при выпивании.",
+    "weight": 0.5,
+    "valueCp": 5000,
+    "isMagical": true,
+    "properties": [{ "type": "heal", "text": "2d4+2 хитов", "dice": "2d4+2" }]
+  }
+]

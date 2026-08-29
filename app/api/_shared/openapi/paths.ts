@@ -291,11 +291,94 @@ export const paths = {
     },
   },
 
-  '/api/items': listCreateByCampaign('Items', 'Item', 'CreateItem'),
+  '/api/items': {
+    get: {
+      tags: ['Items'],
+      summary: 'Список предметов по кампании или игроку',
+      parameters: [
+        { ...campaignIdQuery, required: false },
+        { ...playerIdQuery, required: false },
+      ],
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json({ type: 'array', items: ref('Item') }),
+        },
+        ...errorResponses,
+      },
+    },
+    post: {
+      tags: ['Items'],
+      summary: 'Создать Item',
+      requestBody: {
+        required: true,
+        ...json(ref('CreateItem')),
+      },
+      responses: {
+        '201': {
+          description: 'Создано',
+          ...json(ref('Item')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/items/equip': {
+    post: {
+      tags: ['Items'],
+      summary: 'Экипировать предмет',
+      requestBody: {
+        required: true,
+        ...json(ref('EquipItem')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('EquipItemResult')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/items/unequip': {
+    post: {
+      tags: ['Items'],
+      summary: 'Снять предмет',
+      requestBody: {
+        required: true,
+        ...json(ref('UnequipItem')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('Item')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
   '/api/items/{id}': crudById('Items', 'Item'),
 
   '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
   '/api/players/{id}': crudById('Players', 'Player'),
+  '/api/players/{id}/items': {
+    post: {
+      tags: ['Items'],
+      summary: 'Выдать игроку предмет из справочника',
+      parameters: [idParam],
+      requestBody: {
+        required: true,
+        ...json(ref('GrantCatalogItem')),
+      },
+      responses: {
+        '201': {
+          description: 'Создано',
+          ...json(ref('Item')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 
   '/api/npcs': listCreateByCampaign('Npcs', 'Npc', 'CreateNpc'),
   '/api/npcs/{id}': crudById('Npcs', 'Npc'),

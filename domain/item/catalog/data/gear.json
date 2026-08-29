@@ -1,0 +1,26 @@
+[
+  {
+    "key": "backpack",
+    "aliases": ["backpack", "рюкзак"],
+    "name": "Рюкзак",
+    "kind": "gear",
+    "rarity": null,
+    "description": "Обычный рюкзак для снаряжения.",
+    "weight": 5,
+    "valueCp": 200,
+    "isMagical": false,
+    "properties": null
+  },
+  {
+    "key": "torch",
+    "aliases": ["torch", "факел"],
+    "name": "Факел",
+    "kind": "gear",
+    "rarity": null,
+    "description": "Даёт свет около часа.",
+    "weight": 1,
+    "valueCp": 1,
+    "isMagical": false,
+    "properties": [{ "type": "note", "text": "Яркий свет 20 футов, тусклый ещё 20." }]
+  }
+]
