@@ -1,6 +1,6 @@
 import type { Item } from '@/generated/client';
 import type { ICreateItem, IItem, IItemRepository, IUpdateItem } from '@/domain/item';
-import type { ItemKind, ItemRarity } from '@/domain/shared';
+import type { EquipSlot, ItemKind, ItemRarity } from '@/domain/shared';
 import { db } from '@/data/shared';
 
 const mapItem = (row: Item): IItem => ({
@@ -16,6 +16,7 @@ const mapItem = (row: Item): IItem => ({
   quantity: row.quantity,
   isMagical: row.isMagical,
   properties: row.properties,
+  equipSlot: row.equipSlot as EquipSlot | null,
   playerId: row.playerId,
   npcId: row.npcId,
   locationId: row.locationId,
@@ -36,6 +37,7 @@ export const itemRepository: IItemRepository = {
         quantity: input.quantity ?? 1,
         isMagical: input.isMagical ?? false,
         properties: input.properties ?? undefined,
+        equipSlot: input.playerId ? (input.equipSlot ?? null) : null,
         playerId: input.playerId ?? null,
         npcId: input.npcId ?? null,
         locationId: input.locationId ?? null,
@@ -74,6 +76,7 @@ export const itemRepository: IItemRepository = {
         ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
         ...(input.isMagical !== undefined ? { isMagical: input.isMagical } : {}),
         ...(input.properties !== undefined ? { properties: input.properties ?? undefined } : {}),
+        ...(input.equipSlot !== undefined ? { equipSlot: input.equipSlot } : {}),
         ...(input.playerId !== undefined ? { playerId: input.playerId } : {}),
         ...(input.npcId !== undefined ? { npcId: input.npcId } : {}),
         ...(input.locationId !== undefined ? { locationId: input.locationId } : {}),

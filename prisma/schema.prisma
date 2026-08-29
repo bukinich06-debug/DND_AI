@@ -49,6 +49,13 @@ enum ItemKind {
   other
 }
 
+/// Слот экипировки: доспех или рука; null в Item = сумка
+enum EquipSlot {
+  armor
+  mainHand
+  offHand
+}
+
 /// Редкость предмета
 enum ItemRarity {
   common
@@ -401,6 +408,7 @@ model Item {
   quantity    Int         @default(1)
   isMagical   Boolean     @default(false)
   properties  Json?
+  equipSlot   EquipSlot?
   playerId    String?
   npcId       String?
   locationId  String?

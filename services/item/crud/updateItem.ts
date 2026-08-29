@@ -4,7 +4,13 @@ import { itemRepository } from '@/data/item';
 import { locationRepository } from '@/data/location';
 import { npcRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import { assertItemOwnership, validateUpdateItem, type IUpdateItem } from '@/domain/item';
+import {
+  assertEquipConflicts,
+  assertEquipOnItem,
+  assertItemOwnership,
+  validateUpdateItem,
+  type IUpdateItem,
+} from '@/domain/item';
 
 export const updateItem = async (id: string, input: IUpdateItem) => {
   validateUpdateItem(input);
@@ -34,5 +40,20 @@ export const updateItem = async (id: string, input: IUpdateItem) => {
     if (location.campaignId !== existing.campaignId) throw new Error('Локация из другой кампании.');
   }
 
-  return itemRepository.update(id, input);
+  const playerId = nextOwner.playerId || null;
+  const equipSlot = playerId ? (input.equipSlot !== undefined ? input.equipSlot : existing.equipSlot) : null;
+  const properties = input.properties !== undefined ? input.properties : existing.properties;
+  assertEquipOnItem({
+    kind: input.kind ?? existing.kind,
+    quantity: input.quantity ?? existing.quantity,
+    playerId,
+    equipSlot,
+    properties,
+  });
+  if (equipSlot && playerId) {
+    const inventory = await itemRepository.listByPlayerId(playerId);
+    assertEquipConflicts({ id, equipSlot, properties }, inventory);
+  }
+
+  return itemRepository.update(id, { ...input, equipSlot });
 };

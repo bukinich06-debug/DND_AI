@@ -1,4 +1,4 @@
-import type { ItemKind, ItemRarity } from '@/domain/shared';
+import type { EquipSlot, ItemKind, ItemRarity } from '@/domain/shared';
 
 export interface IItem {
   id: string;
@@ -13,15 +13,17 @@ export interface IItem {
   quantity: number;
   isMagical: boolean;
   properties: unknown;
+  equipSlot: EquipSlot | null;
   playerId: string | null;
   npcId: string | null;
   locationId: string | null;
 }
 
-export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp'> & {
+export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp' | 'equipSlot'> & {
   quantity?: number;
   isMagical?: boolean;
   coinsCp?: number;
+  equipSlot?: EquipSlot | null;
 };
 
 export type IUpdateItem = Partial<Omit<ICreateItem, 'campaignId'>>;
@@ -40,6 +42,7 @@ export interface ISearchPlayerItem {
   description: string;
   properties: unknown;
   isMagical: boolean;
+  equipSlot: EquipSlot | null;
   toolKey?: string | null;
 }
 

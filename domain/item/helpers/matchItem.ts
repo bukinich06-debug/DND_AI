@@ -10,6 +10,7 @@ export interface IMatchedItem {
   description: string;
   properties: unknown;
   isMagical: boolean;
+  equipSlot: IItem['equipSlot'];
   score: number;
   toolKey: Tool | null;
 }
@@ -27,6 +28,7 @@ const toMatched = (item: IItem, score: number, toolKey: Tool | null = null): IMa
   description: item.description,
   properties: item.properties,
   isMagical: item.isMagical,
+  equipSlot: item.equipSlot,
   score,
   toolKey,
 });

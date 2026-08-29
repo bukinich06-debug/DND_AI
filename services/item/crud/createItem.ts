@@ -5,7 +5,7 @@ import { itemRepository } from '@/data/item';
 import { locationRepository } from '@/data/location';
 import { npcRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import { validateCreateItem, type ICreateItem } from '@/domain/item';
+import { assertEquipConflicts, validateCreateItem, type ICreateItem } from '@/domain/item';
 
 const assertOwnerInCampaign = async (input: ICreateItem) => {
   if (input.playerId) {
@@ -30,5 +30,10 @@ export const createItem = async (input: ICreateItem) => {
   const campaign = await campaignRepository.getById(input.campaignId);
   if (!campaign) throw new Error('Кампания не найдена.');
   await assertOwnerInCampaign(input);
-  return itemRepository.create(input);
+  const equipSlot = input.playerId ? (input.equipSlot ?? null) : null;
+  if (equipSlot && input.playerId) {
+    const inventory = await itemRepository.listByPlayerId(input.playerId);
+    assertEquipConflicts({ equipSlot, properties: input.properties }, inventory);
+  }
+  return itemRepository.create({ ...input, equipSlot });
 };

@@ -44,6 +44,14 @@ export const ItemKind = {
 
 export type ItemKind = (typeof ItemKind)[keyof typeof ItemKind];
 
+export const EquipSlot = {
+  armor: 'armor',
+  mainHand: 'mainHand',
+  offHand: 'offHand',
+} as const;
+
+export type EquipSlot = (typeof EquipSlot)[keyof typeof EquipSlot];
+
 export const ItemRarity = {
   common: 'common',
   uncommon: 'uncommon',

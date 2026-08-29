@@ -35,6 +35,7 @@ export const searchPlayerItems = async (input: ISearchPlayerItems): Promise<ISea
       description: item.description,
       properties: item.properties,
       isMagical: item.isMagical,
+      equipSlot: item.equipSlot,
       toolKey: item.toolKey,
     })),
   };
