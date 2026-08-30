@@ -19,6 +19,7 @@ export const catalogToCreateItem = ({ entry, campaignId, playerId, quantity }: I
   isMagical: entry.isMagical,
   properties: entry.properties,
   quantity,
+  catalogKey: entry.key,
   playerId,
   npcId: null,
   locationId: null,

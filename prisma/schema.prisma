@@ -406,6 +406,7 @@ model Item {
   valueCp     Int?
   coinsCp     Int         @default(0)
   quantity    Int         @default(1)
+  catalogKey  String?
   isMagical   Boolean     @default(false)
   properties  Json?
   equipSlot   EquipSlot?

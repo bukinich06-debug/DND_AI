@@ -42,6 +42,7 @@ Item {
   valueCp: number | null      // стоимость в медных
   coinsCp: number
   quantity: number            // ≥ 1
+  catalogKey: string | null   // ключ справочника; null — не из каталога
   isMagical: boolean
   properties: IItemProp[] | null
   equipSlot: EquipSlot | null
@@ -108,16 +109,17 @@ Content-Type: application/json
   "locationId": "string | null",
   "coinsCp": 0,
   "quantity": 1,
+  "catalogKey": null,
   "isMagical": false,
   "equipSlot": "EquipSlot | null"
 }
 ```
 
-`coinsCp` / `quantity` / `isMagical` / `equipSlot` можно опустить (`0` / `1` / `false` / `null`). Владелец должен быть из той же кампании. Слот при создании: если занят — `400` (без автоснятия). Стопку (`quantity > 1`) экипировать нельзя.
+`coinsCp` / `quantity` / `catalogKey` / `isMagical` / `equipSlot` можно опустить (`0` / `1` / `null` / `false` / `null`). Владелец должен быть из той же кампании. Слот при создании: если занят — `400` (без автоснятия). Стопку (`quantity > 1`) экипировать нельзя.
 
 ### `POST /api/items/grant`
 
-Выдать игроку шаблон из справочника (`key` как в `domain/item/catalog/data`, например `dagger`). Кампания — у игрока. Предмет в сумке (`equipSlot: null`). Новая строка, стопки не сливаются. `201` → `Item`. Нет игрока или ключа — `404`.
+Выдать игроку шаблон из справочника (`key` как в `domain/item/catalog/data`, например `dagger`). Кампания — у игрока. Предмет в сумке (`equipSlot: null`), `catalogKey` = `key`. Если в сумке уже есть тот же `catalogKey` — увеличивается `quantity`, иначе новая строка. Экипированную копию не сливает. Старые предметы без `catalogKey` не стопкаются. `201` → `Item`. Нет игрока или ключа — `404`.
 
 ```
 POST /api/items/grant
@@ -157,6 +159,7 @@ Content-Type: application/json
   "valueCp": "number | null",
   "coinsCp": 0,
   "quantity": 1,
+  "catalogKey": null,
   "isMagical": false,
   "properties": [],
   "equipSlot": "EquipSlot | null",

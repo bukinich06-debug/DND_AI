@@ -16,9 +16,11 @@ export type {
 } from './types';
 export type { IMatchItemsResult, IMatchedItem } from './helpers/matchItem';
 export { matchItems } from './helpers/matchItem';
+export { findStackItem } from './helpers/findStackItem';
 export { assertItemOwnership, validateCreateItem, validateUpdateItem } from './validation/validateItem';
 export { validateGrantCatalogItem } from './validation/validateGrantCatalogItem';
 export { validateSearchPlayerItems } from './validation/validateSearchPlayerItems';
 export { assertEquipConflicts, assertEquipOnItem, occupantsToUnequip } from './validation/validateEquip';
 export { validateEquipItem, validateUnequipItem } from './validation/validateEquipRequest';
 export { parseItemProperties, validateItemProperties } from './validation/validateProperties';
+export { parseCatalogKey } from './helpers/parseCatalogKey';

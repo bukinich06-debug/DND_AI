@@ -6,7 +6,8 @@ import { grantCatalogItem } from '@/services/item/catalog/grantCatalogItem';
 export const POST = async (req: Request) => {
   try {
     const body = await parseJson<IGrantCatalogItem>(req);
-    return ok(await grantCatalogItem(body), 201);
+    const result = await grantCatalogItem(body);
+    return ok(result, 201);
   } catch (e) {
     return toErrorResponse(e);
   }

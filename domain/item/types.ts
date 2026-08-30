@@ -22,6 +22,7 @@ export interface IItem {
   valueCp: number | null;
   coinsCp: number;
   quantity: number;
+  catalogKey: string | null;
   isMagical: boolean;
   properties: IItemProp[] | null;
   equipSlot: EquipSlot | null;
@@ -30,11 +31,12 @@ export interface IItem {
   locationId: string | null;
 }
 
-export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp' | 'equipSlot'> & {
+export type ICreateItem = Omit<IItem, 'id' | 'quantity' | 'isMagical' | 'coinsCp' | 'equipSlot' | 'catalogKey'> & {
   quantity?: number;
   isMagical?: boolean;
   coinsCp?: number;
   equipSlot?: EquipSlot | null;
+  catalogKey?: string | null;
 };
 
 export type IUpdateItem = Partial<Omit<ICreateItem, 'campaignId'>>;

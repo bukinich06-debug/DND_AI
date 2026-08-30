@@ -360,7 +360,7 @@ export const paths = {
   '/api/items/grant': {
     post: {
       tags: ['Items'],
-      summary: 'Выдать игроку предмет из справочника',
+      summary: 'Выдать игроку предмет из справочника (стопка по catalogKey в сумке)',
       requestBody: {
         required: true,
         ...json(ref('GrantCatalogItem')),

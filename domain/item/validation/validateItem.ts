@@ -1,4 +1,5 @@
 import { ItemKind, ItemRarity } from '@/domain/shared';
+import { parseCatalogKey } from '../helpers/parseCatalogKey';
 import type { ICreateItem, IUpdateItem } from '../types';
 import { assertEquipOnItem } from './validateEquip';
 import { validateItemProperties } from './validateProperties';
@@ -28,6 +29,7 @@ const validateCore = (input: Partial<ICreateItem>) => {
     throw new Error('Стоимость не может быть отрицательной.');
   if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
   if (input.properties !== undefined) validateItemProperties(input.properties);
+  if (input.catalogKey !== undefined) parseCatalogKey(input.catalogKey);
 };
 
 export const validateCreateItem = (input: ICreateItem) => {
@@ -40,6 +42,7 @@ export const validateCreateItem = (input: ICreateItem) => {
   if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
   assertItemOwnership(input);
   validateItemProperties(input.properties);
+  parseCatalogKey(input.catalogKey);
   assertEquipOnItem({
     kind: input.kind,
     quantity: input.quantity ?? 1,

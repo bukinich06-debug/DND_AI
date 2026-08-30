@@ -1,5 +1,6 @@
 import { db } from '@/data/shared';
 import {
+  parseCatalogKey,
   parseItemProperties,
   type ICreateItem,
   type IItem,
@@ -20,6 +21,7 @@ const mapItem = (row: Item): IItem => ({
   valueCp: row.valueCp,
   coinsCp: row.coinsCp,
   quantity: row.quantity,
+  catalogKey: row.catalogKey,
   isMagical: row.isMagical,
   properties: parseItemProperties(row.properties),
   equipSlot: row.equipSlot as EquipSlot | null,
@@ -41,6 +43,7 @@ export const itemRepository: IItemRepository = {
         valueCp: input.valueCp ?? null,
         coinsCp: input.coinsCp ?? 0,
         quantity: input.quantity ?? 1,
+        catalogKey: parseCatalogKey(input.catalogKey),
         isMagical: input.isMagical ?? false,
         properties: input.properties ?? undefined,
         equipSlot: input.playerId ? (input.equipSlot ?? null) : null,
@@ -80,6 +83,7 @@ export const itemRepository: IItemRepository = {
         ...(input.valueCp !== undefined ? { valueCp: input.valueCp } : {}),
         ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
         ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+        ...(input.catalogKey !== undefined ? { catalogKey: parseCatalogKey(input.catalogKey) } : {}),
         ...(input.isMagical !== undefined ? { isMagical: input.isMagical } : {}),
         ...(input.properties !== undefined ? { properties: input.properties ?? undefined } : {}),
         ...(input.equipSlot !== undefined ? { equipSlot: input.equipSlot } : {}),
