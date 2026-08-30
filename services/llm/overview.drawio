@@ -1,0 +1,203 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Обзор" id="llm-overview">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ov-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;" value="Два входа от игрока: поговорить с персонажем или осмотреться. Инструменты модели выдаются списком под задачу; отдельный файл инструмента — не отдельный агент." vertex="1">
+          <mxGeometry height="40" width="1200" x="40" y="16" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-http" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Игрок в интерфейсе&lt;br&gt;Реплика персонажу или «осмотреться»&lt;br&gt;(/api/npc-chat, /api/location/look)" vertex="1">
+          <mxGeometry height="100" width="220" x="690" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-npc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Агент персонажа&lt;br&gt;Говорит и действует от лица NPC, с которым вы беседуете.&lt;br&gt;(chatWithNpc)" vertex="1">
+          <mxGeometry height="100" width="260" x="250" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-world" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Агент места&lt;br&gt;Художественно описывает, где стоит игрок: люди, здания, атмосфера.&lt;br&gt;(describeLocation)" vertex="1">
+          <mxGeometry height="100" width="260" x="1090" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e1" edge="1" parent="1" source="ov-http" target="ov-npc" style="endArrow=classic;html=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e2" edge="1" parent="1" source="ov-http" target="ov-world" style="endArrow=classic;html=1;exitX=0.75;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-loop" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Диалог с инструментами&lt;br&gt;Пока NPC говорит, модель может бросить кубик, списать монеты, сдвинуть игрока — мир меняется сразу.&lt;br&gt;(runNpcToolLoop + npcTools, стр. 2)" vertex="1">
+          <mxGeometry height="120" width="280" x="240" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-look" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Осмотр без инструментов&lt;br&gt;Один текст «что видишь». Сразу записывается в описание локации, без кубиков и денег.&lt;br&gt;(LLM + updateLocation)" vertex="1">
+          <mxGeometry height="120" width="280" x="1080" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e3" edge="1" parent="1" source="ov-npc" target="ov-loop" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e4" edge="1" parent="1" source="ov-world" target="ov-look" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-ds" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Языковая модель&lt;br&gt;Пишет реплику или описание по инструкции и фактам из базы.&lt;br&gt;(sendDeepseekChat)" vertex="1">
+          <mxGeometry height="100" width="240" x="680" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e5" edge="1" parent="1" source="ov-loop" target="ov-ds" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e6" edge="1" parent="1" source="ov-look" target="ov-ds" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-after" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Фон после ответа&lt;br&gt;Игрок уже видит текст. Параллельно в базу попадают люди и места, которых назвали вслух.&lt;br&gt;(runAfterAgent)" vertex="1">
+          <mxGeometry height="110" width="300" x="650" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e7" edge="1" parent="1" source="ov-loop" target="ov-after" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e8" edge="1" parent="1" source="ov-look" target="ov-after" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.8;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-nh" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="После разговора с NPC&lt;br&gt;Сначала места из речи («кузня в деревне Б»), потом люди («муж хозяина»). Порядок важен.&lt;br&gt;(стр. 3)" vertex="1">
+          <mxGeometry height="110" width="300" x="220" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-wh" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="После осмотра&lt;br&gt;Сначала места вокруг, потом именные люди здесь. Толпу без имён не превращаем в карточки.&lt;br&gt;(стр. 3)" vertex="1">
+          <mxGeometry height="110" width="300" x="1080" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e9" edge="1" parent="1" source="ov-after" target="ov-nh" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-e10" edge="1" parent="1" source="ov-after" target="ov-wh" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-npc-help" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="Подготовка к речи NPC&lt;br&gt;Собрать из базы характер, память, знакомых, знания.&lt;br&gt;Собрать инструкцию «ты этот человек».&lt;br&gt;Разобрать ответ на речь и действие.&lt;br&gt;(loadNpcChatContext, buildNpcPrompt, parseNpcReply)&lt;br&gt;Перевод инструментов в формат API модели (toOpenAiCompatibleTool)" vertex="1">
+          <mxGeometry height="160" width="280" x="20" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-world-help" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="Подготовка к осмотру&lt;br&gt;Собрать текущее место, соседей, кто здесь стоит.&lt;br&gt;Собрать инструкцию «опиши локацию».&lt;br&gt;Вытащить текст осмотра из ответа модели.&lt;br&gt;(loadWorldContext, buildWorldPrompt, parseWorldReply)" vertex="1">
+          <mxGeometry height="160" width="280" x="1300" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-infra" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="Очередь и журнал фона&lt;br&gt;Хук крутит модель с инструментами до 5 раз, пока не напишет DONE — чтобы не зациклиться.&lt;br&gt;Следующий запрос к тому же NPC/месту ждёт, пока прошлый фон не допишет базу (иначе гонки).&lt;br&gt;Клиент может спросить: «фон ещё идёт?» по номеру хода.&lt;br&gt;(runHookToolLoop, hookLock, hookLogStore / GET .../hooks?turnId=)" vertex="1">
+          <mxGeometry height="130" width="720" x="440" y="840" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="NPC-агент" id="llm-npc">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=13;whiteSpace=wrap;" value="Пока игрок говорит с одним NPC. Инструменты ниже — только для этой беседы, не для осмотра и не для фона." vertex="1">
+          <mxGeometry height="36" width="1100" x="40" y="16" as="geometry" />
+        </mxCell>
+        <mxCell id="n-agent" parent="1" style="rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="Ход диалога&lt;br&gt;1. Дождаться, пока прошлый фон допишет базу.&lt;br&gt;2. Загрузить личность, память, отношение к игроку.&lt;br&gt;3. Крутить модель с инструментами, пока не будет речь.&lt;br&gt;4. Отдать игроку речь и видимое действие.&lt;br&gt;5. В фоне разобрать упоминания (стр. 3).&lt;br&gt;(waitForHooks → loadNpcChatContext → runNpcToolLoop → createTurn → runAfterAgent)" vertex="1">
+          <mxGeometry height="200" width="340" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n-reg" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Набор инструментов диалога&lt;br&gt;Модель вызывает их, когда нужна механика, а не только текст.&lt;br&gt;(npcTools)" vertex="1">
+          <mxGeometry height="90" width="220" x="420" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e0" edge="1" parent="1" source="n-agent" target="n-reg" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Проверка удачи&lt;/b&gt;&lt;br&gt;Нужен бросок кубика (вскрыть замок, убедить).&lt;br&gt;roll_dice" vertex="1">
+          <mxGeometry height="90" width="260" x="700" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Деньги&lt;/b&gt;&lt;br&gt;Купить, заплатить, забрать лут. Сначала баланс, потом перевод.&lt;br&gt;get_coins, transfer_coins" vertex="1">
+          <mxGeometry height="90" width="260" x="980" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Вещи и владения&lt;/b&gt;&lt;br&gt;Есть ли верёвка в сумке и умеет ли персонаж ею пользоваться.&lt;br&gt;search_player_items, get_player_proficiencies" vertex="1">
+          <mxGeometry height="100" width="280" x="1260" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Состояния тела&lt;/b&gt;&lt;br&gt;Отравлен, без сознания, истощение — можно ли идти и драться.&lt;br&gt;get / add / remove_player_condition" vertex="1">
+          <mxGeometry height="100" width="260" x="700" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Где стоит игрок&lt;/b&gt;&lt;br&gt;Текущая комната; мгновенно перенести или начать путь на несколько дней.&lt;br&gt;get_player_location, move_player, start_travel, advance_travel" vertex="1">
+          <mxGeometry height="110" width="280" x="980" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g6" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Дружба и обида&lt;/b&gt;&lt;br&gt;После комплимента, помощи, оскорбления — сдвинуть отношение NPC к игроку.&lt;br&gt;get / improve / worsen_npc_relation" vertex="1">
+          <mxGeometry height="110" width="280" x="1280" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Что NPC помнит&lt;/b&gt;&lt;br&gt;Записать факт («игрок солгал») без смены «очков дружбы». Для смены очков — блок слева сверху про отношение.&lt;br&gt;list_npc_memories, add_npc_memory" vertex="1">
+          <mxGeometry height="120" width="340" x="780" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="n-g8" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Секреты NPC&lt;/b&gt;&lt;br&gt;Что он расскажет сам; что только после проверки навыка; скрытое агенту не отдают.&lt;br&gt;list_npc_knowledge, get_npc_knowledge" vertex="1">
+          <mxGeometry height="120" width="340" x="1140" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e1" edge="1" parent="1" source="n-reg" target="n-g1" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e2" edge="1" parent="1" source="n-reg" target="n-g2" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e3" edge="1" parent="1" source="n-reg" target="n-g3" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e4" edge="1" parent="1" source="n-reg" target="n-g4" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e5" edge="1" parent="1" source="n-reg" target="n-g5" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e6" edge="1" parent="1" source="n-reg" target="n-g6" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e7" edge="1" parent="1" source="n-reg" target="n-g7" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-e8" edge="1" parent="1" source="n-reg" target="n-g8" style="endArrow=classic;html=1;edgeStyle=orthogonalEdgeStyle;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n-foot" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;" value="Игрок сразу видит речь (say) и важное действие (do). Имена деревень и «мужа хозяина» в базу попадают позже, в фоне — иначе диалог ждал бы лишние секунды." vertex="1">
+          <mxGeometry height="50" width="1000" x="40" y="480" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="World и хуки" id="llm-hooks">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="h-note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;whiteSpace=wrap;" value="Фон: вторая модель читает уже готовый текст и решает, кого/что занести в мир. До пяти попыток с инструментами, затем DONE. Осмотр не умеет кубики и деньги — только описание." vertex="1">
+          <mxGeometry height="40" width="1400" x="40" y="12" as="geometry" />
+        </mxCell>
+        <mxCell id="h-world" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Осмотр места&lt;br&gt;Текст «что видишь» пишется в карточку локации. Инструментов диалога нет.&lt;br&gt;(describeLocation → updateLocation)" vertex="1">
+          <mxGeometry height="100" width="320" x="40" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="h-after" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="Запуск фона&lt;br&gt;Игрок уже читает текст.&lt;br&gt;(runAfterAgent)" vertex="1">
+          <mxGeometry height="90" width="200" x="430" y="65" as="geometry" />
+        </mxCell>
+        <mxCell id="h-e0" edge="1" parent="1" source="h-world" target="h-after" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h-npc-src" parent="1" style="rounded=1;whiteSpace=wrap;html=1;" value="После реплики NPC&lt;br&gt;Тот же фон, но в тексте — речь персонажа, есть «кто говорит».&lt;br&gt;(chatWithNpc)" vertex="1">
+          <mxGeometry height="100" width="280" x="700" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="h-e1" edge="1" parent="1" source="h-npc-src" target="h-after" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h-l1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;" value="Если это был разговор (сначала места, потом люди)" vertex="1">
+          <mxGeometry height="24" width="520" x="40" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="h-loc-npc" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Места из речи&lt;/b&gt;&lt;br&gt;NPC назвал кузню или соседнюю деревню — появляется на карте, а не остаётся только в тексте. Между поселениями можно проложить дорогу (дни пути).&lt;br&gt;Поиск / создать заготовку / уточнить карточку / дорога.&lt;br&gt;(resolveMentionedLocations: search / create / update_mentioned_location, ensure_location_link)" vertex="1">
+          <mxGeometry height="170" width="420" x="40" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="h-npc-npc" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Люди из речи&lt;/b&gt;&lt;br&gt;«Муж хозяина», новое имя — появляется карточка и знакомство с говорящим, чтобы в следующий раз не создать второго человека.&lt;br&gt;Поиск / создать / уточнить / отметить «они знакомы».&lt;br&gt;(resolveMentionedNpcs: search / create / update_mentioned_npc, ensure_npc_acquaintance)" vertex="1">
+          <mxGeometry height="170" width="420" x="490" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="h-e2" edge="1" parent="1" source="h-loc-npc" target="h-npc-npc" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h-l2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontStyle=1;" value="Если это был осмотр (сначала места, потом люди)" vertex="1">
+          <mxGeometry height="24" width="520" x="40" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="h-loc-w" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Места из осмотра&lt;/b&gt;&lt;br&gt;В тексте таверны упомянули комнату или соседний двор — занести как дочернее место. Нельзя затереть только что записанное описание текущей локации. Новых дорог между городами из осмотра таверны не строим.&lt;br&gt;Поиск / создать / уточнить. Без прокладки дороги.&lt;br&gt;(resolveWorldLocations: search / create / update_mentioned_location)" vertex="1">
+          <mxGeometry height="190" width="420" x="40" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="h-npc-w" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="&lt;b&gt;Люди из осмотра&lt;/b&gt;&lt;br&gt;Именной трактирщик — карточка и посадка в это место. Безымянная «толпа у стойки» — не сущность. Нет говорящего NPC: знакомства между NPC не создаём, только внешность/роль.&lt;br&gt;Поиск / создать (сюда) / уточнить карточку. Без «они знакомы».&lt;br&gt;(resolveWorldNpcs: search / create / update_mentioned_npc)" vertex="1">
+          <mxGeometry height="190" width="440" x="490" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="h-e3" edge="1" parent="1" source="h-loc-w" target="h-npc-w" style="endArrow=classic;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="h-shared" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;spacingLeft=8;verticalAlign=top;" value="Одинаковые инструменты поиска и создания, разные правила: в разговоре есть «кто сказал» (знакомства и дороги), в осмотре есть только «где стоит игрок» (посадка NPC сюда, без дорог и без круга знакомых). Это не четыре разных агента." vertex="1">
+          <mxGeometry height="80" width="890" x="40" y="650" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
