@@ -1,9 +1,9 @@
+import type { LocationKind } from '@/domain/shared';
 import { getLocation } from '@/services/location/crud/getLocation';
 import { listLocationChildren } from '@/services/location/crud/listLocationChildren';
 import { listNpcsAtLocation } from '@/services/npc/crud/listNpcsAtLocation';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
-import type { LocationKind } from '@/domain/shared';
 
 interface ILoadWorldContextParams {
   campaignId: string;
@@ -47,17 +47,11 @@ export interface IWorldContext {
   }>;
 }
 
-export const loadWorldContext = async ({
-  campaignId,
-  playerId,
-}: ILoadWorldContextParams): Promise<IWorldContext> => {
+export const loadWorldContext = async ({ campaignId, playerId }: ILoadWorldContextParams): Promise<IWorldContext> => {
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
-  const [playerLoc, player] = await Promise.all([
-    getPlayerLocation({ campaignId, playerId }),
-    getPlayer(playerId),
-  ]);
+  const [playerLoc, player] = await Promise.all([getPlayerLocation({ campaignId, playerId }), getPlayer(playerId)]);
 
   const location = playerLoc.location;
   if (!location) throw new Error('У игрока нет текущей локации.');
@@ -95,9 +89,7 @@ export const loadWorldContext = async ({
       description: location.description,
       features: location.features,
     },
-    parent: parent
-      ? { id: parent.id, name: parent.name, kind: parent.kind, summary: parent.summary }
-      : null,
+    parent: parent ? { id: parent.id, name: parent.name, kind: parent.kind, summary: parent.summary } : null,
     children: children
       .filter((child) => !child.isSecret)
       .map((child) => ({

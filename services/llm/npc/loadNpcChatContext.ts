@@ -1,6 +1,6 @@
-import { KnowledgeReveal } from '@/domain/shared';
-import type { RelationStance } from '@/domain/npc';
 import { npcRepository } from '@/data/npc';
+import type { RelationStance } from '@/domain/npc';
+import { KnowledgeReveal } from '@/domain/shared';
 import { listNpcAcquaintancesDetailed } from '@/services/npc/acquaintance/listNpcAcquaintancesDetailed';
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { listNpcKnowledgeForAgent } from '@/services/npc/knowledge/listNpcKnowledgeForAgent';
@@ -80,9 +80,7 @@ export const loadNpcChatContext = async ({
   const relation = await getNpcRelationOrDefault(npcId, playerId, campaignId);
 
   const allMemories = await listNpcMemories(npcId);
-  const filtered = allMemories
-    .filter((m) => m.playerId === playerId || m.playerId === null)
-    .slice(0, MEMORY_LIMIT);
+  const filtered = allMemories.filter((m) => m.playerId === playerId || m.playerId === null).slice(0, MEMORY_LIMIT);
 
   const aboutIds = [...new Set(filtered.map((m) => m.aboutNpcId).filter(Boolean))] as string[];
   const aboutById = new Map<string, { name: string; title: string | null }>();

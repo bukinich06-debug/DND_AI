@@ -1,14 +1,14 @@
 'use server';
 
+import { resolveMentionedLocationsHook } from '@/services/llm/hooks/location/resolveMentionedLocations';
+import { resolveMentionedNpcsHook } from '@/services/llm/hooks/npc/resolveMentionedNpcs';
+import { runAfterAgent } from '@/services/llm/hooks/runAfterAgent';
+import { waitForHooks } from '@/services/llm/hooks/store/hookLock';
+import { createTurn } from '@/services/llm/hooks/store/hookLogStore';
+import { chatHookKey } from '@/services/llm/hooks/types';
 import { buildNpcPrompt } from './buildNpcPrompt';
 import { loadNpcChatContext } from './loadNpcChatContext';
 import { runNpcToolLoop, type IToolCallLog } from './runNpcToolLoop';
-import { chatHookKey } from '@/services/llm/hooks/types';
-import { waitForHooks } from '@/services/llm/hooks/store/hookLock';
-import { createTurn } from '@/services/llm/hooks/store/hookLogStore';
-import { runAfterAgent } from '@/services/llm/hooks/runAfterAgent';
-import { resolveMentionedLocationsHook } from '@/services/llm/hooks/location/resolveMentionedLocations';
-import { resolveMentionedNpcsHook } from '@/services/llm/hooks/npc/resolveMentionedNpcs';
 
 interface IChatMessage {
   role: 'user' | 'assistant';

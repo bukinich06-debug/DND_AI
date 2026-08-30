@@ -10,7 +10,9 @@ const formatMemories = (ctx: INpcChatContext) => {
   return ctx.memories
     .map((m) => {
       const about = formatAboutLabel(m.aboutName, m.aboutTitle);
-      const prefix = about ? `[${m.kind}, важность ${m.importance}, о: ${about}]` : `[${m.kind}, важность ${m.importance}]`;
+      const prefix = about
+        ? `[${m.kind}, важность ${m.importance}, о: ${about}]`
+        : `[${m.kind}, важность ${m.importance}]`;
       return `- ${prefix} ${m.summary}`;
     })
     .join('\n');
@@ -18,9 +20,7 @@ const formatMemories = (ctx: INpcChatContext) => {
 
 const formatAboutMeMemories = (ctx: INpcChatContext) => {
   if (ctx.aboutMeMemories.length === 0) return 'Пока никто не рассказывал о тебе зафиксированных фактов.';
-  return ctx.aboutMeMemories
-    .map((m) => `- [${m.kind}, от ${m.fromName}] ${m.summary}`)
-    .join('\n');
+  return ctx.aboutMeMemories.map((m) => `- [${m.kind}, от ${m.fromName}] ${m.summary}`).join('\n');
 };
 
 const formatAcquaintances = (ctx: INpcChatContext) => {
