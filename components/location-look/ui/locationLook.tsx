@@ -150,15 +150,13 @@ export const LocationLook = () => {
     loadError,
   } = useLocationLookSelects();
 
-  const { looks, toolLogs, hookLogs, sending, clearing, error, request, clearCache } = useLocationLook({
+  const { looks, toolLogs, hookLogs, sending, error, request } = useLocationLook({
     campaignId,
     playerId,
     locationId,
   });
 
-  const busy = sending || clearing;
-  const canRequest = Boolean(campaignId && playerId && locationId && !busy);
-  const canClear = Boolean(locationId && !busy);
+  const canRequest = Boolean(campaignId && playerId && locationId && !sending);
 
   return (
     <main style={{ maxWidth: 1400, margin: '0 auto', padding: 24, fontFamily: 'system-ui, sans-serif' }}>
@@ -246,9 +244,7 @@ export const LocationLook = () => {
                   padding: '8px 10px',
                 }}
               >
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
-                  Мир{entry.cached ? ' · из кэша' : ''}
-                </div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>Мир</div>
                 <div style={{ whiteSpace: 'pre-wrap' }}>{entry.look}</div>
               </div>
             ))}
@@ -257,9 +253,6 @@ export const LocationLook = () => {
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" disabled={!canRequest} onClick={() => void request()}>
               {sending ? '…' : 'Получить описание'}
-            </button>
-            <button type="button" disabled={!canClear} onClick={() => void clearCache()}>
-              {clearing ? '…' : 'Сбросить кэш'}
             </button>
           </div>
         </div>

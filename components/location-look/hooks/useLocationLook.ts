@@ -36,7 +36,6 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
   const [looks, setLooks] = useState<ILookEntry[]>([]);
   const [hookLogs, setHookLogs] = useState<IHookRunLog[]>([]);
   const [sending, setSending] = useState(false);
-  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (activeKey !== sessionKey) {
@@ -44,7 +43,6 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
     setLooks([]);
     setHookLogs([]);
     setSending(false);
-    setClearing(false);
     setError(null);
   }
 
@@ -57,35 +55,8 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
     });
   };
 
-  const clearCache = async () => {
-    if (sending || clearing) return;
-    if (!locationId) {
-      setError('Выберите локацию.');
-      return;
-    }
-
-    setClearing(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api/location/${encodeURIComponent(locationId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'неизвестно' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Не удалось сбросить кэш.');
-      setLooks([]);
-      setHookLogs([]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка сброса кэша.');
-    } finally {
-      setClearing(false);
-    }
-  };
-
   const request = async () => {
-    if (sending || clearing) return;
+    if (sending) return;
     if (!campaignId || !playerId || !locationId) {
       setError('Выберите кампанию, игрока и локацию.');
       return;
@@ -122,7 +93,7 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
       const look = typeof data.look === 'string' ? data.look.trim() : '';
       if (!look) throw new Error('Пустое описание.');
 
-      setLooks((prev) => [...prev, { look, cached: Boolean(data.cached) }]);
+      setLooks((prev) => [...prev, { look }]);
 
       const turnId = typeof data.turnId === 'string' ? data.turnId.trim() : '';
       if (turnId) {
@@ -156,9 +127,7 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
     toolLogs,
     hookLogs,
     sending,
-    clearing,
     error,
     request,
-    clearCache,
   };
 };

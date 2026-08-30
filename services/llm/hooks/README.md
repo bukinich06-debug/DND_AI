@@ -106,7 +106,7 @@ Registry: `npc/mentionTools.ts`.
 
 ## World-агент (`describeLocation`)
 
-Игрок осматривается. Если `description` текущей локации уже не stub (`неизвестно`) — look из кэша, хуки не запускаются (`cached: true`, `turnId: null`). Иначе один LLM-вызов без tools пишет look, сразу `updateLocation({ description: look })`, затем фоном хуки.
+Игрок осматривается. Каждый запрос — один LLM-вызов без tools, сразу `updateLocation({ description: look })`, затем фоном хуки.
 
 Look по `kind` (`lookCast`):
 
@@ -137,12 +137,9 @@ HTTP: `POST /api/location/look`. Poll хуков — тот же `GET /api/npc-c
 {
   look: string
   locationId: string
-  cached: boolean
-  turnId: string | null
+  turnId: string
 }
 ```
-
-`cached: true` — look уже был в `description`, LLM и хуки не вызывались. `turnId` тогда `null`.
 
 ---
 

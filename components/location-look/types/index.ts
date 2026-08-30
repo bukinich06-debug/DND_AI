@@ -1,6 +1,5 @@
 export interface ILookEntry {
   look: string;
-  cached: boolean;
 }
 
 export interface IOption {

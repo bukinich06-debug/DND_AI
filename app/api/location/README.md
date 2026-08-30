@@ -322,7 +322,7 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 
 ## Осмотр (world look)
 
-Описание текущей локации игрока. Если `description` уже не stub — кэш без LLM, `turnId: null`. Иначе генерация, запись в `description`, фон-хуки.
+Описание текущей локации игрока. Каждый запрос — LLM, запись в `description`, фон-хуки.
 
 ### `POST /api/location/look`
 
@@ -332,8 +332,7 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 {
   look: string
   locationId: string
-  cached: boolean
-  turnId: string | null
+  turnId: string
 }
 ```
 

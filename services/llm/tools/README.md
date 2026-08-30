@@ -38,7 +38,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 ### World look (`describeLocation.ts`)
 
-Нет tool loop. Если `description` не stub — кэш, без LLM. Иначе один вызов модели → persist `description` → post-hooks.
+Нет tool loop. Каждый запрос — один вызов модели → persist `description` → post-hooks.
 
 Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/location/look`.
 

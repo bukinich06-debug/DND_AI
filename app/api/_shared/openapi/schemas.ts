@@ -1327,12 +1327,11 @@ export const schemas = {
   },
   LocationLookReply: {
     type: 'object',
-    required: ['look', 'locationId', 'cached', 'turnId'],
+    required: ['look', 'locationId', 'turnId'],
     properties: {
       look: { type: 'string' },
       locationId: { type: 'string' },
-      cached: { type: 'boolean' },
-      turnId: { type: 'string', nullable: true },
+      turnId: { type: 'string' },
     },
   },
 } as const;

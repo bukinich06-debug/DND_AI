@@ -1,6 +1,5 @@
 'use server';
 
-import { isStubText } from '@/domain/shared';
 import { updateLocation } from '@/services/location/crud/updateLocation';
 import { runAfterAgent } from '@/services/llm/hooks/runAfterAgent';
 import { waitForHooks } from '@/services/llm/hooks/store/hookLock';
@@ -22,8 +21,7 @@ interface IDescribeLocationParams {
 export interface IDescribeLocationResult {
   look: string;
   locationId: string;
-  cached: boolean;
-  turnId: string | null;
+  turnId: string;
 }
 
 const WORLD_HOOKS = [resolveWorldLocationsHook, resolveWorldNpcsHook];
@@ -42,9 +40,6 @@ export const describeLocation = async (input: IDescribeLocationParams): Promise<
 
   const ctx = await loadWorldContext({ campaignId, playerId });
   const locationId = ctx.location.id;
-
-  if (!isStubText(ctx.location.description))
-    return { look: ctx.location.description, locationId, cached: true, turnId: null };
 
   const assistant = await sendDeepseekChat({
     messages: [
@@ -79,5 +74,5 @@ export const describeLocation = async (input: IDescribeLocationParams): Promise<
     },
   });
 
-  return { look, locationId, cached: false, turnId };
+  return { look, locationId, turnId };
 };
