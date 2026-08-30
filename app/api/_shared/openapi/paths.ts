@@ -357,15 +357,10 @@ export const paths = {
       },
     },
   },
-  '/api/items/{id}': crudById('Items', 'Item'),
-
-  '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
-  '/api/players/{id}': crudById('Players', 'Player'),
-  '/api/players/{id}/items': {
+  '/api/items/grant': {
     post: {
       tags: ['Items'],
       summary: 'Выдать игроку предмет из справочника',
-      parameters: [idParam],
       requestBody: {
         required: true,
         ...json(ref('GrantCatalogItem')),
@@ -379,6 +374,10 @@ export const paths = {
       },
     },
   },
+  '/api/items/{id}': crudById('Items', 'Item'),
+
+  '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
+  '/api/players/{id}': crudById('Players', 'Player'),
 
   '/api/npcs': listCreateByCampaign('Npcs', 'Npc', 'CreateNpc'),
   '/api/npcs/{id}': crudById('Npcs', 'Npc'),

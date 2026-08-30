@@ -324,8 +324,9 @@ export const schemas = {
   },
   GrantCatalogItem: {
     type: 'object',
-    required: ['key'],
+    required: ['playerId', 'key'],
     properties: {
+      playerId: { type: 'string' },
       key: { type: 'string' },
       quantity: { type: 'integer', minimum: 1 },
     },

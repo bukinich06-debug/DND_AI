@@ -115,15 +115,15 @@ Content-Type: application/json
 
 `coinsCp` / `quantity` / `isMagical` / `equipSlot` можно опустить (`0` / `1` / `false` / `null`). Владелец должен быть из той же кампании. Слот при создании: если занят — `400` (без автоснятия). Стопку (`quantity > 1`) экипировать нельзя.
 
-### `POST /api/players/{id}/items`
+### `POST /api/items/grant`
 
 Выдать игроку шаблон из справочника (`key` как в `domain/item/catalog/data`, например `dagger`). Кампания — у игрока. Предмет в сумке (`equipSlot: null`). Новая строка, стопки не сливаются. `201` → `Item`. Нет игрока или ключа — `404`.
 
 ```
-POST /api/players/{id}/items
+POST /api/items/grant
 Content-Type: application/json
 
-{ "key": "dagger", "quantity": 1 }
+{ "playerId": "string", "key": "dagger", "quantity": 1 }
 ```
 
 `quantity` можно опустить (`1`).
