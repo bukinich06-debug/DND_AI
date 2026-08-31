@@ -66,26 +66,10 @@ export const useLocationLook = ({ campaignId, playerId, locationId }: IUseLocati
     setError(null);
 
     try {
-      const locRes = await fetch(`/api/location/player?playerId=${encodeURIComponent(playerId)}`);
-      const locData = await locRes.json();
-      if (!locRes.ok) throw new Error(locData.error || 'Не удалось получить локацию игрока.');
-
-      const currentId =
-        locData?.location && typeof locData.location.id === 'string' ? locData.location.id : '';
-      if (currentId !== locationId) {
-        const patchRes = await fetch('/api/location/player', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerId, locationId }),
-        });
-        const patchData = await patchRes.json();
-        if (!patchRes.ok) throw new Error(patchData.error || 'Не удалось переместить игрока.');
-      }
-
       const res = await fetch('/api/location/look', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId, playerId }),
+        body: JSON.stringify({ campaignId, playerId, locationId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Не удалось получить описание.');

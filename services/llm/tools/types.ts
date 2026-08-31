@@ -3,6 +3,7 @@ export interface IToolContext {
   npcId?: string;
   playerId?: string;
   locationId?: string;
+  playerHereId?: string;
 }
 
 export interface ILlmTool {

@@ -7,15 +7,16 @@ import { createTurn } from '@/services/llm/hooks/store/hookLogStore';
 import { worldHookKey } from '@/services/llm/hooks/types';
 import { resolveWorldLocationsHook } from '@/services/llm/hooks/world/resolveWorldLocations';
 import { resolveWorldNpcsHook } from '@/services/llm/hooks/world/resolveWorldNpcs';
-import { sendDeepseekChat } from '@/services/llm/providers/sendDeepseekChat';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
 import { buildWorldPrompt } from './buildWorldPrompt';
 import { loadWorldContext } from './loadWorldContext';
-import { parseWorldReply } from './parseWorldReply';
+import { runWorldToolLoop } from './runWorldToolLoop';
 
 interface IDescribeLocationParams {
   campaignId: string;
   playerId: string;
+  locationId?: string;
+  message?: string;
 }
 
 export interface IDescribeLocationResult {
@@ -25,6 +26,7 @@ export interface IDescribeLocationResult {
 }
 
 const WORLD_HOOKS = [resolveWorldLocationsHook, resolveWorldNpcsHook];
+const DEFAULT_LOOK_MESSAGE = 'Осматриваюсь.';
 
 export const describeLocation = async (input: IDescribeLocationParams): Promise<IDescribeLocationResult> => {
   const campaignId = input.campaignId.trim();
@@ -32,24 +34,29 @@ export const describeLocation = async (input: IDescribeLocationParams): Promise<
   if (!campaignId) throw new Error('campaignId обязателен.');
   if (!playerId) throw new Error('playerId обязателен.');
 
+  const lookLocationId = input.locationId?.trim() || undefined;
+  const message = input.message?.trim() || DEFAULT_LOOK_MESSAGE;
+
   const playerLoc = await getPlayerLocation({ campaignId, playerId });
   if (!playerLoc.location) throw new Error('У игрока нет текущей локации.');
+  const locationId = lookLocationId || playerLoc.location.id;
 
-  const hookKey = worldHookKey(campaignId, playerId, playerLoc.location.id);
+  const hookKey = worldHookKey(campaignId, playerId, locationId);
   await waitForHooks(hookKey);
 
-  const ctx = await loadWorldContext({ campaignId, playerId });
-  const locationId = ctx.location.id;
+  const ctx = await loadWorldContext({ campaignId, playerId, lookLocationId: locationId });
 
-  const assistant = await sendDeepseekChat({
-    messages: [
-      { role: 'system', content: buildWorldPrompt(ctx) },
-      { role: 'user', content: 'Осмотрись.' },
-    ],
+  const reply = await runWorldToolLoop({
+    system: buildWorldPrompt(ctx),
+    messages: [{ role: 'user', content: message }],
+    ctx: {
+      campaignId,
+      playerId,
+      locationId,
+      playerHereId: ctx.playerHere.id,
+    },
   });
-  const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
-  if (!content) throw new Error('Пустой ответ DeepSeek.');
-  const look = parseWorldReply(content).look;
+  const look = reply.look;
   if (!look) throw new Error('Пустой look.');
 
   await updateLocation(locationId, { description: look });

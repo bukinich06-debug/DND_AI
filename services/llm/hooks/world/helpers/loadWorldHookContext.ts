@@ -19,9 +19,13 @@ export const loadWorldHookContext = async (ctx: IHookContext): Promise<IWorldHoo
   if (!ctx.locationId?.trim()) throw new Error('locationId обязателен.');
 
   const locationId = ctx.locationId.trim();
-  const world = await loadWorldContext({ campaignId: ctx.campaignId, playerId: ctx.playerId });
+  const world = await loadWorldContext({
+    campaignId: ctx.campaignId,
+    playerId: ctx.playerId,
+    lookLocationId: locationId,
+  });
   const location = world.location;
-  if (location.id !== locationId) throw new Error('Локация осмотра не совпадает с текущей.');
+  if (location.id !== locationId) throw new Error('Локация осмотра не совпадает со снимком.');
 
   return {
     currentLocationId: locationId,

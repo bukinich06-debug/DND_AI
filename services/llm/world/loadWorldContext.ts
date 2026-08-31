@@ -8,10 +8,15 @@ import { getPlayerLocation } from '@/services/player/location/getPlayerLocation'
 interface ILoadWorldContextParams {
   campaignId: string;
   playerId: string;
+  lookLocationId?: string;
 }
 
 export interface IWorldContext {
   player: {
+    id: string;
+    name: string;
+  };
+  playerHere: {
     id: string;
     name: string;
   };
@@ -47,14 +52,22 @@ export interface IWorldContext {
   }>;
 }
 
-export const loadWorldContext = async ({ campaignId, playerId }: ILoadWorldContextParams): Promise<IWorldContext> => {
+export const loadWorldContext = async ({
+  campaignId,
+  playerId,
+  lookLocationId,
+}: ILoadWorldContextParams): Promise<IWorldContext> => {
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
   const [playerLoc, player] = await Promise.all([getPlayerLocation({ campaignId, playerId }), getPlayer(playerId)]);
 
-  const location = playerLoc.location;
-  if (!location) throw new Error('У игрока нет текущей локации.');
+  const here = playerLoc.location;
+  if (!here) throw new Error('У игрока нет текущей локации.');
+  if (here.campaignId !== campaignId) throw new Error('Локация не принадлежит этой кампании.');
+
+  const lookId = lookLocationId?.trim() || '';
+  const location = lookId && lookId !== here.id ? await getLocation(lookId) : here;
   if (location.campaignId !== campaignId) throw new Error('Локация не принадлежит этой кампании.');
 
   const [parent, children, npcs] = await Promise.all([
@@ -80,6 +93,7 @@ export const loadWorldContext = async ({ campaignId, playerId }: ILoadWorldConte
 
   return {
     player: { id: player.id, name: player.name },
+    playerHere: { id: here.id, name: here.name },
     location: {
       id: location.id,
       name: location.name,

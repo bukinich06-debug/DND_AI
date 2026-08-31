@@ -812,6 +812,24 @@ export const paths = {
     },
   },
 
+  '/api/plan': {
+    post: {
+      tags: ['Plan'],
+      summary: 'Планировщик: какие агенты обработают ввод игрока',
+      requestBody: {
+        required: true,
+        ...json(ref('PlanRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('PlanReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
   '/api/npc-chat': {
     post: {
       tags: ['NpcChat'],

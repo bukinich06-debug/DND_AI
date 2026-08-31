@@ -1317,12 +1317,67 @@ export const schemas = {
     },
   },
 
+  PlanStep: {
+    oneOf: [
+      {
+        type: 'object',
+        required: ['agent', 'locationId', 'locationName'],
+        properties: {
+          agent: { type: 'string', enum: ['world'] },
+          locationId: { type: 'string' },
+          locationName: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['agent', 'npcId', 'npcName'],
+        properties: {
+          agent: { type: 'string', enum: ['npc'] },
+          npcId: { type: 'string' },
+          npcName: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['agent'],
+        properties: {
+          agent: { type: 'string', enum: ['master'] },
+        },
+      },
+    ],
+  },
+  PlanRequest: {
+    type: 'object',
+    required: ['campaignId', 'playerId', 'messages'],
+    properties: {
+      campaignId: { type: 'string' },
+      playerId: { type: 'string' },
+      messages: { type: 'array', items: { $ref: '#/components/schemas/NpcChatMessage' } },
+    },
+  },
+  PlanReply: {
+    type: 'object',
+    required: ['steps', 'toolCalls'],
+    properties: {
+      steps: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/PlanStep' },
+      },
+      toolCalls: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/NpcChatToolCall' },
+      },
+    },
+  },
+
   LocationLookRequest: {
     type: 'object',
     required: ['campaignId', 'playerId'],
     properties: {
       campaignId: { type: 'string' },
       playerId: { type: 'string' },
+      locationId: { type: 'string' },
+      message: { type: 'string' },
     },
   },
   LocationLookReply: {

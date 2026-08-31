@@ -13,6 +13,9 @@ export default function Home() {
       <p>
         <Link href="/location-look">Location look (тест)</Link>
       </p>
+      <p>
+        <Link href="/plan">Планировщик (тест)</Link>
+      </p>
     </main>
   );
 }
