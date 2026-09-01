@@ -13,8 +13,7 @@ const parseBody = (body: IBody) => {
   if (!body || typeof body !== 'object') throw new Error('Тело запроса обязательно.');
   if (typeof body.campaignId !== 'string' || !body.campaignId.trim()) throw new Error('campaignId обязателен.');
   if (typeof body.playerId !== 'string' || !body.playerId.trim()) throw new Error('playerId обязателен.');
-  const locationId =
-    typeof body.locationId === 'string' && body.locationId.trim() ? body.locationId.trim() : undefined;
+  const locationId = typeof body.locationId === 'string' && body.locationId.trim() ? body.locationId.trim() : undefined;
   const message = typeof body.message === 'string' && body.message.trim() ? body.message.trim() : undefined;
   return {
     campaignId: body.campaignId.trim(),

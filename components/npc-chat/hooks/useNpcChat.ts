@@ -17,7 +17,7 @@ const isTerminal = (status: HookRunStatus) => status === 'done' || status === 'f
 const pollHooks = async (turnId: string, onUpdate: (hooks: IHookRunLog[]) => void) => {
   const started = Date.now();
   while (Date.now() - started < POLL_MAX_MS) {
-    const res = await fetch(`/api/npc-chat/hooks?turnId=${encodeURIComponent(turnId)}`);
+    const res = await fetch(`/api/test/npc-chat/hooks?turnId=${encodeURIComponent(turnId)}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Не удалось получить статус hooks.');
 
@@ -73,7 +73,7 @@ export const useNpcChat = ({ campaignId, playerId, npcId }: IUseNpcChatParams) =
     setError(null);
 
     try {
-      const res = await fetch('/api/npc-chat', {
+      const res = await fetch('/api/test/npc-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

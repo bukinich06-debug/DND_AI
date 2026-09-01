@@ -94,7 +94,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | Слой | Путь |
 |------|------|
 | services | [`services/llm/npc/`](services/llm/npc/) (`chatWithNpc`, `runNpcToolLoop`, `npcTools`); hooks [`services/llm/hooks/`](services/llm/hooks/); provider [`sendDeepseekChat`](services/llm/providers/sendDeepseekChat.ts) |
-| API | [`app/api/npc-chat/`](app/api/npc-chat/) |
+| API | [`app/api/test/npc-chat/`](app/api/test/npc-chat/) |
 | UI (тест) | [`app/npc-chat/`](app/npc-chat/), [`components/npc-chat/`](components/npc-chat/) (hooks слева, tools справа) |
 | docs | [`services/llm/hooks/README.md`](services/llm/hooks/README.md) |
 
@@ -108,7 +108,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 |----------|--------|----------|-----|
 | Campaigns | [`domain/campaign/`](domain/campaign/) | [`services/campaign/`](services/campaign/) | [`app/api/campaigns/`](app/api/campaigns/) |
 | Players | [`domain/player/`](domain/player/) | [`services/player/crud/`](services/player/crud/) | [`app/api/players/`](app/api/players/) |
-| Locations (+ children, links, player, npc, look) | [`domain/location/`](domain/location/), [`domain/location-link/`](domain/location-link/) | [`services/location/`](services/location/), [`services/location-link/`](services/location-link/), [`services/player/location/`](services/player/location/) | [`app/api/location/`](app/api/location/) |
+| Locations (+ children, links, player, npc) | [`domain/location/`](domain/location/), [`domain/location-link/`](domain/location-link/) | [`services/location/`](services/location/), [`services/location-link/`](services/location-link/), [`services/player/location/`](services/player/location/) | [`app/api/location/`](app/api/location/); look (тест): [`app/api/test/location/`](app/api/test/location/) |
 | Items | [`domain/item/`](domain/item/) | [`services/item/crud/`](services/item/crud/) | [`app/api/items/`](app/api/items/) |
 | NPCs (+ locations, knowledge, relations, memories, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
 | Quests (+ quest↔npc) | [`domain/quest/`](domain/quest/) | [`services/quest/`](services/quest/) | [`app/api/quests/`](app/api/quests/) |

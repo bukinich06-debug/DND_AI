@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/location/look`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
@@ -40,7 +40,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Нет tool loop. Каждый запрос — один вызов модели → persist `description` → post-hooks.
 
-Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/location/look`.
+Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/test/location`.
 
 ### Post-hook
 

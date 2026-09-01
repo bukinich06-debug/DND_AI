@@ -6,7 +6,7 @@ HTTP для карты мира: дерево мест, дороги, позиц
 
 Ошибки: `{ "error": "текст" }` — `400` или `404` (если в тексте «не найден»). Успех: JSON как ниже; `DELETE` места/ребра/NPC-связи — `204` без тела.
 
-OpenAPI: `/api-docs`. Хуки look: `GET /api/npc-chat/hooks?turnId=`.
+OpenAPI: `/api-docs`. Хуки look: `GET /api/test/npc-chat/hooks?turnId=`.
 
 ---
 
@@ -324,7 +324,7 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 
 Описание текущей локации игрока. Каждый запрос — LLM, запись в `description`, фон-хуки.
 
-### `POST /api/location/look`
+### `POST /api/test/location`
 
 Игрок должен уже стоять в месте (`GET/PATCH …/player`). `200`:
 
@@ -337,7 +337,7 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 ```
 
 ```
-POST /api/location/look
+POST /api/test/location
 Content-Type: application/json
 
 {
@@ -346,7 +346,7 @@ Content-Type: application/json
 }
 ```
 
-Статус хуков: `GET /api/npc-chat/hooks?turnId={turnId}`.
+Статус хуков: `GET /api/test/npc-chat/hooks?turnId={turnId}`.
 
 ---
 

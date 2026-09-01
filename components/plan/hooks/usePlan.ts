@@ -43,7 +43,7 @@ export const usePlan = ({ campaignId, playerId }: IUsePlanParams) => {
     setError(null);
 
     try {
-      const res = await fetch('/api/plan', {
+      const res = await fetch('/api/test/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -273,7 +273,7 @@ export const paths = {
       },
     },
   },
-  '/api/location/look': {
+  '/api/test/location': {
     post: {
       tags: ['Location'],
       summary: 'Осмотр текущей локации игрока (world-агент)',
@@ -812,7 +812,7 @@ export const paths = {
     },
   },
 
-  '/api/plan': {
+  '/api/test/plan': {
     post: {
       tags: ['Plan'],
       summary: 'Планировщик: какие агенты обработают ввод игрока',
@@ -830,7 +830,7 @@ export const paths = {
     },
   },
 
-  '/api/npc-chat': {
+  '/api/test/npc-chat': {
     post: {
       tags: ['NpcChat'],
       summary: 'Реплика NPC-агента (DeepSeek)',
@@ -848,7 +848,7 @@ export const paths = {
     },
   },
 
-  '/api/npc-chat/hooks': {
+  '/api/test/npc-chat/hooks': {
     get: {
       tags: ['NpcChat', 'Location'],
       summary: 'Статус post-hooks по turnId (NPC-чат и world look)',

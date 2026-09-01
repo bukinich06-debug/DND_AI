@@ -23,7 +23,7 @@ Post-hooks после ответа агента. Идут в фоне. След�
 | Люди (NPC) | `npc/resolveMentionedNpcs.ts` |
 | Места (world) | `world/resolveWorldLocations.ts` |
 | Люди (world) | `world/resolveWorldNpcs.ts` |
-| HTTP | `POST /api/npc-chat`, `POST /api/location/look`, статус `GET /api/npc-chat/hooks?turnId=` |
+| HTTP | `POST /api/test/npc-chat`, `POST /api/test/location`, статус `GET /api/test/npc-chat/hooks?turnId=` |
 | Тест UI | `/npc-chat` (hooks слева, чат, tools справа) |
 
 ---
@@ -67,7 +67,7 @@ Preload чата: character, relation, собственные memories, **about-
 
 `do` — только важное наблюдаемое действие; иначе `null`. В историю ассистента кладётся `say`.  
 `toolCalls` — вызовы **диалога** за этот send (пустой массив, если tools не нужны).  
-`turnId` — poll `GET /api/npc-chat/hooks?turnId=` → `{ hooks: [{ turnId, name, status, toolCalls, error? }] }` (`running` | `done` | `failed`).
+`turnId` — poll `GET /api/test/npc-chat/hooks?turnId=` → `{ hooks: [{ turnId, name, status, toolCalls, error? }] }` (`running` | `done` | `failed`).
 
 ### `IHookContext`
 
@@ -120,7 +120,7 @@ Look по `kind` (`lookCast`):
 
 В хуки: `source: 'world'`, `locationId`, `reply.say = look`, `reply.do = null`, `messages: []`. Speaker нет. Новые NPC сажаются в текущую локацию.
 
-HTTP: `POST /api/location/look`. Poll хуков — тот же `GET /api/npc-chat/hooks?turnId=`.
+HTTP: `POST /api/test/location`. Poll хуков — тот же `GET /api/test/npc-chat/hooks?turnId=`.
 
 **Request**
 
