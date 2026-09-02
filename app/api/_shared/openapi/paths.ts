@@ -830,6 +830,24 @@ export const paths = {
     },
   },
 
+  '/api/turn': {
+    post: {
+      tags: ['Plan'],
+      summary: 'Ход игрока: массив ответов location / npc / master',
+      requestBody: {
+        required: true,
+        ...json(ref('TurnRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('TurnReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
   '/api/test/npc-chat': {
     post: {
       tags: ['NpcChat'],

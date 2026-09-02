@@ -1389,4 +1389,47 @@ export const schemas = {
       turnId: { type: 'string' },
     },
   },
+
+  TurnRequest: {
+    allOf: [{ $ref: '#/components/schemas/PlanRequest' }],
+  },
+  TurnAgentReply: {
+    oneOf: [
+      {
+        type: 'object',
+        required: ['agent', 'locationId', 'name', 'isSecret', 'description', 'summary', 'features'],
+        properties: {
+          agent: { type: 'string', enum: ['location'] },
+          locationId: { type: 'string' },
+          name: { type: 'string' },
+          isSecret: { type: 'boolean' },
+          description: { type: 'string' },
+          summary: { type: 'string' },
+          features: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['agent', 'npcId', 'npcName', 'say', 'do'],
+        properties: {
+          agent: { type: 'string', enum: ['npc'] },
+          npcId: { type: 'string' },
+          npcName: { type: 'string' },
+          say: { type: 'string' },
+          do: { type: 'string', nullable: true },
+        },
+      },
+      {
+        type: 'object',
+        required: ['agent'],
+        properties: {
+          agent: { type: 'string', enum: ['master'] },
+        },
+      },
+    ],
+  },
+  TurnReply: {
+    type: 'array',
+    items: { $ref: '#/components/schemas/TurnAgentReply' },
+  },
 } as const;

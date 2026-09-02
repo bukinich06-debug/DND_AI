@@ -98,6 +98,15 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | UI (тест) | [`app/npc-chat/`](app/npc-chat/), [`components/npc-chat/`](components/npc-chat/) (hooks слева, tools справа) |
 | docs | [`services/llm/hooks/README.md`](services/llm/hooks/README.md) |
 
+### Player turn
+
+Один ход игрока: планировщик → по шагам `world` / `npc` (последовательно). Ответ — массив `{ agent: location | npc | master }`. `location` — снимок из БД после осмотра; `master` — `{ agent: 'master' }`. Post-hooks не ждут.
+
+| Слой | Путь |
+|------|------|
+| services | [`services/llm/turn/runPlayerTurn.ts`](services/llm/turn/runPlayerTurn.ts) |
+| API | [`app/api/turn/`](app/api/turn/) |
+
 ---
 
 ## CRUD-сущности
