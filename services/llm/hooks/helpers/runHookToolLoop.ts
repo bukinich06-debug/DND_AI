@@ -72,7 +72,7 @@ export const runHookToolLoop = async ({
   const toolCalls: IHookToolCall[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, tools: openAiTools });
+    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.3, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) return toolCalls;

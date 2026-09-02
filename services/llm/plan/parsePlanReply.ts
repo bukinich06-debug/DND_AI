@@ -52,12 +52,24 @@ const asStep = (value: unknown, index: number): IParsedPlanStep => {
   throw new Error(`steps[${index}].agent должен быть world, npc или master.`);
 };
 
+const asStepList = (value: unknown): unknown[] | null => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object' && 'agent' in (value as object)) return [value];
+  return null;
+};
+
 export const parsePlanReply = (raw: string): IParsedPlanStep[] => {
   const trimmed = raw.trim();
   const parsed = tryParseJson(trimmed) ?? extractJson(trimmed);
+  console.log('parsed', parsed);
+
   const error = asError(parsed);
   if (error) throw new Error(error);
-  if (!Array.isArray(parsed)) throw new Error('Ответ планировщика должен быть JSON-массивом шагов.');
-  if (parsed.length === 0) throw new Error('План не должен быть пустым.');
-  return parsed.map((item, index) => asStep(item, index));
+
+  const list = asStepList(parsed);
+  console.log('list', list);
+  if (!list) throw new Error('Ответ планировщика должен быть JSON-массивом шагов.');
+  if (list.length === 0) throw new Error('План не должен быть пустым.');
+
+  return list.map((item, index) => asStep(item, index));
 };

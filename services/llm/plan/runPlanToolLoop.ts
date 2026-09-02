@@ -70,7 +70,7 @@ export const runPlanToolLoop = async ({
   const toolCalls: IToolCallLog[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, tools: openAiTools });
+    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.1, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {

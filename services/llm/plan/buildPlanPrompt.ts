@@ -20,7 +20,7 @@ export const buildPlanPrompt = (ctx: IWorldContext) => {
 
 Порядок: сначала world, затем npc, если в одной фразе и место, и речь.
 
-Опирайся ТОЛЬКО на снимок и результаты tools. Не выдумывай локации и NPC. Если места нет среди current/parent/children (и search_location пуст) или NPC нет среди npcsHere (и search_npc пуст) — не строй план. Выход без parent — ошибка.
+Опирайся ТОЛЬКО на снимок и результаты tools. Не выдумывай локации и NPC. Если места нет среди current/parent/children (и search_location пуст) или NPC нет среди npcsHere (и search_npc пуст) — не строй план, верни {"error":"..."}. Выход без parent — {"error":"..."}.
 
 Tools: get_player_location, search_location, search_npc — только чтобы подтвердить id, не создавать сущности.
 
@@ -28,14 +28,14 @@ Tools: get_player_location, search_location, search_npc — только что�
 ${JSON.stringify(snapshot, null, 2)}
 
 ## Формат ответа
-Только JSON, без текста вокруг.
+Ровно один JSON, без markdown, без текста вокруг, без нескольких JSON подряд.
 
-Успех — массив:
-[{"agent":"world","locationId":"..."}]
-[{"agent":"npc","npcId":"..."}]
-[{"agent":"master"}]
-Несколько шагов в одном массиве, порядок исполнения.
+Успех — всегда массив (один шаг тоже массив):
+[{"agent":"world","locationId":"..."},{"agent":"npc","npcId":"..."}]
+Один шаг: [{"agent":"master"}]
 
-Ошибка — объект, не массив:
+Нельзя: {"agent":"..."}, {"steps":[...]}, текст вокруг.
+
+Ошибка — только объект, не массив:
 {"error":"краткая причина на русском"}`;
 };

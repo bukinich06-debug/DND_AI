@@ -1,6 +1,5 @@
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-chat';
-const DEEPSEEK_TEMPERATURE = 1;
 const DEEPSEEK_MAX_TOKENS = 800;
 
 export interface IDeepseekToolCall {
@@ -22,6 +21,7 @@ export interface IDeepseekMessage {
 
 interface ISendDeepseekChatParams {
   messages: IDeepseekMessage[];
+  temperature: number;
   tools?: unknown[];
 }
 
@@ -31,14 +31,14 @@ interface IDeepseekChoiceMessage {
   tool_calls?: IDeepseekToolCall[];
 }
 
-export const sendDeepseekChat = async ({ messages, tools }: ISendDeepseekChatParams) => {
+export const sendDeepseekChat = async ({ messages, temperature, tools }: ISendDeepseekChatParams) => {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey?.trim()) throw new Error('DEEPSEEK_API_KEY не задан.');
 
   const body: Record<string, unknown> = {
     model: DEEPSEEK_MODEL,
     messages,
-    temperature: DEEPSEEK_TEMPERATURE,
+    temperature,
     max_tokens: DEEPSEEK_MAX_TOKENS,
   };
   if (tools && tools.length > 0) {
