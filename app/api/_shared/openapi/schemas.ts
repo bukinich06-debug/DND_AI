@@ -343,6 +343,75 @@ export const schemas = {
       unequipped: { type: 'array', items: { $ref: '#/components/schemas/Item' } },
     },
   },
+  TakeItem: {
+    type: 'object',
+    required: ['playerId', 'itemId'],
+    properties: {
+      playerId: { type: 'string' },
+      itemId: { type: 'string' },
+    },
+  },
+  DropItem: {
+    type: 'object',
+    required: ['playerId', 'itemId'],
+    properties: {
+      playerId: { type: 'string' },
+      itemId: { type: 'string' },
+    },
+  },
+  ApplyPlayerHp: {
+    type: 'object',
+    required: ['delta'],
+    properties: {
+      delta: { type: 'integer' },
+    },
+  },
+  ApplyPlayerHpResult: {
+    type: 'object',
+    required: ['playerId', 'hpMax', 'hpCurrent', 'hpTemp', 'conditions', 'exhaustionLevel'],
+    properties: {
+      playerId: { type: 'string' },
+      hpMax: { type: 'integer' },
+      hpCurrent: { type: 'integer' },
+      hpTemp: { type: 'integer' },
+      conditions: { type: 'array', items: { type: 'string' } },
+      exhaustionLevel: { type: 'integer' },
+    },
+  },
+  PlayerRest: {
+    type: 'object',
+    required: ['kind'],
+    properties: {
+      kind: { type: 'string', enum: ['short', 'long'] },
+      hitDice: { type: 'integer' },
+    },
+  },
+  PlayerRestResult: {
+    type: 'object',
+    required: ['playerId', 'hpMax', 'hpCurrent', 'hpTemp', 'hitDiceLeft', 'conditions', 'exhaustionLevel'],
+    properties: {
+      playerId: { type: 'string' },
+      hpMax: { type: 'integer' },
+      hpCurrent: { type: 'integer' },
+      hpTemp: { type: 'integer' },
+      hitDiceLeft: { type: 'integer' },
+      conditions: { type: 'array', items: { type: 'string' } },
+      exhaustionLevel: { type: 'integer' },
+      healed: { type: 'integer' },
+      dice: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['die', 'value', 'conMod'],
+          properties: {
+            die: { type: 'string' },
+            value: { type: 'integer' },
+            conMod: { type: 'integer' },
+          },
+        },
+      },
+    },
+  },
 
   Player: {
     type: 'object',
@@ -1292,6 +1361,27 @@ export const schemas = {
       error: { type: 'string' },
     },
   },
+  MasterRequest: {
+    type: 'object',
+    required: ['campaignId', 'playerId', 'messages'],
+    properties: {
+      campaignId: { type: 'string' },
+      playerId: { type: 'string' },
+      messages: { type: 'array', items: { $ref: '#/components/schemas/NpcChatMessage' } },
+    },
+  },
+  MasterReply: {
+    type: 'object',
+    required: ['verdict', 'say', 'toolCalls'],
+    properties: {
+      verdict: { type: 'string', enum: ['allowed', 'denied', 'partial', 'check', 'defer_combat'] },
+      say: { type: 'string' },
+      toolCalls: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/NpcChatToolCall' },
+      },
+    },
+  },
   NpcChatHookRun: {
     type: 'object',
     required: ['turnId', 'name', 'status', 'toolCalls'],
@@ -1421,9 +1511,15 @@ export const schemas = {
       },
       {
         type: 'object',
-        required: ['agent'],
+        required: ['agent', 'verdict', 'say', 'toolCalls'],
         properties: {
           agent: { type: 'string', enum: ['master'] },
+          verdict: { type: 'string', enum: ['allowed', 'denied', 'partial', 'check', 'defer_combat'] },
+          say: { type: 'string' },
+          toolCalls: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/NpcChatToolCall' },
+          },
         },
       },
     ],

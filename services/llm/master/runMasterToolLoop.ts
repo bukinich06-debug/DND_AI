@@ -5,13 +5,10 @@ import {
 } from '@/services/llm/providers/sendDeepseekChat';
 import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
 import type { IToolContext } from '@/services/llm/tools/types';
-import { buildPlanUserMessage } from './buildPlanUserMessage';
-import { parsePlanReply, type IParsedPlanStep } from './parsePlanReply';
-import { planToolByName, planTools } from './planTools';
+import { masterToolByName, masterTools } from './masterTools';
+import { parseMasterReply, type IMasterReply } from './parseMasterReply';
 
 const MAX_ROUNDS = 5;
-
-const RETRY_JSON_HINT = 'Верни только JSON-массив шагов или {"error":"..."}. Без сцены, речи и описаний.';
 
 export interface IToolCallLog {
   name: string;
@@ -21,14 +18,13 @@ export interface IToolCallLog {
   error?: string;
 }
 
-interface IRunPlanToolLoopParams {
+interface IRunMasterToolLoopParams {
   system: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   ctx: IToolContext;
 }
 
-interface IRunPlanToolLoopResult {
-  steps: IParsedPlanStep[];
+interface IRunMasterToolLoopResult extends IMasterReply {
   toolCalls: IToolCallLog[];
 }
 
@@ -46,7 +42,7 @@ const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<I
   let args: unknown = {};
   try {
     args = parseToolArgs(call.function?.arguments ?? '');
-    const tool = planToolByName.get(name);
+    const tool = masterToolByName.get(name);
     if (!tool) throw new Error(`Неизвестный tool: ${name || '(пусто)'}.`);
     const result = await tool.execute(args, ctx);
     return { name, args, ok: true, result };
@@ -60,47 +56,27 @@ const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<I
   }
 };
 
-const parseFinalContent = async (
-  content: string,
-  history: IDeepseekMessage[],
-  openAiTools: unknown[]
-): Promise<IParsedPlanStep[]> => {
-  try {
-    return parsePlanReply(content);
-  } catch (firstError) {
-    history.push({ role: 'assistant', content });
-    history.push({ role: 'user', content: RETRY_JSON_HINT });
-
-    const retry = await sendDeepseekChat({ messages: history, temperature: 0.1, tools: openAiTools });
-    if (retry.tool_calls && retry.tool_calls.length > 0)
-      throw firstError instanceof Error ? firstError : new Error('Некорректный ответ планировщика.');
-
-    const retryContent = typeof retry.content === 'string' ? retry.content.trim() : '';
-    if (!retryContent) throw new Error('Пустой ответ DeepSeek.');
-    return parsePlanReply(retryContent);
-  }
-};
-
-export const runPlanToolLoop = async ({
+export const runMasterToolLoop = async ({
   system,
   messages,
   ctx,
-}: IRunPlanToolLoopParams): Promise<IRunPlanToolLoopResult> => {
-  const openAiTools = planTools.map(toOpenAiCompatibleTool);
+}: IRunMasterToolLoopParams): Promise<IRunMasterToolLoopResult> => {
+  const openAiTools = masterTools.map(toOpenAiCompatibleTool);
   const history: IDeepseekMessage[] = [
     { role: 'system', content: system },
-    { role: 'user', content: buildPlanUserMessage(messages) },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
   ];
   const toolCalls: IToolCallLog[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.1, tools: openAiTools });
+    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.3, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
       if (!content) throw new Error('Пустой ответ DeepSeek.');
-      return { steps: await parseFinalContent(content, history, openAiTools), toolCalls };
+      const reply = parseMasterReply(content);
+      return { ...reply, toolCalls };
     }
 
     history.push({
@@ -120,5 +96,5 @@ export const runPlanToolLoop = async ({
     }
   }
 
-  throw new Error('Превышен лимит вызовов tools за один ответ планировщика.');
+  throw new Error('Превышен лимит вызовов tools за один ответ мастера.');
 };

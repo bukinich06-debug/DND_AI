@@ -22,6 +22,7 @@ export const openApiDocument = {
     { name: 'DiceRolls' },
     { name: 'Coins' },
     { name: 'NpcChat' },
+    { name: 'Master' },
     { name: 'Plan' },
   ],
   paths,

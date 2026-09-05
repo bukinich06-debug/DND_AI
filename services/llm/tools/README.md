@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
@@ -35,6 +35,31 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `add_npc_memory` | `addNpcMemoryTool.ts` | Добавить воспоминание |
 | `list_npc_knowledge` | `listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
 | `get_npc_knowledge` | `getNpcKnowledgeTool.ts` | Одно знание NPC |
+
+### Мастер (`masterTools.ts`)
+
+Рефери заявки игрока. HTTP: `POST /api/test/master`. Нет `move_player`, нет spawn предметов, нет mention-hooks.
+
+| name | Файл | Назначение |
+|------|------|------------|
+| `roll_dice` | `rollDiceTool.ts` | Бросок кубика |
+| `search_location_items` | `searchLocationItemsTool.ts` | Предметы на полу локации |
+| `search_player_items` | `searchPlayerItemsTool.ts` | Инвентарь |
+| `take_item` | `takeItemTool.ts` | Подобрать существующий |
+| `drop_item` | `dropItemTool.ts` | Бросить |
+| `equip_item` | `equipItemTool.ts` | Надеть |
+| `unequip_item` | `unequipItemTool.ts` | Снять |
+| `get_coins` | `getCoinsTool.ts` | Баланс монет |
+| `get_player_proficiencies` | `getPlayerProficienciesTool.ts` | Навыки |
+| `get_player_conditions` | `getPlayerConditionsTool.ts` | Состояния |
+| `add_player_condition` | `addPlayerConditionTool.ts` | Наложить состояние |
+| `remove_player_condition` | `removePlayerConditionTool.ts` | Снять состояние |
+| `apply_player_hp` | `applyPlayerHpTool.ts` | HP вне боя |
+| `short_rest` | `shortRestTool.ts` | Короткий отдых |
+| `long_rest` | `longRestTool.ts` | Длинный отдых |
+| `get_player_location` | `getPlayerLocationTool.ts` | Локация / travel |
+| `start_travel` | `startTravelTool.ts` | Начать путь |
+| `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь |
 
 ### World look (`describeLocation.ts`)
 
@@ -600,8 +625,62 @@ Post-hook ([hooks README](../hooks/README.md)). Upsert дороги между �
 
 ---
 
+## `search_location_items`
+
+Предметы с `locationId`. Пустой список — лута нет.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `locationId` | string | нет | Иначе текущая локация игрока |
+| `query` | string | нет | Поиск по имени |
+
+**Return** — `{ locationId, query, exact, items }` как у `search_player_items` (без `playerId`).
+
+---
+
+## `take_item`
+
+Подбирает предмет с пола текущей локации игрока.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `playerId` | string | да | ID игрока |
+| `itemId` | string | да | ID предмета в локации |
+
+---
+
+## `drop_item`
+
+Бросает предмет игрока на пол текущей локации.
+
+**Args** — как у `take_item`.
+
+---
+
+## `equip_item` / `unequip_item`
+
+Как HTTP `/api/items/equip` и `/unequip`.
+
+---
+
+## `apply_player_hp`
+
+`delta` к `hpCurrent`, clamp 0…hpMax. 0 HP → `unconscious`.
+
+---
+
+## `short_rest` / `long_rest`
+
+Короткий: тратит `hitDice`. Длинный: полное HP, половина костей хитов, exhaustion −1.
+
+---
+
 ## Как добавлять tool
 
 1. `services/llm/tools/<name>Tool.ts` — объект `ILlmTool`
-2. Диалог → строка в `npcTools.ts`. Только хук → registry в `hooks/`
+2. Диалог → `npcTools.ts`. Мастер → `masterTools.ts`. Только хук → registry в `hooks/`
 3. Строка в оглавлении и секция в этом README

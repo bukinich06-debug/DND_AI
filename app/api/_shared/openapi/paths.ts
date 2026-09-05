@@ -38,6 +38,13 @@ const playerIdQuery = {
   schema: { type: 'string' },
 };
 
+const locationIdQuery = {
+  name: 'locationId',
+  in: 'query' as const,
+  required: true,
+  schema: { type: 'string' },
+};
+
 const npcIdParam = {
   name: 'npcId',
   in: 'path' as const,
@@ -294,10 +301,11 @@ export const paths = {
   '/api/items': {
     get: {
       tags: ['Items'],
-      summary: 'Список предметов по кампании или игроку',
+      summary: 'Список предметов по кампании, игроку или локации',
       parameters: [
         { ...campaignIdQuery, required: false },
         { ...playerIdQuery, required: false },
+        { ...locationIdQuery, required: false },
       ],
       responses: {
         '200': {
@@ -374,10 +382,80 @@ export const paths = {
       },
     },
   },
+  '/api/items/take': {
+    post: {
+      tags: ['Items'],
+      summary: 'Подобрать предмет с пола',
+      requestBody: {
+        required: true,
+        ...json(ref('TakeItem')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('Item')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/items/drop': {
+    post: {
+      tags: ['Items'],
+      summary: 'Бросить предмет на пол',
+      requestBody: {
+        required: true,
+        ...json(ref('DropItem')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('Item')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
   '/api/items/{id}': crudById('Items', 'Item'),
 
   '/api/players': listCreateByCampaign('Players', 'Player', 'CreatePlayer'),
   '/api/players/{id}': crudById('Players', 'Player'),
+  '/api/players/{id}/hp': {
+    post: {
+      tags: ['Players'],
+      summary: 'Изменить хиты игрока (delta)',
+      parameters: [idParam],
+      requestBody: {
+        required: true,
+        ...json(ref('ApplyPlayerHp')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('ApplyPlayerHpResult')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+  '/api/players/{id}/rest': {
+    post: {
+      tags: ['Players'],
+      summary: 'Короткий или длинный отдых',
+      parameters: [idParam],
+      requestBody: {
+        required: true,
+        ...json(ref('PlayerRest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('PlayerRestResult')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
 
   '/api/npcs': listCreateByCampaign('Npcs', 'Npc', 'CreateNpc'),
   '/api/npcs/{id}': crudById('Npcs', 'Npc'),
@@ -842,6 +920,24 @@ export const paths = {
         '200': {
           description: 'OK',
           ...json(ref('TurnReply')),
+        },
+        ...errorResponses,
+      },
+    },
+  },
+
+  '/api/test/master': {
+    post: {
+      tags: ['Master'],
+      summary: 'Рефери мастера (DeepSeek)',
+      requestBody: {
+        required: true,
+        ...json(ref('MasterRequest')),
+      },
+      responses: {
+        '200': {
+          description: 'OK',
+          ...json(ref('MasterReply')),
         },
         ...errorResponses,
       },

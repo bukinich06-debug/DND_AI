@@ -1,5 +1,8 @@
 'use server';
 
+import { adjudicatePlayerAction } from '@/services/llm/master/adjudicatePlayerAction';
+import type { MasterVerdict } from '@/services/llm/master/parseMasterReply';
+import type { IToolCallLog } from '@/services/llm/master/runMasterToolLoop';
 import { chatWithNpc } from '@/services/llm/npc/chatWithNpc';
 import type { IPlanStep } from '@/services/llm/plan/parsePlanReply';
 import { planPlayerInput } from '@/services/llm/plan/planPlayerInput';
@@ -28,7 +31,7 @@ type ITurnReply =
       features: string;
     }
   | { agent: 'npc'; npcId: string; npcName: string; say: string; do: string | null }
-  | { agent: 'master' };
+  | { agent: 'master'; verdict: MasterVerdict; say: string; toolCalls: IToolCallLog[] };
 
 const lastUserMessage = (messages: IChatMessage[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -74,7 +77,8 @@ const runStep = async (
     };
   }
 
-  return { agent: 'master' };
+  const result = await adjudicatePlayerAction({ campaignId, playerId, messages });
+  return { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls };
 };
 
 export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnReply[]> => {

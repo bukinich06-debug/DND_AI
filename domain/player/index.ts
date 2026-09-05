@@ -1,6 +1,10 @@
 export * from './constants';
 export { addCondition, removeCondition } from './helpers/applyCondition';
 export type { IConditionState } from './helpers/applyCondition';
+export { abilityMod } from './helpers/abilityMod';
+export { parseHitDie } from './helpers/parseHitDie';
+export type { IHitDie } from './helpers/parseHitDie';
+export { syncUnconscious } from './helpers/syncUnconscious';
 export {
   normalizeConditionKey,
   normalizeSkillKey,
@@ -11,10 +15,13 @@ export {
 export type {
   IAddPlayerCondition,
   IAdvanceTravel,
+  IApplyPlayerHp,
+  IApplyPlayerHpResult,
   ICreatePlayer,
   IGetPlayerConditions,
   IGetPlayerLocation,
   IGetPlayerProficiencies,
+  ILongRest,
   IMovePlayer,
   IPlayer,
   IPlayerConditions,
@@ -22,8 +29,10 @@ export type {
   IPlayerLocationState,
   IPlayerProficiencies,
   IPlayerRepository,
+  IPlayerRestResult,
   IPlayerTravelState,
   IRemovePlayerCondition,
+  IShortRest,
   IStartTravel,
   IUpdatePlayer,
 } from './types';
@@ -44,3 +53,4 @@ export {
   validateGetPlayerProficiencies,
   validateUpdatePlayer,
 } from './validation/validatePlayer';
+export { validateApplyPlayerHp, validateLongRest, validateShortRest } from './validation/validateRest';

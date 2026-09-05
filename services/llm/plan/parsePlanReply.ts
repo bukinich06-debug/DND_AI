@@ -61,13 +61,11 @@ const asStepList = (value: unknown): unknown[] | null => {
 export const parsePlanReply = (raw: string): IParsedPlanStep[] => {
   const trimmed = raw.trim();
   const parsed = tryParseJson(trimmed) ?? extractJson(trimmed);
-  console.log('parsed', parsed);
 
   const error = asError(parsed);
   if (error) throw new Error(error);
 
   const list = asStepList(parsed);
-  console.log('list', list);
   if (!list) throw new Error('Ответ планировщика должен быть JSON-массивом шагов.');
   if (list.length === 0) throw new Error('План не должен быть пустым.');
 

@@ -86,11 +86,35 @@ export interface ISearchPlayerItemsResult {
   items: ISearchPlayerItem[];
 }
 
+export interface ISearchLocationItems {
+  campaignId: string;
+  locationId: string;
+  query?: string | null;
+}
+
+export interface ISearchLocationItemsResult {
+  locationId: string;
+  query: string | null;
+  exact: boolean;
+  items: ISearchPlayerItem[];
+}
+
+export interface ITakeItem {
+  playerId: string;
+  itemId: string;
+}
+
+export interface IDropItem {
+  playerId: string;
+  itemId: string;
+}
+
 export interface IItemRepository {
   create: (input: ICreateItem) => Promise<IItem>;
   getById: (id: string) => Promise<IItem | null>;
   listByCampaignId: (campaignId: string) => Promise<IItem[]>;
   listByPlayerId: (playerId: string) => Promise<IItem[]>;
+  listByLocationId: (locationId: string) => Promise<IItem[]>;
   update: (id: string, input: IUpdateItem) => Promise<IItem>;
   delete: (id: string) => Promise<void>;
 }

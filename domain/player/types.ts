@@ -120,6 +120,44 @@ export interface IRemovePlayerCondition {
   exhaustionLevel?: number | null;
 }
 
+export interface IApplyPlayerHp {
+  campaignId: string;
+  playerId: string;
+  delta: number;
+}
+
+export interface IApplyPlayerHpResult {
+  playerId: string;
+  hpMax: number;
+  hpCurrent: number;
+  hpTemp: number;
+  conditions: string[];
+  exhaustionLevel: number;
+}
+
+export interface IShortRest {
+  campaignId: string;
+  playerId: string;
+  hitDice: number;
+}
+
+export interface ILongRest {
+  campaignId: string;
+  playerId: string;
+}
+
+export interface IPlayerRestResult {
+  playerId: string;
+  hpMax: number;
+  hpCurrent: number;
+  hpTemp: number;
+  hitDiceLeft: number;
+  conditions: string[];
+  exhaustionLevel: number;
+  healed?: number;
+  dice?: Array<{ die: string; value: number; conMod: number }>;
+}
+
 export interface IPlayerConditions {
   playerId: string;
   conditions: string[];
