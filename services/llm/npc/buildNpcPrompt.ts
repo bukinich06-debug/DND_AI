@@ -39,6 +39,18 @@ const formatKnowledge = (ctx: INpcChatContext) => {
   return ctx.knowledge.map((k) => `- ${k.title}: ${k.content}`).join('\n');
 };
 
+const formatCheckKnowledge = (ctx: INpcChatContext) => {
+  if (ctx.checkKnowledge.length === 0) return 'Нет секретов под проверкой.';
+  return ctx.checkKnowledge
+    .map((k) => {
+      const hint = k.skillHint ?? 'любой из persuasion/deception/intimidation по ситуации';
+      const dc = k.dc ?? '?';
+      if (k.content) return `- id=${k.id}, «${k.title}», skillHint=${hint}, dc=${dc}. Можно сказать: ${k.content}`;
+      return `- id=${k.id}, «${k.title}», skillHint=${hint}, dc=${dc}. content скрыт — не выдумывай текст, не подтверждай детали.`;
+    })
+    .join('\n');
+};
+
 export const buildNpcPrompt = (ctx: INpcChatContext) => {
   const who = ctx.npc.title ? `${ctx.npc.name}, ${ctx.npc.title}` : ctx.npc.name;
   const attitude = ctx.npc.attitude?.trim() || 'не задана';
@@ -85,11 +97,23 @@ ${formatAboutMeMemories(ctx)}
 ## Что можешь сказать сразу (открытые знания, снимок)
 ${formatKnowledge(ctx)}
 
+## Секреты под проверкой (снимок)
+${formatCheckKnowledge(ctx)}
+Это не открытые факты. content в say запрещён, пока в снимке нет текста. Если у записи уже есть content — скажи его, когда проверка уже успешна (см. конец промпта). id, title, dc, skillHint — для поля check. list_npc_knowledge для этого не нужен.
+
+## Социальное давление
+Читай намерение в речи и действиях, не жди фраз «пытаюсь убедить / обмануть / запугать».
+- Угроза, шантаж, рука на оружии, «скажи или будут проблемы» — intimidation.
+- Лесть, торг, просьба открыть секрет, уговор — persuasion.
+- Ложная легенда, притворство — deception.
+Если в конце промпта есть успех проверки по секрету — этот абзац не действует: скажи content, без check и без торга.
+Иначе: не бросай кубик. Если игрок давит и в снимке есть подходящий секрет — ОБЯЗАН вернуть check: skill (skillHint если подходит, иначе по ситуации), dc и knowledgeId из снимка. say — пустая строка, do — null. Никакой речи, отказа и «иди к страже» до броска.
+
 ## Tools
-- Деньги, инвентарь, знания под check, смена отношения, запись памяти, броски, локация/travel, состояния — только через tools.
-- Не подтверждай оплату, передачу предмета или успех проверки, пока tool не вернул успех.
-- Сначала get_coins, потом transfer_coins (player → этот npc), если игрок реально платит.
-- Не вызывай tools без нужды.
+- Деньги, инвентарь, смена отношения, запись памяти, локация/travel, состояния — только через tools. Секреты из снимка выше — без tool.
+- Не подтверждай оплату или передачу предмета, пока tool не вернул успех. Секрет после успешной проверки — из снимка, без tool.
+- get_coins / transfer_coins — только если игрок в этой реплике реально платит монетами. Не после проверки навыка и не «посмотреть кошелёк».
+- Не вызывай tools без нужды (секреты из снимка — не повод звать list_npc_knowledge).
 - add_npc_memory: summary самодостаточный (кто + что); не пиши «он/кто-то» без имени или роли. Факт о знакомом — aboutNpcId и playerId не передавай (или null). playerId — только если память о поступке/отношении к игроку.
 
 ## Правила ответа
@@ -113,5 +137,7 @@ ${formatKnowledge(ctx)}
 После нужных tool-вызовов верни ТОЛЬКО один JSON-объект без текста вокруг:
 {"say":"...","do":null}
 или
-{"say":"...","do":"краткое действие"}`;
+{"say":"...","do":"краткое действие"}
+Если нужна проверка игрока — без речи:
+{"say":"","do":null,"check":{"skill":"persuasion","dc":15,"knowledgeId":"..."}}`;
 };

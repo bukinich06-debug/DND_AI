@@ -28,6 +28,11 @@ export const diceRollRepository: IDiceRollRepository = {
     return mapDiceRoll(row);
   },
 
+  getById: async (id: string) => {
+    const row = await db.diceRoll.findUnique({ where: { id } });
+    return row ? mapDiceRoll(row) : null;
+  },
+
   listByCampaignId: async (campaignId: string) => {
     const rows = await db.diceRoll.findMany({
       where: { campaignId },

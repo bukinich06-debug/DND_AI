@@ -9,7 +9,6 @@ import { getPlayerLocationTool } from '@/services/llm/tools/getPlayerLocationToo
 import { getPlayerProficienciesTool } from '@/services/llm/tools/getPlayerProficienciesTool';
 import { longRestTool } from '@/services/llm/tools/longRestTool';
 import { removePlayerConditionTool } from '@/services/llm/tools/removePlayerConditionTool';
-import { rollDiceTool } from '@/services/llm/tools/rollDiceTool';
 import { searchLocationItemsTool } from '@/services/llm/tools/searchLocationItemsTool';
 import { searchPlayerItemsTool } from '@/services/llm/tools/searchPlayerItemsTool';
 import { shortRestTool } from '@/services/llm/tools/shortRestTool';
@@ -19,7 +18,6 @@ import type { ILlmTool } from '@/services/llm/tools/types';
 import { unequipItemTool } from '@/services/llm/tools/unequipItemTool';
 
 export const masterTools: ILlmTool[] = [
-  rollDiceTool,
   searchLocationItemsTool,
   searchPlayerItemsTool,
   takeItemTool,

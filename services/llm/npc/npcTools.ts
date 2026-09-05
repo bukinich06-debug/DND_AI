@@ -12,7 +12,6 @@ import { listNpcKnowledgeTool } from '@/services/llm/tools/listNpcKnowledgeTool'
 import { listNpcMemoriesTool } from '@/services/llm/tools/listNpcMemoriesTool';
 import { movePlayerTool } from '@/services/llm/tools/movePlayerTool';
 import { removePlayerConditionTool } from '@/services/llm/tools/removePlayerConditionTool';
-import { rollDiceTool } from '@/services/llm/tools/rollDiceTool';
 import { searchPlayerItemsTool } from '@/services/llm/tools/searchPlayerItemsTool';
 import { startTravelTool } from '@/services/llm/tools/startTravelTool';
 import { transferCoinsTool } from '@/services/llm/tools/transferCoinsTool';
@@ -20,7 +19,6 @@ import type { ILlmTool } from '@/services/llm/tools/types';
 import { worsenNpcRelationTool } from '@/services/llm/tools/worsenNpcRelationTool';
 
 export const npcTools: ILlmTool[] = [
-  rollDiceTool,
   getCoinsTool,
   transferCoinsTool,
   searchPlayerItemsTool,

@@ -4,6 +4,11 @@ export interface IToolContext {
   playerId?: string;
   locationId?: string;
   playerHereId?: string;
+  passedCheck?: {
+    skill: string;
+    knowledgeId: string | null;
+    passed: boolean;
+  };
 }
 
 export interface ILlmTool {

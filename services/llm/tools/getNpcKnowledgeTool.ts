@@ -26,6 +26,6 @@ export const getNpcKnowledgeTool: ILlmTool = {
   },
   execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
-    return getNpcKnowledgeForAgent(parsed.knowledgeId, ctx.campaignId);
+    return getNpcKnowledgeForAgent(parsed.knowledgeId, ctx.campaignId, ctx.passedCheck);
   },
 };

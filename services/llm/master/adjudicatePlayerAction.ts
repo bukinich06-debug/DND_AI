@@ -1,8 +1,10 @@
 'use server';
 
+import { formatCheckOutcome, type ICheckOutcome } from '@/services/llm/check/formatCheckOutcome';
 import { buildMasterPrompt } from './buildMasterPrompt';
 import { loadMasterContext } from './loadMasterContext';
 import { runMasterToolLoop, type IToolCallLog } from './runMasterToolLoop';
+import type { IRequestedCheck } from '@/services/llm/check/parseRequestedCheck';
 import type { MasterVerdict } from './parseMasterReply';
 
 interface IChatMessage {
@@ -14,11 +16,13 @@ interface IAdjudicatePlayerActionParams {
   campaignId: string;
   playerId: string;
   messages: IChatMessage[];
+  checkOutcome?: ICheckOutcome;
 }
 
 export interface IAdjudicatePlayerActionResult {
   verdict: MasterVerdict;
   say: string;
+  check: IRequestedCheck | null;
   toolCalls: IToolCallLog[];
 }
 
@@ -47,11 +51,24 @@ export const adjudicatePlayerAction = async (
 
   const messages = parseMessages(input.messages);
   const ctx = await loadMasterContext({ campaignId, playerId });
+  const outcome = input.checkOutcome;
+  const system = outcome
+    ? `${buildMasterPrompt(ctx)}\n\n## Результат проверки игрока\n${formatCheckOutcome(outcome)}`
+    : buildMasterPrompt(ctx);
   const reply = await runMasterToolLoop({
-    system: buildMasterPrompt(ctx),
+    system,
     messages,
-    ctx: { campaignId, playerId },
+    ctx: {
+      campaignId,
+      playerId,
+      passedCheck: outcome
+        ? { skill: outcome.skill, knowledgeId: outcome.knowledgeId, passed: outcome.passed }
+        : undefined,
+    },
   });
 
-  return { verdict: reply.verdict, say: reply.say, toolCalls: reply.toolCalls };
+  if (outcome && reply.check)
+    return { verdict: reply.verdict === 'check' ? 'partial' : reply.verdict, say: reply.say, check: null, toolCalls: reply.toolCalls };
+
+  return { verdict: reply.verdict, say: reply.say, check: reply.check, toolCalls: reply.toolCalls };
 };

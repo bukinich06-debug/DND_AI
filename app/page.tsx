@@ -17,6 +17,9 @@ export default function Home() {
         <Link href="/plan">Планировщик (тест)</Link>
       </p>
       <p>
+        <Link href="/turn">Ход (тест)</Link>
+      </p>
+      <p>
         <Link href="/master">Мастер (тест)</Link>
       </p>
     </main>

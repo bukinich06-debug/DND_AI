@@ -911,7 +911,7 @@ export const paths = {
   '/api/turn': {
     post: {
       tags: ['Plan'],
-      summary: 'Ход игрока: массив ответов location / npc / master',
+      summary: 'Ход игрока: агенты, пауза на проверке навыка',
       requestBody: {
         required: true,
         ...json(ref('TurnRequest')),

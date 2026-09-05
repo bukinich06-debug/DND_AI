@@ -1,5 +1,7 @@
 'use server';
 
+import { formatCheckOutcome, type ICheckOutcome } from '@/services/llm/check/formatCheckOutcome';
+import type { IRequestedCheck } from '@/services/llm/check/parseRequestedCheck';
 import { resolveMentionedLocationsHook } from '@/services/llm/hooks/location/resolveMentionedLocations';
 import { resolveMentionedNpcsHook } from '@/services/llm/hooks/npc/resolveMentionedNpcs';
 import { runAfterAgent } from '@/services/llm/hooks/runAfterAgent';
@@ -20,11 +22,13 @@ interface IChatWithNpcParams {
   npcId: string;
   playerId: string;
   messages: IChatMessage[];
+  checkOutcome?: ICheckOutcome;
 }
 
 export interface IChatWithNpcResult {
   say: string;
   do: string | null;
+  check: IRequestedCheck | null;
   toolCalls: IToolCallLog[];
   turnId: string;
 }
@@ -44,6 +48,13 @@ const parseMessages = (messages: unknown): IChatMessage[] => {
   });
 };
 
+const formatNpcAfterCheck = (outcome: ICheckOutcome) => {
+  if (!outcome.knowledgeId) return 'Не проси новую проверку. Не возвращай поле check. Не вызывай get_coins и transfer_coins — сейчас не платёж.';
+  if (outcome.passed)
+    return `Секрет knowledgeId=${outcome.knowledgeId} открыт: в снимке «Секреты под проверкой» у этой записи есть content. Скажи эти факты в say (можно своими словами, смысл тот же). Не отказывай, не требуй денег за секрет, не обрывай разговор. Не вызывай get_coins, transfer_coins, list_npc_knowledge. Не возвращай поле check.`;
+  return `Секрет knowledgeId=${outcome.knowledgeId} не открыт. Не называй content, даже намёком. Можно отказать. Не вызывай get_coins. Не возвращай поле check.`;
+};
+
 const NPC_HOOKS = [resolveMentionedLocationsHook, resolveMentionedNpcsHook];
 
 export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithNpcResult> => {
@@ -51,12 +62,20 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
   const chatKey = chatHookKey(input.campaignId, input.npcId, input.playerId);
   await waitForHooks(chatKey);
 
+  const outcome = input.checkOutcome;
+  const passedCheck = outcome
+    ? { skill: outcome.skill, knowledgeId: outcome.knowledgeId, passed: outcome.passed }
+    : undefined;
   const chatCtx = await loadNpcChatContext({
     campaignId: input.campaignId,
     npcId: input.npcId,
     playerId: input.playerId,
+    passedCheck,
   });
-  const system = buildNpcPrompt(chatCtx);
+  const systemBase = buildNpcPrompt(chatCtx);
+  const system = outcome
+    ? `${systemBase}\n\n## Результат проверки игрока\n${formatCheckOutcome(outcome)}\n${formatNpcAfterCheck(outcome)}`
+    : systemBase;
   const reply = await runNpcToolLoop({
     system,
     messages,
@@ -64,8 +83,12 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
       campaignId: input.campaignId,
       npcId: input.npcId,
       playerId: input.playerId,
+      passedCheck,
     },
   });
+
+  let out = outcome && reply.check ? { ...reply, check: null } : reply;
+  if (!outcome && out.check) out = { ...out, say: '', do: null };
 
   const turnId = createTurn(
     chatKey,
@@ -80,7 +103,7 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
       campaignId: input.campaignId,
       npcId: input.npcId,
       playerId: input.playerId,
-      reply: { say: reply.say, do: reply.do },
+      reply: { say: out.say, do: out.do },
       messages,
       speakerName: chatCtx.npc.name,
       playerName: chatCtx.player.name,
@@ -88,5 +111,5 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
     },
   });
 
-  return { ...reply, turnId };
+  return { ...out, check: out.check ?? null, turnId };
 };

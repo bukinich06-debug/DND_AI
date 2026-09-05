@@ -46,6 +46,7 @@ export const listNpcKnowledgeTool: ILlmTool = {
     return listNpcKnowledgeForAgent(parsed.npcId, {
       reveal: parsed.reveal,
       campaignId: ctx.campaignId,
+      passedCheck: ctx.passedCheck,
     });
   },
 };

@@ -30,5 +30,6 @@ export interface ICreateDiceRoll {
 
 export interface IDiceRollRepository {
   create: (input: ICreateDiceRoll) => Promise<IDiceRoll>;
+  getById: (id: string) => Promise<IDiceRoll | null>;
   listByCampaignId: (campaignId: string) => Promise<IDiceRoll[]>;
 }

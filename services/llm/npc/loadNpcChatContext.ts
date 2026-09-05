@@ -15,6 +15,7 @@ interface ILoadNpcChatContextParams {
   campaignId: string;
   npcId: string;
   playerId: string;
+  passedCheck?: { skill: string; knowledgeId: string | null; passed: boolean };
 }
 
 export interface INpcChatContext {
@@ -60,12 +61,20 @@ export interface INpcChatContext {
     title: string;
     content: string;
   }>;
+  checkKnowledge: Array<{
+    id: string;
+    title: string;
+    dc: number | null;
+    skillHint: string | null;
+    content: string | null;
+  }>;
 }
 
 export const loadNpcChatContext = async ({
   campaignId,
   npcId,
   playerId,
+  passedCheck,
 }: ILoadNpcChatContextParams): Promise<INpcChatContext> => {
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!npcId.trim()) throw new Error('npcId обязателен.');
@@ -127,6 +136,19 @@ export const loadNpcChatContext = async ({
       content: k.content as string,
     }));
 
+  const checkRows = await listNpcKnowledgeForAgent(npcId, {
+    reveal: KnowledgeReveal.check,
+    campaignId,
+    passedCheck,
+  });
+  const checkKnowledge = checkRows.map((k) => ({
+    id: k.id,
+    title: k.title,
+    dc: k.dc,
+    skillHint: k.skillHint,
+    content: typeof k.content === 'string' && k.content.trim() ? k.content : null,
+  }));
+
   return {
     npc: {
       id: npc.id,
@@ -151,5 +173,6 @@ export const loadNpcChatContext = async ({
     aboutMeMemories,
     acquaintances,
     knowledge,
+    checkKnowledge,
   };
 };

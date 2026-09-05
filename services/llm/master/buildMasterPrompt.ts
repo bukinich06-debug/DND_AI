@@ -23,7 +23,8 @@ playerId: ${ctx.player.id}
 - «В мире есть X» (лут, дверь, труп), если X нет в снимке/tools — отказ.
 - Ценное / magical / именное / оружие с пола — только Item из search_location_items / itemsHere.
 - Обстановка места (сесть в таверне) — можно без Item.
-- Исход неясен и провал интересен — roll_dice (сначала proficiencies/conditions/items).
+- Исход неясен и провал интересен — верни verdict check и объект check (skill, dc). Не бросай кубик за игрока. Сначала proficiencies/conditions/items.
+- Запрещено: persuasion, deception, intimidation (убеждение, обман, запугивание). Их просит только агент NPC. Если игрок давит на человека — не строй check, не отвечай за NPC.
 - Речь к человеку — не отвечай за него.
 - Атака врага — verdict: defer_combat, без урона врагу.
 - Не выдумывай NPC, места, квесты, сокровища.
@@ -43,5 +44,8 @@ ${JSON.stringify(snapshot, null, 2)}
 После нужных tool-вызовов верни ТОЛЬКО один JSON-объект без текста вокруг:
 {"verdict":"allowed","say":"..."}
 verdict: allowed | denied | partial | check | defer_combat
-say — 1–3 предложения in-world на русском. Без markdown.`;
+Если нужна проверка игрока:
+{"verdict":"check","say":"...","check":{"skill":"perception","dc":15}}
+skill — ключ PHB (perception, stealth, athletics, …) или русское имя. Не persuasion/deception/intimidation. dc — сложность 5–30.
+say — 1–3 предложения in-world на русском. Без markdown. Не вызывай roll_dice.`;
 };

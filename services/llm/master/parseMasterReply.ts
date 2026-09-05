@@ -1,3 +1,8 @@
+import { Skill } from '@/domain/player';
+import { parseRequestedCheck, type IRequestedCheck } from '@/services/llm/check/parseRequestedCheck';
+
+const SOCIAL_SKILLS = new Set<string>([Skill.persuasion, Skill.deception, Skill.intimidation]);
+
 export const MASTER_VERDICTS = ['allowed', 'denied', 'partial', 'check', 'defer_combat'] as const;
 
 export type MasterVerdict = (typeof MASTER_VERDICTS)[number];
@@ -5,6 +10,7 @@ export type MasterVerdict = (typeof MASTER_VERDICTS)[number];
 export interface IMasterReply {
   verdict: MasterVerdict;
   say: string;
+  check: IRequestedCheck | null;
 }
 
 const tryParseJson = (raw: string): unknown => {
@@ -30,12 +36,16 @@ const asReply = (value: unknown): IMasterReply | null => {
   const obj = value as Record<string, unknown>;
   if (!isVerdict(obj.verdict)) return null;
   if (typeof obj.say !== 'string' || !obj.say.trim()) return null;
-  return { verdict: obj.verdict, say: obj.say.trim() };
+  if (obj.verdict !== 'check') return { verdict: obj.verdict, say: obj.say.trim(), check: null };
+  const check = parseRequestedCheck(obj.check);
+  if (!check) return null;
+  if (SOCIAL_SKILLS.has(check.skill)) return { verdict: 'partial', say: obj.say.trim(), check: null };
+  return { verdict: 'check', say: obj.say.trim(), check };
 };
 
 export const parseMasterReply = (raw: string): IMasterReply => {
   const trimmed = raw.trim();
   const parsed = asReply(tryParseJson(trimmed)) ?? asReply(extractJsonObject(trimmed));
   if (parsed) return parsed;
-  return { verdict: 'partial', say: trimmed };
+  return { verdict: 'partial', say: trimmed, check: null };
 };

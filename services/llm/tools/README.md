@@ -16,7 +16,6 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 | name | Файл | Назначение |
 |------|------|------------|
-| `roll_dice` | `rollDiceTool.ts` | Бросок кубика |
 | `get_coins` | `getCoinsTool.ts` | Баланс монет |
 | `transfer_coins` | `transferCoinsTool.ts` | Перевод монет (покупка / лут) |
 | `search_player_items` | `searchPlayerItemsTool.ts` | Инвентарь / поиск предмета |
@@ -42,7 +41,6 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 | name | Файл | Назначение |
 |------|------|------------|
-| `roll_dice` | `rollDiceTool.ts` | Бросок кубика |
 | `search_location_items` | `searchLocationItemsTool.ts` | Предметы на полу локации |
 | `search_player_items` | `searchPlayerItemsTool.ts` | Инвентарь |
 | `take_item` | `takeItemTool.ts` | Подобрать существующий |
@@ -85,6 +83,8 @@ NPC: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.t
 ---
 
 ## `roll_dice`
+
+Файл остаётся для `POST /api/dice-rolls`. В `npcTools` / `masterTools` **нет**: проверку навыка игрока агент просит полем `check` в JSON, кубик бросает UI. См. [`../turn/README.md`](../turn/README.md).
 
 Бросает один кубик D&D и сохраняет результат.
 

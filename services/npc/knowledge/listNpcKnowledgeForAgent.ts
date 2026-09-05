@@ -2,24 +2,11 @@
 
 import { npcKnowledgeRepository, npcRepository } from '@/data/npc';
 import { KnowledgeReveal } from '@/domain/shared';
-import type { INpcKnowledge } from '@/domain/npc';
-
-type AgentKnowledge = Omit<INpcKnowledge, 'content'> & { content: string | null };
-
-const stripForCheck = (item: INpcKnowledge): AgentKnowledge => ({
-  ...item,
-  content: null,
-});
-
-const toAgentView = (item: INpcKnowledge): AgentKnowledge => {
-  if (item.reveal === KnowledgeReveal.open) return item;
-  if (item.reveal === KnowledgeReveal.check) return stripForCheck(item);
-  throw new Error('Знание недоступно.');
-};
+import { toAgentKnowledge, type IPassedCheck } from './helpers/toAgentKnowledge';
 
 export const listNpcKnowledgeForAgent = async (
   npcId: string,
-  options?: { reveal?: KnowledgeReveal; campaignId?: string }
+  options?: { reveal?: KnowledgeReveal; campaignId?: string; passedCheck?: IPassedCheck }
 ) => {
   const npc = await npcRepository.getById(npcId);
   if (!npc) throw new Error('NPC не найден.');
@@ -30,5 +17,5 @@ export const listNpcKnowledgeForAgent = async (
   if (reveal === KnowledgeReveal.hidden) throw new Error('Скрытые знания недоступны.');
 
   const items = await npcKnowledgeRepository.listByNpcId(npcId);
-  return items.filter((item) => item.reveal === reveal).map(toAgentView);
+  return items.filter((item) => item.reveal === reveal).map((item) => toAgentKnowledge(item, options?.passedCheck));
 };

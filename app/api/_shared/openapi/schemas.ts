@@ -1343,6 +1343,7 @@ export const schemas = {
     properties: {
       say: { type: 'string' },
       do: { type: 'string', nullable: true },
+      check: { $ref: '#/components/schemas/RequestedCheck' },
       toolCalls: {
         type: 'array',
         items: { $ref: '#/components/schemas/NpcChatToolCall' },
@@ -1376,6 +1377,7 @@ export const schemas = {
     properties: {
       verdict: { type: 'string', enum: ['allowed', 'denied', 'partial', 'check', 'defer_combat'] },
       say: { type: 'string' },
+      check: { $ref: '#/components/schemas/RequestedCheck' },
       toolCalls: {
         type: 'array',
         items: { $ref: '#/components/schemas/NpcChatToolCall' },
@@ -1481,7 +1483,73 @@ export const schemas = {
   },
 
   TurnRequest: {
-    allOf: [{ $ref: '#/components/schemas/PlanRequest' }],
+    type: 'object',
+    required: ['campaignId', 'playerId', 'messages'],
+    properties: {
+      campaignId: { type: 'string' },
+      playerId: { type: 'string' },
+      messages: { type: 'array', items: { $ref: '#/components/schemas/NpcChatMessage' } },
+      resume: { $ref: '#/components/schemas/TurnResume' },
+      check: { $ref: '#/components/schemas/TurnCheckInput' },
+      rollId: { type: 'string' },
+    },
+  },
+  RequestedCheck: {
+    type: 'object',
+    required: ['skill', 'dc'],
+    properties: {
+      skill: { type: 'string' },
+      dc: { type: 'number' },
+      knowledgeId: { type: 'string', nullable: true },
+    },
+  },
+  TurnCheck: {
+    type: 'object',
+    required: ['skill', 'skillLabel', 'dc', 'bonus', 'die'],
+    properties: {
+      skill: { type: 'string' },
+      skillLabel: { type: 'string' },
+      dc: { type: 'number' },
+      bonus: { type: 'number' },
+      die: { type: 'string', enum: ['d20'] },
+      knowledgeId: { type: 'string', nullable: true },
+    },
+  },
+  TurnCheckInput: {
+    type: 'object',
+    required: ['skill', 'dc'],
+    properties: {
+      skill: { type: 'string' },
+      dc: { type: 'number' },
+      knowledgeId: { type: 'string', nullable: true },
+    },
+  },
+  TurnResume: {
+    oneOf: [
+      {
+        type: 'object',
+        required: ['agent', 'npcId', 'remainingSteps'],
+        properties: {
+          agent: { type: 'string', enum: ['npc'] },
+          npcId: { type: 'string' },
+          remainingSteps: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/PlanStep' },
+          },
+        },
+      },
+      {
+        type: 'object',
+        required: ['agent', 'remainingSteps'],
+        properties: {
+          agent: { type: 'string', enum: ['master'] },
+          remainingSteps: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/PlanStep' },
+          },
+        },
+      },
+    ],
   },
   TurnAgentReply: {
     oneOf: [
@@ -1525,7 +1593,16 @@ export const schemas = {
     ],
   },
   TurnReply: {
-    type: 'array',
-    items: { $ref: '#/components/schemas/TurnAgentReply' },
+    type: 'object',
+    required: ['status', 'replies'],
+    properties: {
+      status: { type: 'string', enum: ['done', 'need_check'] },
+      replies: {
+        type: 'array',
+        items: { $ref: '#/components/schemas/TurnAgentReply' },
+      },
+      check: { $ref: '#/components/schemas/TurnCheck' },
+      resume: { $ref: '#/components/schemas/TurnResume' },
+    },
   },
 } as const;
