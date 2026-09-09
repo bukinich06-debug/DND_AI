@@ -93,11 +93,36 @@ enum DiceKind {
   d100
 }
 
+/// Слот игровых суток
+enum TimeOfDay {
+  morning
+  noon
+  afternoon
+  evening
+  lateEvening
+  midnight
+  night
+}
+
+/// Статус отложенного события мира
+enum WorldEventStatus {
+  pending
+  done
+}
+
+/// Как задано время события: ближайший слот или конкретный день
+enum WorldEventWhen {
+  nextSlot
+  onDay
+}
+
 /// Кампания — корень игрового мира
 model Campaign {
   id               String            @id @default(cuid())
   name             String
   description      String?
+  dayIndex         Int               @default(1)
+  timeOfDay        TimeOfDay         @default(morning)
   players          Player[]
   locations        Location[]
   locationLinks    LocationLink[]
@@ -106,6 +131,7 @@ model Campaign {
   quests           Quest[]
   monsterTemplates MonsterTemplate[]
   diceRolls        DiceRoll[]
+  worldEvents      WorldEvent[]
 
   @@map("campaign")
 }
@@ -167,6 +193,7 @@ model Player {
   diceRolls         DiceRoll[]
   npcRelations      NpcRelation[]
   npcMemories       NpcMemory[]
+  worldEvents       WorldEvent[]
 
   @@map("player")
 }
@@ -194,6 +221,7 @@ model Location {
   playersTravelingTo Player[]       @relation("PlayerTravelDestination")
   linksFrom          LocationLink[] @relation("LocationLinkFrom")
   linksTo            LocationLink[] @relation("LocationLinkTo")
+  worldEvents        WorldEvent[]
 
   @@map("location")
 }
@@ -241,6 +269,7 @@ model Npc {
   aboutInMemories NpcMemory[]      @relation("NpcAboutMemory")
   knows           NpcAcquaintance[] @relation("NpcKnows")
   knownBy         NpcAcquaintance[] @relation("NpcKnownBy")
+  worldEvents     WorldEvent[]
 
   @@map("npc")
 }
@@ -468,4 +497,26 @@ model DiceRoll {
   npc      Npc?     @relation(fields: [npcId], references: [id])
 
   @@map("dice_roll")
+}
+
+/// Отложенная встреча / событие мира
+model WorldEvent {
+  id         String           @id @default(cuid())
+  campaignId String
+  status     WorldEventStatus @default(pending)
+  whenKind   WorldEventWhen
+  slot       TimeOfDay
+  dayIndex   Int?
+  locationId String
+  playerId   String
+  npcId      String?
+  title      String
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+  player   Player   @relation(fields: [playerId], references: [id])
+  npc      Npc?     @relation(fields: [npcId], references: [id])
+
+  @@index([campaignId, status])
+  @@map("world_event")
 }

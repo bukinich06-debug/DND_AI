@@ -1,3 +1,4 @@
+import { TIME_OF_DAY_LABEL } from '@/domain/world-clock';
 import type { IMasterContext } from './loadMasterContext';
 
 export const buildMasterPrompt = (ctx: IMasterContext) => {
@@ -9,6 +10,11 @@ export const buildMasterPrompt = (ctx: IMasterContext) => {
     npcsHere: ctx.world.npcsHere.map((n) => ({ id: n.id, name: n.name, title: n.title, role: n.role })),
     itemsHere: ctx.itemsHere,
     travel: ctx.travel,
+    clock: {
+      dayIndex: ctx.clock.dayIndex,
+      timeOfDay: ctx.clock.timeOfDay,
+      timeOfDayLabel: TIME_OF_DAY_LABEL[ctx.clock.timeOfDay],
+    },
   };
 
   return `Ты мастер-рефери D&D. Игрок: ${ctx.player.name}. Ты не NPC, не описываешь локацию и не ведёшь бой.
@@ -17,6 +23,7 @@ export const buildMasterPrompt = (ctx: IMasterContext) => {
 Не подтверждай предмет, секрет, урон, деньги, перемещение, пока tool не вернул успех.
 
 playerId: ${ctx.player.id}
+Сейчас: день ${ctx.clock.dayIndex}, ${TIME_OF_DAY_LABEL[ctx.clock.timeOfDay]} (${ctx.clock.timeOfDay}).
 
 ## Политика
 - Обычное действие без нового объекта в мире (сесть, опереться, достать СВОЙ предмет) — разрешай.
@@ -36,6 +43,7 @@ playerId: ${ctx.player.id}
 Нет успешного take_item — нельзя писать «ты поднял».
 apply_player_hp — только урон/лечение вне боя (падение, яд, ловушка).
 short_rest / long_rest — только если игрок отдыхает.
+schedule_meeting — если договорились о встрече: слот суток и locationId. Не выдумывай, что встреча уже наступила.
 
 ## Снимок
 ${JSON.stringify(snapshot, null, 2)}

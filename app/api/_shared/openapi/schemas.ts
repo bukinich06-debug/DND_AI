@@ -137,11 +137,16 @@ export const schemas = {
 
   Campaign: {
     type: 'object',
-    required: ['id', 'name', 'description'],
+    required: ['id', 'name', 'description', 'dayIndex', 'timeOfDay'],
     properties: {
       id: { type: 'string' },
       name: { type: 'string' },
       description: { type: 'string', nullable: true },
+      dayIndex: { type: 'integer' },
+      timeOfDay: {
+        type: 'string',
+        enum: ['morning', 'noon', 'afternoon', 'evening', 'lateEvening', 'midnight', 'night'],
+      },
     },
   },
   CreateCampaign: {

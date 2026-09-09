@@ -1,8 +1,10 @@
 import { listItemsByLocation } from '@/services/item/crud/listItemsByLocation';
+import { getCampaign } from '@/services/campaign/crud/getCampaign';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
 import { loadWorldContext, type IWorldContext } from '@/services/llm/world/loadWorldContext';
 import type { IPlayerTravelState } from '@/domain/player';
+import type { TimeOfDay } from '@/domain/shared';
 
 interface ILoadMasterContextParams {
   campaignId: string;
@@ -32,6 +34,10 @@ export interface IMasterContext {
     rarity: string | null;
   }>;
   travel: IPlayerTravelState | null;
+  clock: {
+    dayIndex: number;
+    timeOfDay: TimeOfDay;
+  };
 }
 
 export const loadMasterContext = async ({
@@ -42,10 +48,11 @@ export const loadMasterContext = async ({
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
   const world = await loadWorldContext({ campaignId, playerId });
-  const [player, itemsHere, loc] = await Promise.all([
+  const [player, itemsHere, loc, campaign] = await Promise.all([
     getPlayer(playerId),
     listItemsByLocation(world.playerHere.id),
     getPlayerLocation({ campaignId, playerId }),
+    getCampaign(campaignId),
   ]);
 
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
@@ -73,5 +80,9 @@ export const loadMasterContext = async ({
       rarity: item.rarity,
     })),
     travel: loc.travel,
+    clock: {
+      dayIndex: campaign.dayIndex,
+      timeOfDay: campaign.timeOfDay,
+    },
   };
 };

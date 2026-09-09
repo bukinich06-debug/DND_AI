@@ -1,3 +1,4 @@
+import { TIME_OF_DAY_LABEL } from '@/domain/world-clock';
 import type { INpcChatContext } from './loadNpcChatContext';
 
 const formatAboutLabel = (aboutName: string | null, aboutTitle: string | null) => {
@@ -62,6 +63,7 @@ export const buildNpcPrompt = (ctx: INpcChatContext) => {
 ## Идентификаторы для tools
 npcId: ${ctx.npc.id}
 playerId: ${ctx.player.id}
+Сейчас: день ${ctx.clock.dayIndex}, ${TIME_OF_DAY_LABEL[ctx.clock.timeOfDay]} (${ctx.clock.timeOfDay}).
 В args tools передавай эти id явно, где схема их требует.
 
 ## Внешность
@@ -115,6 +117,7 @@ ${formatCheckKnowledge(ctx)}
 - get_coins / transfer_coins — только если игрок в этой реплике реально платит монетами. Не после проверки навыка и не «посмотреть кошелёк».
 - Не вызывай tools без нужды (секреты из снимка — не повод звать list_npc_knowledge).
 - add_npc_memory: summary самодостаточный (кто + что); не пиши «он/кто-то» без имени или роли. Факт о знакомом — aboutNpcId и playerId не передавай (или null). playerId — только если память о поступке/отношении к игроку.
+- schedule_meeting — если договорились встретиться: слот и locationId. Не утверждай, что встреча уже произошла.
 
 ## Правила ответа
 - Отвечай только in-character. Никаких «как ИИ», «рад помочь», «отличный вопрос», списков и markdown.

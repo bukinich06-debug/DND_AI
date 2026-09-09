@@ -1,6 +1,7 @@
 import { npcRepository } from '@/data/npc';
 import type { RelationStance } from '@/domain/npc';
-import { KnowledgeReveal } from '@/domain/shared';
+import { KnowledgeReveal, type TimeOfDay } from '@/domain/shared';
+import { getCampaign } from '@/services/campaign/crud/getCampaign';
 import { listNpcAcquaintancesDetailed } from '@/services/npc/acquaintance/listNpcAcquaintancesDetailed';
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { listNpcKnowledgeForAgent } from '@/services/npc/knowledge/listNpcKnowledgeForAgent';
@@ -68,6 +69,10 @@ export interface INpcChatContext {
     skillHint: string | null;
     content: string | null;
   }>;
+  clock: {
+    dayIndex: number;
+    timeOfDay: TimeOfDay;
+  };
 }
 
 export const loadNpcChatContext = async ({
@@ -83,7 +88,7 @@ export const loadNpcChatContext = async ({
   const npc = await getNpc(npcId);
   if (npc.campaignId !== campaignId) throw new Error('NPC не принадлежит этой кампании.');
 
-  const player = await getPlayer(playerId);
+  const [player, campaign] = await Promise.all([getPlayer(playerId), getCampaign(campaignId)]);
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
   const relation = await getNpcRelationOrDefault(npcId, playerId, campaignId);
@@ -174,5 +179,9 @@ export const loadNpcChatContext = async ({
     acquaintances,
     knowledge,
     checkKnowledge,
+    clock: {
+      dayIndex: campaign.dayIndex,
+      timeOfDay: campaign.timeOfDay,
+    },
   };
 };

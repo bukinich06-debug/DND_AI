@@ -1,7 +1,11 @@
+import type { TimeOfDay } from '@/domain/shared';
+
 export interface ICampaign {
   id: string;
   name: string;
   description: string | null;
+  dayIndex: number;
+  timeOfDay: TimeOfDay;
 }
 
 export interface ICreateCampaign {

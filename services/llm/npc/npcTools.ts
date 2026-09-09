@@ -12,6 +12,7 @@ import { listNpcKnowledgeTool } from '@/services/llm/tools/listNpcKnowledgeTool'
 import { listNpcMemoriesTool } from '@/services/llm/tools/listNpcMemoriesTool';
 import { movePlayerTool } from '@/services/llm/tools/movePlayerTool';
 import { removePlayerConditionTool } from '@/services/llm/tools/removePlayerConditionTool';
+import { scheduleMeetingTool } from '@/services/llm/tools/scheduleMeetingTool';
 import { searchPlayerItemsTool } from '@/services/llm/tools/searchPlayerItemsTool';
 import { startTravelTool } from '@/services/llm/tools/startTravelTool';
 import { transferCoinsTool } from '@/services/llm/tools/transferCoinsTool';
@@ -37,6 +38,7 @@ export const npcTools: ILlmTool[] = [
   addNpcMemoryTool,
   listNpcKnowledgeTool,
   getNpcKnowledgeTool,
+  scheduleMeetingTool,
 ];
 
 export const npcToolByName = new Map(npcTools.map((tool) => [tool.name, tool]));

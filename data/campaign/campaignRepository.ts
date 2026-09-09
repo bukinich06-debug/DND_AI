@@ -1,11 +1,14 @@
 import type { Campaign } from '@/generated/client';
 import type { ICampaign, ICampaignRepository, ICreateCampaign, IUpdateCampaign } from '@/domain/campaign';
+import type { TimeOfDay } from '@/domain/shared';
 import { db } from '@/data/shared';
 
 const mapCampaign = (row: Campaign): ICampaign => ({
   id: row.id,
   name: row.name,
   description: row.description,
+  dayIndex: row.dayIndex,
+  timeOfDay: row.timeOfDay as TimeOfDay,
 });
 
 export const campaignRepository: ICampaignRepository = {
@@ -61,6 +64,7 @@ export const campaignRepository: ICampaignRepository = {
         await tx.npcStatBlock.deleteMany({ where: { npcId: { in: npcIds } } });
       }
 
+      await tx.worldEvent.deleteMany({ where: { campaignId: id } });
       await tx.item.deleteMany({ where: { campaignId: id } });
       await tx.quest.deleteMany({ where: { campaignId: id } });
       await tx.monsterTemplate.deleteMany({ where: { campaignId: id } });

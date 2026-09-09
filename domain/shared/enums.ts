@@ -92,3 +92,29 @@ export const DiceKind = {
 } as const;
 
 export type DiceKind = (typeof DiceKind)[keyof typeof DiceKind];
+
+export const TimeOfDay = {
+  morning: 'morning',
+  noon: 'noon',
+  afternoon: 'afternoon',
+  evening: 'evening',
+  lateEvening: 'lateEvening',
+  midnight: 'midnight',
+  night: 'night',
+} as const;
+
+export type TimeOfDay = (typeof TimeOfDay)[keyof typeof TimeOfDay];
+
+export const WorldEventStatus = {
+  pending: 'pending',
+  done: 'done',
+} as const;
+
+export type WorldEventStatus = (typeof WorldEventStatus)[keyof typeof WorldEventStatus];
+
+export const WorldEventWhen = {
+  nextSlot: 'nextSlot',
+  onDay: 'onDay',
+} as const;
+
+export type WorldEventWhen = (typeof WorldEventWhen)[keyof typeof WorldEventWhen];
