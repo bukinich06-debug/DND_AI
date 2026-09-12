@@ -5,13 +5,21 @@ import { locationRepository } from '@/data/location';
 import { npcRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { worldEventRepository } from '@/data/world-event';
+import { WorldEventWhen } from '@/domain/shared';
+import { nextSlotDay } from '@/domain/world-clock';
 import { validateScheduleMeeting, type IScheduleMeeting } from '@/domain/world-event';
 
 export const scheduleMeeting = async (input: IScheduleMeeting) => {
-  validateScheduleMeeting(input);
-
   const campaign = await campaignRepository.getById(input.campaignId);
   if (!campaign) throw new Error('Кампания не найдена.');
+
+  const dayIndex =
+    input.whenKind === WorldEventWhen.nextSlot
+      ? nextSlotDay({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay }, input.slot)
+      : (input.dayIndex ?? null);
+
+  const payload: IScheduleMeeting = { ...input, dayIndex };
+  validateScheduleMeeting(payload);
 
   const location = await locationRepository.getById(input.locationId);
   if (!location) throw new Error('Локация не найдена.');
@@ -27,5 +35,5 @@ export const scheduleMeeting = async (input: IScheduleMeeting) => {
     if (npc.campaignId !== input.campaignId) throw new Error('NPC не принадлежит этой кампании.');
   }
 
-  return worldEventRepository.create(input);
+  return worldEventRepository.create(payload);
 };

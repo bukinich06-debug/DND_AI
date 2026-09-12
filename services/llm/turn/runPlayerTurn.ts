@@ -11,6 +11,7 @@ import { planPlayerInput } from '@/services/llm/plan/planPlayerInput';
 import { describeLocation } from '@/services/llm/world/describeLocation';
 import { getLocation } from '@/services/location/crud/getLocation';
 import { getNpc } from '@/services/npc/crud/getNpc';
+import { tryFireDueMeeting } from '@/services/world-event/tryFireDueMeeting';
 import { resolveRequestedCheck } from './resolveRequestedCheck';
 import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume } from './types';
 
@@ -52,7 +53,8 @@ const runStep = async (
   playerId: string,
   messages: IChatMessage[],
   step: IPlanStep,
-  checkOutcome?: ICheckOutcome
+  checkOutcome?: ICheckOutcome,
+  arrivalTitle?: string
 ): Promise<{ reply: ITurnReply; requested: IRequestedCheck | null }> => {
   if (step.agent === 'world') {
     const result = await describeLocation({
@@ -84,6 +86,7 @@ const runStep = async (
       npcId: step.npcId,
       messages,
       checkOutcome,
+      arrivalTitle,
     });
     return {
       requested: result.check,
@@ -185,12 +188,28 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
     return { status: 'done', replies };
   }
 
-  const { steps } = await planPlayerInput({ campaignId, playerId, messages });
+  const fired = await tryFireDueMeeting({
+    campaignId,
+    playerId,
+    message: lastUserMessage(messages),
+  });
+
+  let arrivalTitle: string | undefined;
+  let steps: IPlanStep[];
+  if (fired) {
+    const npc = await getNpc(fired.npcId);
+    if (npc.campaignId !== campaignId) throw new Error('NPC не принадлежит этой кампании.');
+    arrivalTitle = fired.title;
+    steps = [{ agent: 'npc', npcId: npc.id, npcName: npc.name }];
+  } else {
+    ({ steps } = await planPlayerInput({ campaignId, playerId, messages }));
+  }
+
   const replies: ITurnReply[] = [];
 
   for (let i = 0; i < steps.length; i += 1) {
     const step = steps[i];
-    const ran = await runStep(campaignId, playerId, messages, step);
+    const ran = await runStep(campaignId, playerId, messages, step, undefined, arrivalTitle);
     pushReply(replies, ran);
     if (!ran.requested) continue;
 

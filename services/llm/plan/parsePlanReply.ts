@@ -38,18 +38,14 @@ const asStep = (value: unknown, index: number): IParsedPlanStep => {
   const obj = value as Record<string, unknown>;
   const agent = obj.agent;
 
-  if (agent === 'world') {
-    if (typeof obj.locationId !== 'string' || !obj.locationId.trim())
-      throw new Error(`steps[${index}].locationId обязателен.`);
-    return { agent: 'world', locationId: obj.locationId.trim() };
-  }
+  if (agent === 'world') return { agent: 'master' };
   if (agent === 'npc') {
     if (typeof obj.npcId !== 'string' || !obj.npcId.trim()) throw new Error(`steps[${index}].npcId обязателен.`);
     return { agent: 'npc', npcId: obj.npcId.trim() };
   }
   if (agent === 'master') return { agent: 'master' };
 
-  throw new Error(`steps[${index}].agent должен быть world, npc или master.`);
+  throw new Error(`steps[${index}].agent должен быть npc или master.`);
 };
 
 const asStepList = (value: unknown): unknown[] | null => {

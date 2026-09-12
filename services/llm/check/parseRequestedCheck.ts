@@ -1,7 +1,7 @@
-import { normalizeSkillKey, type Skill } from '@/domain/player';
+import { normalizeSkillKey, normalizeToolKey, type Skill, type Tool } from '@/domain/player';
 
 export interface IRequestedCheck {
-  skill: Skill;
+  skill: Skill | Tool;
   dc: number;
   knowledgeId: string | null;
 }
@@ -15,7 +15,7 @@ export const parseRequestedCheck = (value: unknown): IRequestedCheck | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const obj = value as Record<string, unknown>;
   if (typeof obj.skill !== 'string' || !obj.skill.trim()) return null;
-  const skill = normalizeSkillKey(obj.skill);
+  const skill = normalizeSkillKey(obj.skill) ?? normalizeToolKey(obj.skill);
   if (!skill) return null;
   if (typeof obj.dc !== 'number' || !Number.isFinite(obj.dc)) return null;
 

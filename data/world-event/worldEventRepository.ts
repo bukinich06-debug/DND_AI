@@ -1,6 +1,6 @@
 import type { WorldEvent } from '@/generated/client';
 import type { IScheduleMeeting, IWorldEvent, IWorldEventRepository } from '@/domain/world-event';
-import { WorldEventWhen, type TimeOfDay, type WorldEventStatus } from '@/domain/shared';
+import { WorldEventStatus, WorldEventWhen, type TimeOfDay } from '@/domain/shared';
 import { db } from '@/data/shared';
 
 const mapEvent = (row: WorldEvent): IWorldEvent => ({
@@ -23,12 +23,27 @@ export const worldEventRepository: IWorldEventRepository = {
         campaignId: input.campaignId,
         whenKind: input.whenKind,
         slot: input.slot,
-        dayIndex: input.whenKind === WorldEventWhen.nextSlot ? null : (input.dayIndex ?? null),
+        dayIndex: input.dayIndex ?? null,
         locationId: input.locationId,
         playerId: input.playerId,
         npcId: input.npcId ?? null,
         title: input.title.trim(),
       },
+    });
+    return mapEvent(row);
+  },
+
+  listPendingByPlayer: async (campaignId, playerId) => {
+    const rows = await db.worldEvent.findMany({
+      where: { campaignId, playerId, status: WorldEventStatus.pending },
+    });
+    return rows.map(mapEvent);
+  },
+
+  markDone: async (id) => {
+    const row = await db.worldEvent.update({
+      where: { id },
+      data: { status: WorldEventStatus.done },
     });
     return mapEvent(row);
   },

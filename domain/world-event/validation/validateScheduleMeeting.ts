@@ -13,7 +13,8 @@ export const validateScheduleMeeting = (input: IScheduleMeeting) => {
   if (!whens.has(input.whenKind)) throw new Error('Неизвестный способ задать время.');
 
   if (input.whenKind === WorldEventWhen.nextSlot) {
-    if (input.dayIndex != null) throw new Error('Для ближайшего слота день не указывают.');
+    if (input.dayIndex != null && (!Number.isInteger(input.dayIndex) || input.dayIndex < 1))
+      throw new Error('Номер дня кампании должен быть целым от 1.');
     return;
   }
 

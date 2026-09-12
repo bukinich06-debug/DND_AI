@@ -26,4 +26,6 @@ export interface IScheduleMeeting {
 
 export interface IWorldEventRepository {
   create: (input: IScheduleMeeting) => Promise<IWorldEvent>;
+  listPendingByPlayer: (campaignId: string, playerId: string) => Promise<IWorldEvent[]>;
+  markDone: (id: string) => Promise<IWorldEvent>;
 }

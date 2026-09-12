@@ -28,7 +28,7 @@ const asReply = (value: unknown): INpcReply | null => {
   let check: IRequestedCheck | null = null;
   if (obj.check !== undefined && obj.check !== null) {
     check = parseRequestedCheck(obj.check);
-    if (!check) return null;
+    if (!check) check = null;
   }
 
   if (obj.say !== undefined && obj.say !== null && typeof obj.say !== 'string') return null;

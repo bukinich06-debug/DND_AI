@@ -38,7 +38,7 @@ const asReply = (value: unknown): IMasterReply | null => {
   if (typeof obj.say !== 'string' || !obj.say.trim()) return null;
   if (obj.verdict !== 'check') return { verdict: obj.verdict, say: obj.say.trim(), check: null };
   const check = parseRequestedCheck(obj.check);
-  if (!check) return null;
+  if (!check) return { verdict: 'partial', say: obj.say.trim(), check: null };
   if (SOCIAL_SKILLS.has(check.skill)) return { verdict: 'partial', say: obj.say.trim(), check: null };
   return { verdict: 'check', say: obj.say.trim(), check };
 };
@@ -47,5 +47,12 @@ export const parseMasterReply = (raw: string): IMasterReply => {
   const trimmed = raw.trim();
   const parsed = asReply(tryParseJson(trimmed)) ?? asReply(extractJsonObject(trimmed));
   if (parsed) return parsed;
+
+  const loose = tryParseJson(trimmed) ?? extractJsonObject(trimmed);
+  if (loose && typeof loose === 'object') {
+    const say = (loose as Record<string, unknown>).say;
+    if (typeof say === 'string' && say.trim()) return { verdict: 'partial', say: say.trim(), check: null };
+  }
+
   return { verdict: 'partial', say: trimmed, check: null };
 };

@@ -16,6 +16,8 @@ export interface ICreateCampaign {
 export interface IUpdateCampaign {
   name?: string;
   description?: string | null;
+  dayIndex?: number;
+  timeOfDay?: TimeOfDay;
 }
 
 export interface ICampaignRepository {

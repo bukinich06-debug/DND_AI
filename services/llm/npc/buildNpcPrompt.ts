@@ -64,6 +64,11 @@ export const buildNpcPrompt = (ctx: INpcChatContext) => {
 npcId: ${ctx.npc.id}
 playerId: ${ctx.player.id}
 Сейчас: день ${ctx.clock.dayIndex}, ${TIME_OF_DAY_LABEL[ctx.clock.timeOfDay]} (${ctx.clock.timeOfDay}).
+${
+  ctx.arrivalTitle
+    ? `Ты только что пришёл на договорённую встречу «${ctx.arrivalTitle}». Игрок уже здесь. Начни сцену: вошёл, поздоровался, по делу. Не описывай, как игрок ждал тебя часами.`
+    : ''
+}
 В args tools передавай эти id явно, где схема их требует.
 
 ## Внешность

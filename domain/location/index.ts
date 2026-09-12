@@ -12,6 +12,7 @@ export type { IMentionAnchor } from './helpers/mentionAnchor';
 export { lookCast } from './helpers/lookCast';
 export type { LookCast } from './helpers/lookCast';
 export { settlementOf } from './helpers/settlementOf';
+export { isSameSettlement } from './helpers/isSameSettlement';
 export { findInChain, walkAncestors } from './helpers/walkAncestors';
 export {
   validateCreateLocation,

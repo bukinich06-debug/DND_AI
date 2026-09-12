@@ -39,6 +39,8 @@ export const campaignRepository: ICampaignRepository = {
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.dayIndex !== undefined ? { dayIndex: input.dayIndex } : {}),
+        ...(input.timeOfDay !== undefined ? { timeOfDay: input.timeOfDay } : {}),
       },
     });
     return mapCampaign(row);

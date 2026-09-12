@@ -1,9 +1,18 @@
 import { npcKnowledgeRepository, npcRepository } from '@/data/npc';
-import { normalizeSkillKey, skillBonus, skillLabel, type Skill } from '@/domain/player';
+import {
+  normalizeSkillKey,
+  normalizeToolKey,
+  skillBonus,
+  skillLabel,
+  toolBonus,
+  toolLabel,
+  type Skill,
+  type Tool,
+} from '@/domain/player';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 
 export interface IResolvedCheck {
-  skill: Skill;
+  skill: Skill | Tool;
   skillLabel: string;
   dc: number;
   bonus: number;
@@ -20,6 +29,8 @@ interface IResolveRequestedCheckParams {
   npcId?: string;
 }
 
+const parseCheckKey = (raw: string): Skill | Tool | null => normalizeSkillKey(raw) ?? normalizeToolKey(raw);
+
 export const resolveRequestedCheck = async ({
   campaignId,
   playerId,
@@ -31,7 +42,7 @@ export const resolveRequestedCheck = async ({
   const player = await getPlayer(playerId);
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
-  let skill = normalizeSkillKey(rawSkill);
+  let skill = parseCheckKey(rawSkill);
   if (!skill) throw new Error('Неизвестный навык проверки.');
   let dc = dcHint;
   let resolvedKnowledgeId: string | null = knowledgeId;
@@ -45,16 +56,20 @@ export const resolveRequestedCheck = async ({
     if (npcId && knowledge.npcId !== npcId) throw new Error('Знание не принадлежит этому NPC.');
     if (knowledge.dc == null) throw new Error('У знания нет DC.');
     dc = knowledge.dc;
-    const fromHint = knowledge.skillHint ? normalizeSkillKey(knowledge.skillHint) : null;
+    const fromHint = knowledge.skillHint ? parseCheckKey(knowledge.skillHint) : null;
     if (fromHint) skill = fromHint;
     resolvedKnowledgeId = knowledge.id;
   }
 
+  const asSkill = normalizeSkillKey(skill);
+  const asTool = asSkill ? null : normalizeToolKey(skill);
+  if (!asSkill && !asTool) throw new Error('Неизвестный навык проверки.');
+
   return {
-    skill,
-    skillLabel: skillLabel(skill),
+    skill: asSkill ?? asTool!,
+    skillLabel: asSkill ? skillLabel(asSkill) : toolLabel(asTool!),
     dc,
-    bonus: skillBonus(player, skill),
+    bonus: asSkill ? skillBonus(player, asSkill) : toolBonus(player, asTool!),
     die: 'd20',
     knowledgeId: resolvedKnowledgeId,
   };

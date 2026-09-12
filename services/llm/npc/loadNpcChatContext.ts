@@ -17,6 +17,7 @@ interface ILoadNpcChatContextParams {
   npcId: string;
   playerId: string;
   passedCheck?: { skill: string; knowledgeId: string | null; passed: boolean };
+  arrivalTitle?: string;
 }
 
 export interface INpcChatContext {
@@ -73,6 +74,7 @@ export interface INpcChatContext {
     dayIndex: number;
     timeOfDay: TimeOfDay;
   };
+  arrivalTitle: string | null;
 }
 
 export const loadNpcChatContext = async ({
@@ -80,6 +82,7 @@ export const loadNpcChatContext = async ({
   npcId,
   playerId,
   passedCheck,
+  arrivalTitle,
 }: ILoadNpcChatContextParams): Promise<INpcChatContext> => {
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!npcId.trim()) throw new Error('npcId обязателен.');
@@ -183,5 +186,6 @@ export const loadNpcChatContext = async ({
       dayIndex: campaign.dayIndex,
       timeOfDay: campaign.timeOfDay,
     },
+    arrivalTitle: arrivalTitle?.trim() || null,
   };
 };

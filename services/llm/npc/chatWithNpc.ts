@@ -23,6 +23,7 @@ interface IChatWithNpcParams {
   playerId: string;
   messages: IChatMessage[];
   checkOutcome?: ICheckOutcome;
+  arrivalTitle?: string;
 }
 
 export interface IChatWithNpcResult {
@@ -71,6 +72,7 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
     npcId: input.npcId,
     playerId: input.playerId,
     passedCheck,
+    arrivalTitle: input.arrivalTitle,
   });
   const systemBase = buildNpcPrompt(chatCtx);
   const system = outcome

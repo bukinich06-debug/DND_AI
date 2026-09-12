@@ -1,9 +1,10 @@
-import type { LocationKind } from '@/domain/shared';
+import type { LocationKind, TimeOfDay } from '@/domain/shared';
 import { getLocation } from '@/services/location/crud/getLocation';
 import { listLocationChildren } from '@/services/location/crud/listLocationChildren';
 import { listNpcsAtLocation } from '@/services/npc/crud/listNpcsAtLocation';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
+import { worldEventRepository } from '@/data/world-event';
 
 interface ILoadWorldContextParams {
   campaignId: string;
@@ -50,6 +51,13 @@ export interface IWorldContext {
     habits: string;
     role: string | null;
   }>;
+  meetings: Array<{
+    title: string;
+    slot: TimeOfDay;
+    locationId: string;
+    npcId: string | null;
+    here: boolean;
+  }>;
 }
 
 export const loadWorldContext = async ({
@@ -70,10 +78,11 @@ export const loadWorldContext = async ({
   const location = lookId && lookId !== here.id ? await getLocation(lookId) : here;
   if (location.campaignId !== campaignId) throw new Error('Локация не принадлежит этой кампании.');
 
-  const [parent, children, npcs] = await Promise.all([
+  const [parent, children, npcs, pending] = await Promise.all([
     location.parentId ? getLocation(location.parentId) : Promise.resolve(null),
     listLocationChildren(location.id),
     listNpcsAtLocation(location.id),
+    worldEventRepository.listPendingByPlayer(campaignId, playerId),
   ]);
 
   const seen = new Set<string>();
@@ -114,5 +123,12 @@ export const loadWorldContext = async ({
         summary: child.summary,
       })),
     npcsHere,
+    meetings: pending.map((e) => ({
+      title: e.title,
+      slot: e.slot,
+      locationId: e.locationId,
+      npcId: e.npcId,
+      here: e.locationId === here.id,
+    })),
   };
 };
