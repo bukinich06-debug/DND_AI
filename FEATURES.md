@@ -100,12 +100,30 @@ CRUD предметов и поиск по инвентарю игрока дл�
 
 ### Player turn
 
-Один ход игрока: планировщик → по шагам `world` / `npc` (последовательно). Ответ — массив `{ agent: location | npc | master }`. `location` — снимок из БД после осмотра; `master` — `{ agent: 'master' }`. Post-hooks не ждут.
+Один ход игрока: планировщик → по шагам `npc` / `master` (последовательно). Ответ — массив `{ agent: npc | master }`. Post-hooks не ждут.
 
 | Слой | Путь |
 |------|------|
 | services | [`services/llm/turn/runPlayerTurn.ts`](services/llm/turn/runPlayerTurn.ts) |
 | API | [`app/api/turn/`](app/api/turn/) |
+
+### Master: arrival description
+
+**Мастер** описывает место при прибытии игрока. UI должен вызывать этот API после смены локации (`move_player`, `advance_travel` с прибытием).
+
+| Слой | Путь |
+|------|------|
+| services | [`services/llm/master/describeArrival.ts`](services/llm/master/describeArrival.ts) |
+| API | [`app/api/location/describe/`](app/api/location/describe/) — `POST { campaignId, playerId }` → `{ description, locationId, locationName }` |
+
+### World look (legacy)
+
+Устаревший одноразовый осмотр локации через отдельного агента World. **Не использовать для arrival-описаний** — UI должен вызывать Master (`POST /api/location/describe`). World look сохраняет описание в `Location.description` и запускает post-hooks.
+
+| Слой | Путь |
+|------|------|
+| services | [`services/llm/world/describeLocation.ts`](services/llm/world/describeLocation.ts) |
+| API | [`app/api/test/location/`](app/api/test/location/) (тестовый) |
 
 ---
 
