@@ -8,8 +8,6 @@ import { adjudicatePlayerAction } from '@/services/llm/master/adjudicatePlayerAc
 import { chatWithNpc } from '@/services/llm/npc/chatWithNpc';
 import type { IPlanStep } from '@/services/llm/plan/parsePlanReply';
 import { planPlayerInput } from '@/services/llm/plan/planPlayerInput';
-import { describeLocation } from '@/services/llm/world/describeLocation';
-import { getLocation } from '@/services/location/crud/getLocation';
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { tryFireDueMeeting } from '@/services/world-event/tryFireDueMeeting';
 import { resolveRequestedCheck } from './resolveRequestedCheck';
@@ -56,29 +54,6 @@ const runStep = async (
   checkOutcome?: ICheckOutcome,
   arrivalTitle?: string
 ): Promise<{ reply: ITurnReply; requested: IRequestedCheck | null }> => {
-  if (step.agent === 'world') {
-    const result = await describeLocation({
-      campaignId,
-      playerId,
-      locationId: step.locationId,
-      message: lastUserMessage(messages),
-    });
-    const loc = await getLocation(result.locationId);
-
-    return {
-      requested: null,
-      reply: {
-        agent: 'location',
-        locationId: loc.id,
-        name: loc.name,
-        isSecret: loc.isSecret,
-        description: loc.description,
-        summary: loc.summary,
-        features: loc.features,
-      },
-    };
-  }
-
   if (step.agent === 'npc') {
     const result = await chatWithNpc({
       campaignId,

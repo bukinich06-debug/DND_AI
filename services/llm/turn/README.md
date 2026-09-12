@@ -34,7 +34,7 @@ POST /api/turn
 }
 ```
 
-`runPlayerTurn` строит план (`world` / `npc` / `master`) и гоняет шаги по порядку.
+`runPlayerTurn` строит план (`npc` / `master`) и гоняет шаги по порядку. **Агент `world` отключён**: планировщик конвертирует его в `master`.
 
 Агент **не** бросает кубик за игрока. Если нужна проверка, в финальном JSON:
 
@@ -75,6 +75,12 @@ POST /api/turn
 `world` проверку не просит (это осмотр). Поиск тайника / perception / stealth вне диалога — `master`. Убеждение, обман, запугивание и секреты NPC (`reveal: check`) — только агент `npc` (по намерению в реплике, не по фразе «пытаюсь…»). В системном снимке NPC видит id/title/dc/skillHint таких знаний без `content`, пока проверка не успешна. Мастер эти три скилла в `check` не отдаёт.
 
 UI должен **сохранить** `messages`, `check` и `resume` (state). После F5 закладки нет — сервер её не хранит.
+
+### Описание прибытия
+
+Когда игрок меняет локацию (`move_player`, `advance_travel` с прибытием), **turn** этого не описывает. UI должен вызвать `POST /api/location/describe { campaignId, playerId }` → `{ description, locationId, locationName }`.
+
+Мастер опишет, где игрок и что видит, по текущей локации из БД. Этот текст можно добавить в лог как `{ role: 'assistant', content: description }`.
 
 ---
 

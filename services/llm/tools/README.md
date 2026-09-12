@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). World look: [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). Описание прибытия: [`../master/describeArrival.ts`](../master/describeArrival.ts) (HTTP `POST /api/location/describe`). World look (legacy): [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`, не использовать для arrival). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
@@ -59,9 +59,9 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `start_travel` | `startTravelTool.ts` | Начать путь |
 | `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь |
 
-### World look (`describeLocation.ts`)
+### World look (`describeLocation.ts`) — LEGACY
 
-Нет tool loop. Каждый запрос — один вызов модели → persist `description` → post-hooks.
+**Устарело для arrival-описаний.** UI должен вызывать Master (`POST /api/location/describe`). Этот агент оставлен только для тестирования: каждый запрос — один вызов модели → persist `description` → post-hooks.
 
 Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/test/location`.
 

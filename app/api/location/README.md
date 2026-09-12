@@ -320,9 +320,39 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 
 ---
 
-## Осмотр (world look)
+## Описание прибытия (Master)
 
-Описание текущей локации игрока. Каждый запрос — LLM, запись в `description`, фон-хуки.
+**UI должен вызывать этот API после смены локации** (`move_player`, `advance_travel` с прибытием). Мастер описывает текущую локацию игрока.
+
+### `POST /api/location/describe`
+
+`200`:
+
+```ts
+{
+  description: string
+  locationId: string
+  locationName: string
+}
+```
+
+```
+POST /api/location/describe
+Content-Type: application/json
+
+{
+  "campaignId": "string",
+  "playerId": "string"
+}
+```
+
+`description` можно добавить в лог чата как `{ role: 'assistant', content: description }`.
+
+---
+
+## Осмотр (world look) — LEGACY
+
+**Устарело для arrival-описаний.** UI должен вызывать `POST /api/location/describe` (Мастер). Этот агент оставлен только для тестирования: каждый запрос — LLM, запись в `description`, фон-хуки.
 
 ### `POST /api/test/location`
 
