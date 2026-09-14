@@ -1,8 +1,4 @@
-import {
-  sendDeepseekChat,
-  type IDeepseekMessage,
-  type IDeepseekToolCall,
-} from '@/services/llm/providers/sendDeepseekChat';
+import { sendLlmChat, type ILlmMessage, type ILlmToolCall } from '@/services/llm/providers/sendLlmChat';
 import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
 import type { ILlmTool, IToolContext } from '@/services/llm/tools/types';
 import { appendToolCall } from '../store/hookLogStore';
@@ -28,7 +24,7 @@ const parseToolArgs = (raw: string): unknown => {
 };
 
 const runOneTool = async (
-  call: IDeepseekToolCall,
+  call: ILlmToolCall,
   toolByName: Map<string, ILlmTool>,
   toolCtx: IToolContext
 ): Promise<IHookToolCall> => {
@@ -65,14 +61,14 @@ export const runHookToolLoop = async ({
     locationId: ctx.locationId,
   };
   const openAiTools = tools.map(toOpenAiCompatibleTool);
-  const history: IDeepseekMessage[] = [
+  const history: ILlmMessage[] = [
     { role: 'system', content: system },
     { role: 'user', content: userContent },
   ];
   const toolCalls: IHookToolCall[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.3, tools: openAiTools });
+    const assistant = await sendLlmChat({ messages: history, temperature: 0.3, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) return toolCalls;
