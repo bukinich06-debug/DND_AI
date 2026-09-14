@@ -7,7 +7,8 @@ export const GET = async (req: Request, { params }: { params: Promise<{ npcId: s
   try {
     const { npcId } = await params;
     const url = new URL(req.url);
-    const playerId = requireQuery(url, 'playerId');
+    const playerId = url.searchParams.get('playerId');
+    if (!playerId || !playerId.trim()) throw new Error('playerId обязателен.');
     return ok(await getShopData(npcId, playerId));
   } catch (e) {
     return toErrorResponse(e);

@@ -5,6 +5,7 @@ import { getPlayerLocation } from '@/services/player/location/getPlayerLocation'
 import { loadLocationContext, type ILocationContext } from '@/services/location/loadLocationContext';
 import type { IPlayerTravelState } from '@/domain/player';
 import type { TimeOfDay } from '@/domain/shared';
+import { db } from '@/data/shared';
 
 interface ILoadMasterContextParams {
   campaignId: string;
@@ -39,6 +40,7 @@ export interface IMasterContext {
     dayIndex: number;
     timeOfDay: TimeOfDay;
   };
+  npcs: Array<{ name: string; title: string | null; location: string | null; shopSpecialtyKey: string | null }>;
 }
 
 export const loadMasterContext = async ({
@@ -49,14 +51,36 @@ export const loadMasterContext = async ({
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
   const world = await loadLocationContext({ campaignId, playerId });
-  const [player, itemsHere, loc, campaign] = await Promise.all([
+  const [player, itemsHere, loc, campaign, allNpcs, npcLocations] = await Promise.all([
     getPlayer(playerId),
     listItemsByLocation(world.playerHere.id),
     getPlayerLocation({ campaignId, playerId }),
     getCampaign(campaignId),
+    db.npc.findMany({ where: { campaignId }, select: { id: true, name: true, title: true, shopSpecialtyKey: true } }),
+    db.npcLocation.findMany({ where: { npc: { campaignId } }, select: { npcId: true, locationId: true, role: true } }),
   ]);
 
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
+
+  const npcLocationMap = new Map(
+    npcLocations.map((nl) => [nl.npcId, { locationId: nl.locationId, role: nl.role }])
+  );
+
+  const locations = await db.location.findMany({
+    where: { id: { in: Array.from(new Set(npcLocations.map((nl) => nl.locationId))) } },
+    select: { id: true, name: true },
+  });
+  const locationMap = new Map(locations.map((loc) => [loc.id, loc.name]));
+
+  const npcs = allNpcs.map((npc) => {
+    const nloc = npcLocationMap.get(npc.id);
+    return {
+      name: npc.name,
+      title: npc.title,
+      location: nloc ? locationMap.get(nloc.locationId) ?? null : null,
+      shopSpecialtyKey: npc.shopSpecialtyKey,
+    };
+  });
 
   return {
     world,
@@ -87,5 +111,6 @@ export const loadMasterContext = async ({
       dayIndex: campaign.dayIndex,
       timeOfDay: campaign.timeOfDay,
     },
+    npcs,
   };
 };

@@ -1,4 +1,4 @@
-import type { IBuyFromShopInput } from './types';
+import type { IBuyFromShopInput } from '../types';
 
 export const validateBuyFromShop = (input: IBuyFromShopInput) => {
   if (!input.campaignId?.trim()) throw new Error('campaignId обязателен.');

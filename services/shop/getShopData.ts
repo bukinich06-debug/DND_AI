@@ -6,6 +6,7 @@ import type { IShopData, IShopItem } from '@/domain/shop';
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 import { ensureShopStock } from './ensureShopStock';
+import type { IItem } from '@/domain/item';
 
 export const getShopData = async (npcId: string, playerId: string): Promise<IShopData> => {
   const npc = await getNpc(npcId);
@@ -18,11 +19,11 @@ export const getShopData = async (npcId: string, playerId: string): Promise<ISho
 
   await ensureShopStock(npc.id);
 
-  const items = await itemRepository.listByNpcId(npc.id);
+  const items = await itemRepository.listByOwnerId({ kind: 'npc', id: npc.id });
 
   const shopItems: IShopItem[] = items
-    .filter((item) => item.valueCp !== null && item.valueCp > 0)
-    .map((item) => ({
+    .filter((item: IItem) => item.valueCp !== null && item.valueCp > 0)
+    .map((item: IItem) => ({
       id: item.id,
       catalogKey: item.catalogKey,
       name: item.name,

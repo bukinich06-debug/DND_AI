@@ -4,15 +4,16 @@ import { itemRepository } from '@/data/item';
 import { catalogToCreateItem, getCatalogItemByKey } from '@/domain/item';
 import { getNpc } from '@/services/npc/crud/getNpc';
 import { getSpecialtyByKey } from '@/domain/shop/specialty';
+import type { IItem } from '@/domain/item';
 
 export const ensureShopStock = async (npcId: string) => {
   const npc = await getNpc(npcId);
   if (!npc.shopSpecialtyKey) throw new Error('NPC не является торговцем (нет shopSpecialtyKey).');
 
   const specialty = getSpecialtyByKey(npc.shopSpecialtyKey);
-  const inventory = await itemRepository.listByNpcId(npc.id);
+  const inventory = await itemRepository.listByOwnerId({ kind: 'npc', id: npc.id });
 
-  const existingKeys = new Set(inventory.map((item) => item.catalogKey).filter(Boolean));
+  const existingKeys = new Set(inventory.map((item: IItem) => item.catalogKey).filter(Boolean));
   const missingKeys = specialty.catalogKeys.filter((key) => !existingKeys.has(key));
 
   if (missingKeys.length === 0) return;

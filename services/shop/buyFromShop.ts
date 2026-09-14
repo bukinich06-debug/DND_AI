@@ -54,6 +54,9 @@ export const buyFromShop = async (input: IBuyFromShopInput): Promise<IBuyFromSho
       properties: item.properties,
       equipSlot: item.equipSlot,
       playerId: player.id,
+      locationId: null,
+      npcId: null,
+      coinsCp: 0,
     });
   }
 
