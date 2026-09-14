@@ -40,8 +40,19 @@ CRUD предметов и поиск по инвентарю игрока дл�
 |------|------|
 | domain | [`domain/item/`](domain/item/) |
 | services | [`services/item/`](services/item/) (`crud/`, `search/`) |
-| tools | [`searchPlayerItemsTool.ts`](services/llm/tools/searchPlayerItemsTool.ts) — [`search_player_items`](services/llm/tools/README.md#search_player_items) |
+| tools | [`searchPlayerItemsTool.ts`](services/llm/tools/searchPlayerItemsTool.ts) — [`search_player_items`](services/llm/tools/README.md#search_player_items); [`searchLocationItemsTool.ts`](services/llm/tools/searchLocationItemsTool.ts) — [`search_location_items`](services/llm/tools/README.md#search_location_items) |
 | API | [`app/api/items/`](app/api/items/) |
+
+### Справочник предметов PHB
+
+Каталог шаблонов предметов PHB (оружие, доспехи, снаряжение, зелья) — JSON в `domain/item/catalog/data/`. Мастер может искать предметы в справочнике и выдавать копии игроку или в локацию. Уникальные именные предметы кампании в справочник не входят.
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/item/catalog/`](domain/item/catalog/) — JSON-каталог, `searchItemCatalog`, `getCatalogItemByKey`, `catalogToCreateItem` |
+| services | [`services/item/catalog/`](services/item/catalog/) — `grantCatalogItem` (игроку), `grantCatalogItemToLocation` (на пол) |
+| tools | [`searchItemCatalogTool.ts`](services/llm/tools/searchItemCatalogTool.ts) — [`search_item_catalog`](services/llm/tools/README.md#search_item_catalog); [`grantCatalogItemTool.ts`](services/llm/tools/grantCatalogItemTool.ts) — [`grant_catalog_item`](services/llm/tools/README.md#grant_catalog_item) |
+| Prompt | [`buildMasterPrompt.ts`](services/llm/master/buildMasterPrompt.ts) — секция «Лут и снаряжение из справочника PHB» |
 
 ### Владения персонажа
 
