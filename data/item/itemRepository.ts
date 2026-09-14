@@ -76,6 +76,16 @@ export const itemRepository: IItemRepository = {
     return rows.map(mapItem);
   },
 
+  listByOwnerId: async (owner) => {
+    if (owner.kind === 'player') {
+      const rows = await db.item.findMany({ where: { playerId: owner.id }, orderBy: { name: 'asc' } });
+      return rows.map(mapItem);
+    } else {
+      const rows = await db.item.findMany({ where: { npcId: owner.id }, orderBy: { name: 'asc' } });
+      return rows.map(mapItem);
+    }
+  },
+
   update: async (id, input: IUpdateItem) => {
     const row = await db.item.update({
       where: { id },

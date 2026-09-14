@@ -14,6 +14,7 @@ const mapNpc = (row: Npc): INpc => ({
   attitude: row.attitude,
   dmNotes: row.dmNotes,
   coinsCp: row.coinsCp,
+  shopSpecialtyKey: row.shopSpecialtyKey,
 });
 
 export const npcRepository: INpcRepository = {
@@ -30,6 +31,7 @@ export const npcRepository: INpcRepository = {
         attitude: input.attitude ?? null,
         dmNotes: input.dmNotes ?? null,
         coinsCp: input.coinsCp ?? 0,
+        shopSpecialtyKey: input.shopSpecialtyKey ?? null,
       },
     });
     return mapNpc(row);
@@ -72,6 +74,7 @@ export const npcRepository: INpcRepository = {
         ...(input.attitude !== undefined ? { attitude: input.attitude } : {}),
         ...(input.dmNotes !== undefined ? { dmNotes: input.dmNotes } : {}),
         ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
+        ...(input.shopSpecialtyKey !== undefined ? { shopSpecialtyKey: input.shopSpecialtyKey } : {}),
       },
     });
     return mapNpc(row);

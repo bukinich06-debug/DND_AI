@@ -1,3 +1,4 @@
+import { getSpecialtyByKey } from '@/domain/shop/specialty';
 import type { ICreateNpc, IUpdateNpc } from '../types';
 
 const validateCore = (input: Partial<ICreateNpc>) => {
@@ -7,6 +8,12 @@ const validateCore = (input: Partial<ICreateNpc>) => {
   if (input.speech !== undefined && !input.speech.trim()) throw new Error('Речь NPC обязательна.');
   if (input.habits !== undefined && !input.habits.trim()) throw new Error('Привычки NPC обязательны.');
   if (input.coinsCp !== undefined && input.coinsCp < 0) throw new Error('Монеты не могут быть отрицательными.');
+  
+  if (input.shopSpecialtyKey !== undefined && input.shopSpecialtyKey !== null) {
+    if (typeof input.shopSpecialtyKey !== 'string' || !input.shopSpecialtyKey.trim())
+      throw new Error('shopSpecialtyKey должен быть непустой строкой или null.');
+    getSpecialtyByKey(input.shopSpecialtyKey.trim());
+  }
 };
 
 export const validateCreateNpc = (input: ICreateNpc) => {

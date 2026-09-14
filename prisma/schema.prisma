@@ -248,17 +248,18 @@ model LocationLink {
 
 /// NPC — неигровой персонаж: внешность, характер, речь, привычки
 model Npc {
-  id          String  @id @default(cuid())
-  campaignId  String
-  name        String
-  title       String?
-  appearance  String
-  personality String
-  speech      String
-  habits      String
-  attitude    String?
-  dmNotes     String?
-  coinsCp     Int     @default(0)
+  id               String  @id @default(cuid())
+  campaignId       String
+  name             String
+  title            String?
+  appearance       String
+  personality      String
+  speech           String
+  habits           String
+  attitude         String?
+  dmNotes          String?
+  coinsCp          Int     @default(0)
+  shopSpecialtyKey String?
 
   campaign  Campaign       @relation(fields: [campaignId], references: [id])
   locations NpcLocation[]

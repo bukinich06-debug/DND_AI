@@ -65,6 +65,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь |
 | `advance_time` | `advanceTimeTool.ts` | Ролевое время |
 | `schedule_meeting` | `scheduleMeetingTool.ts` | Назначить встречу |
+| `open_shop` | `openShopTool.ts` | Открыть магазин торговца |
 
 ### Post-hook
 

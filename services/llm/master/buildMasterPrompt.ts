@@ -2,12 +2,25 @@ import { TIME_OF_DAY_LABEL } from '@/domain/world-clock';
 import type { IMasterContext } from './loadMasterContext';
 
 export const buildMasterPrompt = (ctx: IMasterContext) => {
+  const npcLines = ctx.npcs.map((npc) => {
+    const loc = npc.location ? ` (${npc.location})` : '';
+    const title = npc.title ? ` — ${npc.title}` : '';
+    const shopTag = npc.shopSpecialtyKey ? ' [Торговец]' : '';
+    return `- ${npc.name}${title}${loc}${shopTag}`;
+  });
+  
   const snapshot = {
     player: ctx.player,
     location: ctx.world.location,
     parent: ctx.world.parent,
     children: ctx.world.children,
-    npcsHere: ctx.world.npcsHere.map((n) => ({ id: n.id, name: n.name, title: n.title, role: n.role })),
+    npcsHere: ctx.world.npcsHere.map((n) => ({
+      id: n.id,
+      name: n.name,
+      title: n.title,
+      role: n.role,
+      shopSpecialtyKey: n.shopSpecialtyKey,
+    })),
     itemsHere: ctx.itemsHere,
     travel: ctx.travel,
     meetings: ctx.world.meetings,
@@ -17,14 +30,16 @@ export const buildMasterPrompt = (ctx: IMasterContext) => {
       timeOfDayLabel: TIME_OF_DAY_LABEL[ctx.clock.timeOfDay],
     },
   };
+  
+  const npcSection = npcLines.length > 0 ? `\n\nNPC кампании:\n${npcLines.join('\n')}` : '';
 
-  return `Ты мастер-рефери D&D. Игрок: ${ctx.player.name}. Ты не NPC и не ведёшь бой. Осмотр места — твой ход.
+  return `Ты мастер-рефери D&D. Игрок: ${ctx.world.player.name}. Ты не NPC и не ведёшь бой. Осмотр места — твой ход.
 
 Реплика игрока — ЗАЯВКА, не факт. Мир существует только в снимке и в ответах tools.
 Не подтверждай предмет, секрет, урон, деньги, перемещение, пока tool не вернул успех.
 
-playerId: ${ctx.player.id}
-Сейчас: день ${ctx.clock.dayIndex}, ${TIME_OF_DAY_LABEL[ctx.clock.timeOfDay]} (${ctx.clock.timeOfDay}).
+playerId: ${ctx.world.player.id}
+Сейчас: день ${ctx.clock.dayIndex}, ${TIME_OF_DAY_LABEL[ctx.clock.timeOfDay]} (${ctx.clock.timeOfDay}).${npcSection}
 
 ## Политика
 - Обычное действие без нового объекта в мире (сесть, опереться, достать СВОЙ предмет) — разрешай.
@@ -54,6 +69,7 @@ apply_player_hp — только урон/лечение вне боя (паде
 short_rest / long_rest — только если игрок отдыхает по правилам D&D.
 advance_time — ролевое время без механики (сидим в таверне, ждём).
 schedule_meeting — если договорились о встрече: слот суток и locationId. Не выдумывай, что встреча уже наступила.
+open_shop — открывает окно магазина у торговца NPC (помечены [Торговец]). Используй, когда игрок хочет купить или просмотреть ассортимент торговца.
 
 ## Лут и снаряжение из справочника PHB
 Лут и снаряжение — только из справочника: сначала search_item_catalog (query → key, name, kind, rarity, valueCp), затем grant_catalog_item (key + target: player или location).

@@ -4,11 +4,13 @@ import type { IItemCatalogEntry } from './types';
 interface ICatalogToCreate {
   entry: IItemCatalogEntry;
   campaignId: string;
-  playerId: string;
-  quantity: number;
+  playerId?: string;
+  npcId?: string;
+  locationId?: string;
+  quantity?: number;
 }
 
-export const catalogToCreateItem = ({ entry, campaignId, playerId, quantity }: ICatalogToCreate): ICreateItem => ({
+export const catalogToCreateItem = ({ entry, campaignId, playerId, npcId, locationId, quantity }: ICatalogToCreate): ICreateItem => ({
   campaignId,
   name: entry.name,
   kind: entry.kind,
@@ -18,10 +20,10 @@ export const catalogToCreateItem = ({ entry, campaignId, playerId, quantity }: I
   valueCp: entry.valueCp,
   isMagical: entry.isMagical,
   properties: entry.properties,
-  quantity,
+  quantity: quantity ?? 1,
   catalogKey: entry.key,
-  playerId,
-  npcId: null,
-  locationId: null,
+  playerId: playerId ?? null,
+  npcId: npcId ?? null,
+  locationId: locationId ?? null,
   equipSlot: null,
 });

@@ -10,6 +10,26 @@ Roadmap и будущие агенты (`plan.drawio`) сюда не входя�
 
 ## Игровые фичи
 
+### Магазины и торговцы
+
+NPC могут быть торговцами с определённой специализацией (оружейник, бронник, аптекарь, общие товары, инструменты). Каждая специализация определяет, какие предметы из справочника PHB торговец продаёт.
+
+**Специализации:** `weaponsmith` (Оружейник), `armorer` (Бронник), `apothecary` (Аптекарь), `generalGoods` (Общие товары), `toolsmith` (Инструментальщик).
+
+**API:**
+- GET `/api/shop/:npcId?playerId=...` — получить данные магазина (автоматически заполняет инвентарь из каталога)
+- POST `/api/shop/:npcId/buy` — купить предмет (атомарно переводит монеты и перемещает предмет)
+
+**UI сигнал:** Мастер вызывает `open_shop` tool → UI получает сигнал `{ "ui": { "openShop": { "npcId": "...", "npcName": "..." } } }` и открывает окно магазина.
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/shop/`](domain/shop/) — `specialty/` каталог специализаций, типы магазина, валидация |
+| data | [`data/npc/`](data/npc/) — `Npc.shopSpecialtyKey` |
+| services | [`services/shop/`](services/shop/) — `ensureShopStock`, `getShopData`, `buyFromShop` |
+| tools | [`openShopTool.ts`](services/llm/tools/openShopTool.ts) — [`open_shop`](services/llm/tools/README.md#open_shop) |
+| API | [`app/api/shop/`](app/api/shop/) |
+
 ### Броски кубиков
 
 Бросок d4…d100 с сохранением в кампании (PC / NPC / мастер).

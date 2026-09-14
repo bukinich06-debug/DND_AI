@@ -115,6 +115,7 @@ export interface IItemRepository {
   listByCampaignId: (campaignId: string) => Promise<IItem[]>;
   listByPlayerId: (playerId: string) => Promise<IItem[]>;
   listByLocationId: (locationId: string) => Promise<IItem[]>;
+  listByOwnerId: (owner: { kind: 'player' | 'npc'; id: string }) => Promise<IItem[]>;
   update: (id: string, input: IUpdateItem) => Promise<IItem>;
   delete: (id: string) => Promise<void>;
 }

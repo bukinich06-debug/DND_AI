@@ -79,7 +79,7 @@ const runStep = async (
   const result = await adjudicatePlayerAction({ campaignId, playerId, messages, checkOutcome });
   return {
     requested: result.check,
-    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls },
+    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls, ui: result.ui },
   };
 };
 
