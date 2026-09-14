@@ -10,7 +10,7 @@ export interface IHookToolCall {
 
 export type HookRunStatus = 'running' | 'done' | 'failed';
 
-export type HookSource = 'npc' | 'world';
+export type HookSource = 'npc';
 
 export interface IHookRunLog {
   turnId: string;
@@ -40,6 +40,3 @@ export interface IAgentHook {
 
 export const chatHookKey = (campaignId: string, npcId: string, playerId: string) =>
   `${campaignId}:${npcId}:${playerId}`;
-
-export const worldHookKey = (campaignId: string, playerId: string, locationId: string) =>
-  `${campaignId}:world:${playerId}:${locationId}`;

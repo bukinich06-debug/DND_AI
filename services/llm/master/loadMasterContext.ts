@@ -2,7 +2,7 @@ import { listItemsByLocation } from '@/services/item/crud/listItemsByLocation';
 import { getCampaign } from '@/services/campaign/crud/getCampaign';
 import { getPlayer } from '@/services/player/crud/getPlayer';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
-import { loadWorldContext, type IWorldContext } from '@/services/llm/world/loadWorldContext';
+import { loadLocationContext, type ILocationContext } from '@/services/location/loadLocationContext';
 import type { IPlayerTravelState } from '@/domain/player';
 import type { TimeOfDay } from '@/domain/shared';
 
@@ -12,7 +12,7 @@ interface ILoadMasterContextParams {
 }
 
 export interface IMasterContext {
-  world: IWorldContext;
+  world: ILocationContext;
   player: {
     id: string;
     name: string;
@@ -48,7 +48,7 @@ export const loadMasterContext = async ({
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
-  const world = await loadWorldContext({ campaignId, playerId });
+  const world = await loadLocationContext({ campaignId, playerId });
   const [player, itemsHere, loc, campaign] = await Promise.all([
     getPlayer(playerId),
     listItemsByLocation(world.playerHere.id),

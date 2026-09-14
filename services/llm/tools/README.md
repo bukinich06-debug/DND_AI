@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). Описание прибытия: [`../master/describeArrival.ts`](../master/describeArrival.ts) (HTTP `POST /api/location/describe`). World look (legacy): [`../world/describeLocation.ts`](../world/describeLocation.ts) (без tools, HTTP `POST /api/test/location`, не использовать для arrival). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). Описание прибытия: [`../master/describeArrival.ts`](../master/describeArrival.ts) (HTTP `POST /api/location/describe`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
@@ -62,15 +62,9 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `start_travel` | `startTravelTool.ts` | Начать путь |
 | `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь |
 
-### World look (`describeLocation.ts`) — LEGACY
-
-**Устарело для arrival-описаний.** UI должен вызывать Master (`POST /api/location/describe`). Этот агент оставлен только для тестирования: каждый запрос — один вызов модели → persist `description` → post-hooks.
-
-Отличие world-хуков от NPC: нет speaker; create NPC сажает в текущую локацию (`ctx.locationId`); нет acquaintance / `ensure_location_link`. HTTP: `POST /api/test/location`.
-
 ### Post-hook
 
-NPC: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.ts`](../hooks/location/mentionLocationTools.ts). World: [`worldNpcTools.ts`](../hooks/world/worldNpcTools.ts), [`worldLocationTools.ts`](../hooks/world/worldLocationTools.ts) — без `ensure_npc_acquaintance` / `ensure_location_link`; create NPC сажает в `ctx.locationId`. В диалог **не** входят. Поток: [hooks README](../hooks/README.md).
+NPC: [`mentionTools.ts`](../hooks/npc/mentionTools.ts), [`mentionLocationTools.ts`](../hooks/location/mentionLocationTools.ts). В диалог **не** входят. Поток: [hooks README](../hooks/README.md).
 
 | name | Файл | Назначение |
 |------|------|------------|
@@ -536,9 +530,7 @@ Post-hook ([hooks README](../hooks/README.md)). Upsert «speaker (`ctx.npcId`) �
 
 Post-hook ([hooks README](../hooks/README.md)). Stub NPC из упоминания. Только для **нового** человека: сначала `search_npc` (и acquaintances, если есть speaker); уточнения → `update_mentioned_npc`. Без личного имени: `title`=роль, provisional `name`. Stub-поля без значения → `"неизвестно"`.
 
-- Есть `ctx.npcId` (NPC-чат) — двустороннее acquaintance + optional memory (`aboutNpcId` = новый NPC, `playerId` null). `dmNotes` = `auto:mentioned-by:{speakerId}`.
-- Нет speaker (world look) — без acquaintance/memory. `dmNotes` = `auto:described-at:{locationId}` или `auto:mentioned`.
-- Есть `ctx.locationId` — `setNpcLocation` (`isPrimary: true`, `role` из `title` если есть).
+Поведение в NPC-чате (есть `ctx.npcId`): двустороннее acquaintance + optional memory (`aboutNpcId` = новый NPC, `playerId` null). `dmNotes` = `auto:mentioned-by:{speakerId}`. Если есть `ctx.locationId` — `setNpcLocation` (`isPrimary: true`, `role` из `title` если есть).
 
 **Args**
 
@@ -561,8 +553,7 @@ Post-hook ([hooks README](../hooks/README.md)). Stub NPC из упоминани
 
 Post-hook ([hooks README](../hooks/README.md)). Partial update уже известного NPC.
 
-- Есть `ctx.npcId` (NPC-чат) — карточка + optional note/memory (`aboutNpcId` = этот NPC, `playerId` null) + reverse acquaintance (other → speaker).
-- Нет speaker (world look) — только патч карточки; `acquaintance` и `memory` = `null`.
+Поведение в NPC-чате (есть `ctx.npcId`): карточка + optional note/memory (`aboutNpcId` = этот NPC, `playerId` null) + reverse acquaintance (other → speaker).
 
 **Args**
 

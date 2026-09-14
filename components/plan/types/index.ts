@@ -16,7 +16,4 @@ export interface IToolCallLog {
   error?: string;
 }
 
-export type IPlanStep =
-  | { agent: 'world'; locationId: string; locationName: string }
-  | { agent: 'npc'; npcId: string; npcName: string }
-  | { agent: 'master' };
+export type IPlanStep = { agent: 'npc'; npcId: string; npcName: string } | { agent: 'master' };

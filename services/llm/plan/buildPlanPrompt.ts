@@ -1,6 +1,6 @@
-import type { IWorldContext } from '@/services/llm/world/loadWorldContext';
+import type { ILocationContext } from '@/services/location/loadLocationContext';
 
-export const buildPlanPrompt = (ctx: IWorldContext) => {
+export const buildPlanPrompt = (ctx: ILocationContext) => {
   const snapshot = {
     player: ctx.player,
     current: ctx.location,
@@ -33,7 +33,7 @@ ${JSON.stringify(snapshot, null, 2)}
 [{"agent":"npc","npcId":"..."}]
 Один шаг: [{"agent":"master"}]
 
-Нельзя: {"agent":"..."}, {"steps":[...]}, текст вокруг. Нельзя agent world.
+Нельзя: {"agent":"..."}, {"steps":[...]}, текст вокруг.
 
 Ошибка — только объект, не массив:
 {"error":"краткая причина на русском"}`;

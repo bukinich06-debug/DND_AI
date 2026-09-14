@@ -140,15 +140,6 @@ Master system prompt различает:
 | services | [`services/llm/master/describeArrival.ts`](services/llm/master/describeArrival.ts) |
 | API | [`app/api/location/describe/`](app/api/location/describe/) — `POST { campaignId, playerId }` → `{ description, locationId, locationName }` |
 
-### World look (legacy)
-
-Устаревший одноразовый осмотр локации через отдельного агента World. **Не использовать для arrival-описаний** — UI должен вызывать Master (`POST /api/location/describe`). World look сохраняет описание в `Location.description` и запускает post-hooks.
-
-| Слой | Путь |
-|------|------|
-| services | [`services/llm/world/describeLocation.ts`](services/llm/world/describeLocation.ts) |
-| API | [`app/api/test/location/`](app/api/test/location/) (тестовый) |
-
 ---
 
 ## CRUD-сущности
@@ -159,7 +150,7 @@ Master system prompt различает:
 |----------|--------|----------|-----|
 | Campaigns | [`domain/campaign/`](domain/campaign/) | [`services/campaign/`](services/campaign/) | [`app/api/campaigns/`](app/api/campaigns/) |
 | Players | [`domain/player/`](domain/player/) | [`services/player/crud/`](services/player/crud/) | [`app/api/players/`](app/api/players/) |
-| Locations (+ children, links, player, npc) | [`domain/location/`](domain/location/), [`domain/location-link/`](domain/location-link/) | [`services/location/`](services/location/), [`services/location-link/`](services/location-link/), [`services/player/location/`](services/player/location/) | [`app/api/location/`](app/api/location/); look (тест): [`app/api/test/location/`](app/api/test/location/) |
+| Locations (+ children, links, player, npc) | [`domain/location/`](domain/location/), [`domain/location-link/`](domain/location-link/) | [`services/location/`](services/location/), [`services/location-link/`](services/location-link/), [`services/player/location/`](services/player/location/) | [`app/api/location/`](app/api/location/) |
 | Items | [`domain/item/`](domain/item/) | [`services/item/crud/`](services/item/crud/) | [`app/api/items/`](app/api/items/) |
 | NPCs (+ locations, knowledge, relations, memories, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
 | Quests (+ quest↔npc) | [`domain/quest/`](domain/quest/) | [`services/quest/`](services/quest/) | [`app/api/quests/`](app/api/quests/) |

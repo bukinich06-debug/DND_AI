@@ -965,7 +965,7 @@ export const paths = {
   '/api/test/npc-chat/hooks': {
     get: {
       tags: ['NpcChat', 'Location'],
-      summary: 'Статус post-hooks по turnId (NPC-чат и world look)',
+      summary: 'Статус post-hooks по turnId (NPC-чат)',
       parameters: [
         {
           name: 'turnId',

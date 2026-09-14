@@ -6,13 +6,13 @@ import { getPlayer } from '@/services/player/crud/getPlayer';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
 import { worldEventRepository } from '@/data/world-event';
 
-interface ILoadWorldContextParams {
+interface ILoadLocationContextParams {
   campaignId: string;
   playerId: string;
   lookLocationId?: string;
 }
 
-export interface IWorldContext {
+export interface ILocationContext {
   player: {
     id: string;
     name: string;
@@ -60,11 +60,11 @@ export interface IWorldContext {
   }>;
 }
 
-export const loadWorldContext = async ({
+export const loadLocationContext = async ({
   campaignId,
   playerId,
   lookLocationId,
-}: ILoadWorldContextParams): Promise<IWorldContext> => {
+}: ILoadLocationContextParams): Promise<ILocationContext> => {
   if (!campaignId.trim()) throw new Error('campaignId обязателен.');
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
@@ -86,7 +86,7 @@ export const loadWorldContext = async ({
   ]);
 
   const seen = new Set<string>();
-  const npcsHere: IWorldContext['npcsHere'] = [];
+  const npcsHere: ILocationContext['npcsHere'] = [];
   for (const { npc, role } of npcs) {
     if (seen.has(npc.id)) continue;
     seen.add(npc.id);

@@ -90,12 +90,6 @@ messages.push({
 
 `/api/location/describe` — для **автоматического** описания при прибытии, без явного запроса от игрока.
 
-## Legacy: World look
-
-`POST /api/test/location` — старый API, который запускал отдельного World-агента. **Не использовать для arrival-описаний.**
-
-Этот endpoint сохраняет описание в БД (`Location.description`) и запускает фоновые post-hooks (создание упомянутых NPC / мест). Оставлен только для тестирования.
-
 ---
 
 ## Резюме для UI-команды
@@ -103,4 +97,3 @@ messages.push({
 1. **Обязательный вызов:** после смены локации игрока вызовите `POST /api/location/describe { campaignId, playerId }`.
 2. **Добавьте в чат:** ответ `description` как `{ role: 'assistant', content: ... }`.
 3. **Не путайте с turn:** `/api/turn` — для действий игрока; `/api/location/describe` — для arrival.
-4. **Забудьте про World:** `POST /api/test/location` устарел для этого кейса.
