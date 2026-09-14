@@ -10,10 +10,12 @@ export interface INpc {
   attitude: string | null;
   dmNotes: string | null;
   coinsCp: number;
+  shopSpecialtyKey: string | null;
 }
 
-export type ICreateNpc = Omit<INpc, 'id' | 'coinsCp'> & {
+export type ICreateNpc = Omit<INpc, 'id' | 'coinsCp' | 'shopSpecialtyKey'> & {
   coinsCp?: number;
+  shopSpecialtyKey?: string | null;
 };
 
 export type IUpdateNpc = Partial<Omit<ICreateNpc, 'campaignId'>>;

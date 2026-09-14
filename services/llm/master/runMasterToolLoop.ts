@@ -16,6 +16,7 @@ export interface IToolCallLog {
   ok: boolean;
   result?: unknown;
   error?: string;
+  ui?: { openShop?: { npcId: string; npcName: string } };
 }
 
 interface IRunMasterToolLoopParams {
@@ -26,6 +27,7 @@ interface IRunMasterToolLoopParams {
 
 interface IRunMasterToolLoopResult extends IMasterReply {
   toolCalls: IToolCallLog[];
+  ui?: { openShop?: { npcId: string; npcName: string } };
 }
 
 const parseToolArgs = (raw: string): unknown => {
@@ -45,7 +47,13 @@ const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<I
     const tool = masterToolByName.get(name);
     if (!tool) throw new Error(`Неизвестный tool: ${name || '(пусто)'}.`);
     const result = await tool.execute(args, ctx);
-    return { name, args, ok: true, result };
+    
+    const ui =
+      result && typeof result === 'object' && 'ui' in result
+        ? (result.ui as { openShop?: { npcId: string; npcName: string } })
+        : undefined;
+    
+    return { name, args, ok: true, result, ui };
   } catch (e) {
     return {
       name: name || 'unknown',
@@ -76,7 +84,10 @@ export const runMasterToolLoop = async ({
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
       if (!content) throw new Error('Пустой ответ DeepSeek.');
       const reply = parseMasterReply(content);
-      return { ...reply, toolCalls };
+      
+      const ui = toolCalls.find((log) => log.ui)?.ui;
+      
+      return { ...reply, toolCalls, ui };
     }
 
     history.push({

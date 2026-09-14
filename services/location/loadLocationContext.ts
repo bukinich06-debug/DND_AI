@@ -50,6 +50,7 @@ export interface ILocationContext {
     appearance: string;
     habits: string;
     role: string | null;
+    shopSpecialtyKey: string | null;
   }>;
   meetings: Array<{
     title: string;
@@ -97,6 +98,7 @@ export const loadLocationContext = async ({
       appearance: npc.appearance,
       habits: npc.habits,
       role,
+      shopSpecialtyKey: npc.shopSpecialtyKey,
     });
   }
 

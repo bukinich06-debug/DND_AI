@@ -20,7 +20,13 @@ export type ITurnReply =
       features: string;
     }
   | { agent: 'npc'; npcId: string; npcName: string; say: string; do: string | null }
-  | { agent: 'master'; verdict: MasterVerdict; say: string; toolCalls: IToolCallLog[] };
+  | {
+      agent: 'master';
+      verdict: MasterVerdict;
+      say: string;
+      toolCalls: IToolCallLog[];
+      ui?: { openShop?: { npcId: string; npcName: string } };
+    };
 
 export type ITurnResume =
   { agent: 'npc'; npcId: string; remainingSteps: IPlanStep[] } | { agent: 'master'; remainingSteps: IPlanStep[] };
