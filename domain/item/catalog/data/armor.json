@@ -1,5 +1,20 @@
 [
   {
+    "key": "paddedArmor",
+    "aliases": ["padded armor", "padded", "стёганый доспех", "стеганый доспех"],
+    "name": "Стёганый доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Лёгкий доспех из простёганной ткани.",
+    "weight": 8,
+    "valueCp": 500,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 11 + Ловкость", "base": 11, "addDex": true },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." }
+    ]
+  },
+  {
     "key": "leatherArmor",
     "aliases": ["leather armor", "leather", "кожаный доспех", "кожанка"],
     "name": "Кожаный доспех",
@@ -10,6 +25,105 @@
     "valueCp": 1000,
     "isMagical": false,
     "properties": [{ "type": "ac", "text": "КД 11 + Ловкость", "base": 11, "addDex": true }]
+  },
+  {
+    "key": "studdedLeatherArmor",
+    "aliases": [
+      "studded leather",
+      "studded leather armor",
+      "проклёпанный кожаный доспех",
+      "проклепанный кожаный доспех"
+    ],
+    "name": "Проклёпанный кожаный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Лёгкий доспех с заклёпками.",
+    "weight": 13,
+    "valueCp": 4500,
+    "isMagical": false,
+    "properties": [{ "type": "ac", "text": "КД 12 + Ловкость", "base": 12, "addDex": true }]
+  },
+  {
+    "key": "hideArmor",
+    "aliases": ["hide armor", "hide", "шкурный доспех"],
+    "name": "Шкурный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Средний доспех из толстых шкур.",
+    "weight": 12,
+    "valueCp": 1000,
+    "isMagical": false,
+    "properties": [{ "type": "ac", "text": "КД 12 + Ловкость (макс 2)", "base": 12, "addDex": true }]
+  },
+  {
+    "key": "chainShirt",
+    "aliases": ["chain shirt", "кольчужная рубаха"],
+    "name": "Кольчужная рубаха",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Средний доспех из колец.",
+    "weight": 20,
+    "valueCp": 5000,
+    "isMagical": false,
+    "properties": [{ "type": "ac", "text": "КД 13 + Ловкость (макс 2)", "base": 13, "addDex": true }]
+  },
+  {
+    "key": "scaleMail",
+    "aliases": ["scale mail", "чешуйчатый доспех"],
+    "name": "Чешуйчатый доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Средний доспех из чешуек.",
+    "weight": 45,
+    "valueCp": 5000,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 14 + Ловкость (макс 2)", "base": 14, "addDex": true },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." }
+    ]
+  },
+  {
+    "key": "breastplate",
+    "aliases": ["breastplate", "кираса"],
+    "name": "Кираса",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Средний доспех с нагрудной пластиной.",
+    "weight": 20,
+    "valueCp": 40000,
+    "isMagical": false,
+    "properties": [{ "type": "ac", "text": "КД 14 + Ловкость (макс 2)", "base": 14, "addDex": true }]
+  },
+  {
+    "key": "halfPlate",
+    "aliases": ["half plate", "полулаты"],
+    "name": "Полулаты",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Средний доспех с пластинами.",
+    "weight": 40,
+    "valueCp": 75000,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 15 + Ловкость (макс 2)", "base": 15, "addDex": true },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." }
+    ]
+  },
+  {
+    "key": "ringMail",
+    "aliases": ["ring mail", "колечный доспех"],
+    "name": "Колечный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Тяжёлый доспех из колец на коже.",
+    "weight": 40,
+    "valueCp": 3000,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 14", "base": 14, "addDex": false },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." },
+      { "type": "note", "text": "Требуется Сила 13." }
+    ]
   },
   {
     "key": "chainMail",
@@ -23,7 +137,40 @@
     "isMagical": false,
     "properties": [
       { "type": "ac", "text": "КД 16", "base": 16, "addDex": false },
-      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." }
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." },
+      { "type": "note", "text": "Требуется Сила 13." }
+    ]
+  },
+  {
+    "key": "splintArmor",
+    "aliases": ["splint armor", "splint", "наборный доспех"],
+    "name": "Наборный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Тяжёлый доспех из полос металла.",
+    "weight": 60,
+    "valueCp": 20000,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 17", "base": 17, "addDex": false },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." },
+      { "type": "note", "text": "Требуется Сила 15." }
+    ]
+  },
+  {
+    "key": "plateArmor",
+    "aliases": ["plate armor", "plate", "латный доспех", "латы"],
+    "name": "Латный доспех",
+    "kind": "armor",
+    "rarity": null,
+    "description": "Тяжёлый доспех из пластин.",
+    "weight": 65,
+    "valueCp": 150000,
+    "isMagical": false,
+    "properties": [
+      { "type": "ac", "text": "КД 18", "base": 18, "addDex": false },
+      { "type": "stealthDisadvantage", "text": "Помеха на Скрытность." },
+      { "type": "note", "text": "Требуется Сила 15." }
     ]
   }
 ]
