@@ -2,7 +2,14 @@
 
 import { campaignRepository } from '@/data/campaign';
 import { playerRepository } from '@/data/player';
-import { Condition, removeCondition, validateLongRest, type ILongRest, type IPlayerRestResult } from '@/domain/player';
+import {
+  Condition,
+  removeCondition,
+  syncDeath,
+  validateLongRest,
+  type ILongRest,
+  type IPlayerRestResult,
+} from '@/domain/player';
 import { snapToNextMorning } from '@/domain/world-clock';
 
 export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => {
@@ -15,6 +22,8 @@ export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => 
   if (!player) throw new Error('Игрок не найден.');
   if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
+  if (player.dead) throw new Error('Мёртвый персонаж не может отдыхать.');
+
   const recovered = Math.max(1, Math.floor(player.level / 2));
   const hitDiceLeft = Math.min(player.level, player.hitDiceLeft + recovered);
   const next = removeCondition({
@@ -25,6 +34,7 @@ export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => 
     state: next,
     condition: Condition.unconscious,
   });
+  const dead = syncDeath(awake.exhaustionLevel, player.dead);
 
   const newClock = snapToNextMorning({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay });
 
@@ -39,6 +49,7 @@ export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => 
     hitDiceLeft,
     conditions: awake.conditions,
     exhaustionLevel: awake.exhaustionLevel,
+    dead,
     shortRestsToday: 0,
     shortRestDayIndex: newClock.dayIndex,
   });
@@ -51,6 +62,7 @@ export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => 
     hitDiceLeft: updated.hitDiceLeft,
     conditions: updated.conditions,
     exhaustionLevel: updated.exhaustionLevel,
+    dead: updated.dead,
     healed: player.hpMax - player.hpCurrent,
   };
 };

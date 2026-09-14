@@ -53,11 +53,14 @@ const mapPlayer = (row: Player): IPlayer => ({
   coinsCp: row.coinsCp,
   conditions: row.conditions,
   exhaustionLevel: row.exhaustionLevel,
+  dead: row.dead,
   locationId: row.locationId,
   travelDestinationId: row.travelDestinationId,
   travelRoute: mapTravelRoute(row.travelRoute),
   travelLegIndex: row.travelLegIndex,
   travelDaysLeft: row.travelDaysLeft,
+  shortRestsToday: row.shortRestsToday,
+  shortRestDayIndex: row.shortRestDayIndex,
 });
 
 export const playerRepository: IPlayerRepository = {
@@ -105,6 +108,7 @@ export const playerRepository: IPlayerRepository = {
         coinsCp: input.coinsCp ?? 0,
         conditions: input.conditions ?? [],
         exhaustionLevel: input.exhaustionLevel ?? 0,
+        dead: input.dead ?? false,
         locationId: input.locationId ?? null,
       },
     });
@@ -166,6 +170,7 @@ export const playerRepository: IPlayerRepository = {
         ...(input.coinsCp !== undefined ? { coinsCp: input.coinsCp } : {}),
         ...(input.conditions !== undefined ? { conditions: input.conditions } : {}),
         ...(input.exhaustionLevel !== undefined ? { exhaustionLevel: input.exhaustionLevel } : {}),
+        ...(input.dead !== undefined ? { dead: input.dead } : {}),
         ...(input.locationId !== undefined ? { locationId: input.locationId } : {}),
       },
     });

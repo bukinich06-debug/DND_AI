@@ -180,6 +180,7 @@ model Player {
   coinsCp              Int      @default(0)
   conditions           String[] @default([])
   exhaustionLevel      Int      @default(0)
+  dead                 Boolean  @default(false)
   locationId           String?
   travelDestinationId  String?
   travelRoute          Json?
