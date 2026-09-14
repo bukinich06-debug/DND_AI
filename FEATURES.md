@@ -103,6 +103,27 @@ Master system prompt различает:
 | API | — |
 | Prompt | [`buildMasterPrompt.ts`](services/llm/master/buildMasterPrompt.ts) — секция «Отдых: ролевой vs механический» |
 
+### Запланированные встречи (world events)
+
+Создание встречи игрока с NPC в определённой локации и времени (день + слот). При наступлении времени встречи `runPlayerTurn` автоматически запускает диалог с NPC.
+
+**Очередь встреч:** если несколько встреч назначены на один слот, они обрабатываются **по одной за ход** в стабильном порядке (день → слот → id встречи). Остальные остаются pending до следующих ходов.
+
+**Логика запуска (turn):**
+1. Проверяет встречи в текущей локации: due → запускает; нет due, но игрок ждёт → запускает ближайшую.
+2. Если нет встречи здесь, но игрок ждёт → ищет ближайшую walkable встречу, перемещает игрока, запускает диалог.
+3. Возвращает `{ npcId, npcName, title, locationId, locationName, requiresMove }` — turn обрабатывает перемещение и создаёт NPC-шаг с `arrivalTitle`.
+
+**Создание встречи:** через внешний UI / импорт / future tool — сейчас только CRUD на уровне сервисов.
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/world-event/`](domain/world-event/) (types, validation, helpers: `isMeetingDue`, `pickMeetingHere`, `pickSoonestMeeting`, `isWaitMessage`) |
+| services | [`services/world-event/`](services/world-event/) (`scheduleMeeting`, `tryFireDueMeeting`) |
+| turn | [`services/llm/turn/runPlayerTurn.ts`](services/llm/turn/runPlayerTurn.ts) — вызов `tryFireDueMeeting` перед планировщиком |
+| data | [`data/world-event/`](data/world-event/) |
+| API | — |
+
 
 ### NPC: отношения, память, знания
 

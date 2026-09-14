@@ -2,14 +2,20 @@
 
 import { campaignRepository } from '@/data/campaign';
 import { locationRepository } from '@/data/location';
+import { npcRepository } from '@/data/npc';
 import { worldEventRepository } from '@/data/world-event';
 import { isSameSettlement, type ILocation } from '@/domain/location';
-import { isMeetingDue, isWaitMessage, pickMeetingHere, pickSoonestMeeting, type IWorldEvent } from '@/domain/world-event';
+import {
+  isMeetingDue,
+  isWaitMessage,
+  pickMeetingHere,
+  pickSoonestMeeting,
+  type IWorldEvent,
+} from '@/domain/world-event';
 import { nextSlotDay } from '@/domain/world-clock';
 import { updateCampaign } from '@/services/campaign/crud/updateCampaign';
 import { setNpcLocation } from '@/services/npc/crud/setNpcLocation';
 import { getPlayerLocation } from '@/services/player/location/getPlayerLocation';
-import { movePlayer } from '@/services/player/location/movePlayer';
 import type { TimeOfDay } from '@/domain/shared';
 
 interface ITryFireDueMeetingParams {
@@ -20,7 +26,11 @@ interface ITryFireDueMeetingParams {
 
 interface IFiredMeeting {
   npcId: string;
+  npcName: string;
   title: string;
+  locationId: string;
+  locationName: string;
+  requiresMove: boolean;
 }
 
 interface IClock {
@@ -56,13 +66,17 @@ const fireEvent = async (
 ): Promise<IFiredMeeting | null> => {
   if (!event.npcId) return null;
 
-  let atId = hereId;
-  if (event.locationId !== hereId) {
-    await movePlayer({ campaignId, playerId, locationId: event.locationId });
-    atId = event.locationId;
-  }
+  const [npc, location] = await Promise.all([
+    npcRepository.getById(event.npcId),
+    locationRepository.getById(event.locationId),
+  ]);
 
-  const due = isMeetingDue(event, clock, atId);
+  if (!npc) throw new Error('NPC встречи не найден.');
+  if (!location) throw new Error('Локация встречи не найдена.');
+
+  const requiresMove = event.locationId !== hereId;
+
+  const due = isMeetingDue(event, clock, hereId);
   if (!due) {
     const dayIndex = event.dayIndex ?? nextSlotDay(clock, event.slot);
     await updateCampaign(campaignId, { dayIndex, timeOfDay: event.slot });
@@ -71,9 +85,35 @@ const fireEvent = async (
   await setNpcLocation({ npcId: event.npcId, locationId: event.locationId, isPrimary: true });
   await worldEventRepository.markDone(event.id);
 
-  return { npcId: event.npcId, title: event.title };
+  return {
+    npcId: event.npcId,
+    npcName: npc.name,
+    title: event.title,
+    locationId: event.locationId,
+    locationName: location.name,
+    requiresMove,
+  };
 };
 
+/**
+ * Пытается запустить назначенную встречу.
+ *
+ * **Очередь встреч:** если несколько встреч назначены на один слот (день + время),
+ * они обрабатываются по одной за ход в стабильном порядке (день → слот → id).
+ * Остальные остаются pending до следующего хода.
+ *
+ * **Логика:**
+ * 1. Проверяет, есть ли встреча в текущей локации (due или ближайшая).
+ *    - Если due или игрок ждёт → запускает встречу.
+ * 2. Если нет встречи здесь и игрок ждёт → ищет ближайшую walkable встречу.
+ *    - Если найдена → запускает встречу (игрок должен будет идти туда).
+ *
+ * **Возврат:** `IFiredMeeting` с полным контекстом (кто, где, название, нужно ли перемещение).
+ * Вызывающий код (turn/master) должен обработать сигнал: показать сообщение,
+ * переместить игрока если `requiresMove === true`, запустить диалог с NPC.
+ *
+ * @returns `IFiredMeeting` если встреча запущена, `null` если ничего не запущено.
+ */
 export const tryFireDueMeeting = async ({
   campaignId,
   playerId,
