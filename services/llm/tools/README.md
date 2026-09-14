@@ -46,8 +46,10 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 |------|------|------------|
 | `search_location_items` | `searchLocationItemsTool.ts` | Предметы на полу локации |
 | `search_player_items` | `searchPlayerItemsTool.ts` | Инвентарь |
+| `search_item_catalog` | `searchItemCatalogTool.ts` | Поиск в справочнике PHB |
 | `take_item` | `takeItemTool.ts` | Подобрать существующий |
 | `drop_item` | `dropItemTool.ts` | Бросить |
+| `grant_catalog_item` | `grantCatalogItemTool.ts` | Выдать предмет из справочника |
 | `equip_item` | `equipItemTool.ts` | Надеть |
 | `unequip_item` | `unequipItemTool.ts` | Снять |
 | `get_coins` | `getCoinsTool.ts` | Баланс монет |
@@ -61,6 +63,8 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `get_player_location` | `getPlayerLocationTool.ts` | Локация / travel |
 | `start_travel` | `startTravelTool.ts` | Начать путь |
 | `advance_travel` | `advanceTravelTool.ts` | Продвинуть путь |
+| `advance_time` | `advanceTimeTool.ts` | Ролевое время |
+| `schedule_meeting` | `scheduleMeetingTool.ts` | Назначить встречу |
 
 ### Post-hook
 
@@ -708,6 +712,74 @@ Post-hook ([hooks README](../hooks/README.md)). Upsert дороги между �
 - Если игрок просто отдыхает / сидит в таверне / ждёт → используй `advance_time` (НЕ восстанавливает HP).
 - Если игрок хочет короткий отдых **по правилам D&D** (восстановление HP кубиками хитов) → используй `short_rest`.
 - Длинный отдых (8 часов сна) → `long_rest`.
+
+---
+
+## `search_item_catalog`
+
+Поиск предметов в справочнике PHB. Возвращает шаблоны предметов для последующей выдачи через `grant_catalog_item`. Без query возвращает список предметов справочника.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `query` | string | нет | Поисковый запрос (имя предмета). Без query — список предметов справочника |
+
+**Return**
+
+```ts
+{
+  query: string | null,
+  exact: boolean,
+  items: Array<{
+    key: string,
+    name: string,
+    kind: ItemKind,
+    rarity: ItemRarity | null,
+    valueCp: number | null,
+    weight: number | null,
+    description: string,
+    isMagical: boolean
+  }>
+}
+```
+
+`key` используется для `grant_catalog_item`. Уникальные именные предметы кампании не лежат в справочнике PHB.
+
+---
+
+## `grant_catalog_item`
+
+Выдаёт предмет из справочника PHB игроку в инвентарь или в локацию на пол. Перед вызовом обязательно `search_item_catalog` для получения `key`. Складывается с существующим предметом, если у него тот же `catalogKey`. **Не создаёт предметы вне справочника** — только копирует шаблоны PHB.
+
+**Args**
+
+| Параметр | Тип | Обяз. | Описание |
+|----------|-----|-------|----------|
+| `key` | string | да | Ключ предмета из справочника (получить через search_item_catalog) |
+| `target` | `player\|location` | да | Куда выдать: player (инвентарь игрока) или location (на пол локации) |
+| `playerId` | string | условно | ID игрока (обязателен для target=player) |
+| `locationId` | string | условно | ID локации (обязателен для target=location) |
+| `quantity` | integer | нет | Количество (по умолчанию 1, минимум 1) |
+
+**Return**
+
+```ts
+{
+  target: 'player' | 'location',
+  playerId?: string,
+  locationId?: string,
+  item: {
+    id: string,
+    name: string,
+    kind: ItemKind,
+    quantity: number,
+    catalogKey: string
+  }
+}
+```
+
+Уникальные именные предметы кампании не добавляются через этот tool — они создаются вручную.
 
 ---
 

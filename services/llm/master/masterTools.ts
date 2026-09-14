@@ -8,9 +8,11 @@ import { getCoinsTool } from '@/services/llm/tools/getCoinsTool';
 import { getPlayerConditionsTool } from '@/services/llm/tools/getPlayerConditionsTool';
 import { getPlayerLocationTool } from '@/services/llm/tools/getPlayerLocationTool';
 import { getPlayerProficienciesTool } from '@/services/llm/tools/getPlayerProficienciesTool';
+import { grantCatalogItemTool } from '@/services/llm/tools/grantCatalogItemTool';
 import { longRestTool } from '@/services/llm/tools/longRestTool';
 import { removePlayerConditionTool } from '@/services/llm/tools/removePlayerConditionTool';
 import { scheduleMeetingTool } from '@/services/llm/tools/scheduleMeetingTool';
+import { searchItemCatalogTool } from '@/services/llm/tools/searchItemCatalogTool';
 import { searchLocationItemsTool } from '@/services/llm/tools/searchLocationItemsTool';
 import { searchPlayerItemsTool } from '@/services/llm/tools/searchPlayerItemsTool';
 import { shortRestTool } from '@/services/llm/tools/shortRestTool';
@@ -22,8 +24,10 @@ import { unequipItemTool } from '@/services/llm/tools/unequipItemTool';
 export const masterTools: ILlmTool[] = [
   searchLocationItemsTool,
   searchPlayerItemsTool,
+  searchItemCatalogTool,
   takeItemTool,
   dropItemTool,
+  grantCatalogItemTool,
   equipItemTool,
   unequipItemTool,
   getCoinsTool,
