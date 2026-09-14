@@ -58,10 +58,14 @@ CRUD предметов и поиск по инвентарю игрока дл�
 
 Чтение, наложение и снятие состояний PC.
 
+**Автоматические правила состояний:**
+- **HP = 0** → автоматически накладывается `unconscious` (снимается при восстановлении HP > 0)
+- **Exhaustion level 6** → персонаж умирает (`dead = true`). Мёртвый персонаж не может использовать отдых, изменять HP или состояния
+
 | Слой | Путь |
 |------|------|
-| domain | [`domain/player/`](domain/player/) (`validation/`, `helpers/`) |
-| services | [`services/player/conditions/`](services/player/conditions/) |
+| domain | [`domain/player/`](domain/player/) (`validation/`, `helpers/` — `syncUnconscious`, `syncDeath`) |
+| services | [`services/player/conditions/`](services/player/conditions/), [`services/player/hp/`](services/player/hp/), [`services/player/rest/`](services/player/rest/) |
 | tools | [`getPlayerConditionsTool.ts`](services/llm/tools/getPlayerConditionsTool.ts) — [`get_player_conditions`](services/llm/tools/README.md#get_player_conditions); [`addPlayerConditionTool.ts`](services/llm/tools/addPlayerConditionTool.ts) — [`add_player_condition`](services/llm/tools/README.md#add_player_condition); [`removePlayerConditionTool.ts`](services/llm/tools/removePlayerConditionTool.ts) — [`remove_player_condition`](services/llm/tools/README.md#remove_player_condition) |
 | API | — |
 

@@ -12,6 +12,7 @@ export { toolLabel } from './helpers/toolLabel';
 export { parseHitDie } from './helpers/parseHitDie';
 export type { IHitDie } from './helpers/parseHitDie';
 export { syncUnconscious } from './helpers/syncUnconscious';
+export { syncDeath } from './helpers/syncDeath';
 export {
   normalizeConditionKey,
   normalizeSkillKey,

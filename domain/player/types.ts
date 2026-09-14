@@ -43,6 +43,7 @@ export interface IPlayer {
   coinsCp: number;
   conditions: string[];
   exhaustionLevel: number;
+  dead: boolean;
   locationId: string | null;
   travelDestinationId: string | null;
   travelRoute: string[] | null;
@@ -62,6 +63,7 @@ export type ICreatePlayer = Omit<
   | 'coinsCp'
   | 'conditions'
   | 'exhaustionLevel'
+  | 'dead'
   | 'locationId'
   | 'travelDestinationId'
   | 'travelRoute'
@@ -77,10 +79,14 @@ export type ICreatePlayer = Omit<
   coinsCp?: number;
   conditions?: string[];
   exhaustionLevel?: number;
+  dead?: boolean;
   locationId?: string | null;
 };
 
-export type IUpdatePlayer = Partial<Omit<ICreatePlayer, 'campaignId'>>;
+export type IUpdatePlayer = Partial<Omit<ICreatePlayer, 'campaignId'>> & {
+  shortRestsToday?: number;
+  shortRestDayIndex?: number;
+};
 
 export interface IPlayerLocationState {
   locationId?: string | null;
@@ -137,6 +143,7 @@ export interface IApplyPlayerHpResult {
   hpTemp: number;
   conditions: string[];
   exhaustionLevel: number;
+  dead: boolean;
 }
 
 export interface IShortRest {
@@ -158,6 +165,7 @@ export interface IPlayerRestResult {
   hitDiceLeft: number;
   conditions: string[];
   exhaustionLevel: number;
+  dead: boolean;
   healed?: number;
   dice?: Array<{ die: string; value: number; conMod: number }>;
 }
@@ -166,6 +174,7 @@ export interface IPlayerConditions {
   playerId: string;
   conditions: string[];
   exhaustionLevel: number;
+  dead: boolean;
   rules: Record<string, string>;
 }
 

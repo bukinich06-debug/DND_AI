@@ -16,8 +16,12 @@ export const advanceTimeTool: ILlmTool = {
     },
     required: ['slots'],
   },
-  execute: async (args, ctx: IToolContext) => {
-    const result = await advanceTime({ campaignId: ctx.campaignId, slots: args.slots });
+  execute: async (args: unknown, ctx: IToolContext) => {
+    if (!args || typeof args !== 'object') throw new Error('Аргументы обязательны.');
+    const raw = args as Record<string, unknown>;
+    if (!Number.isInteger(raw.slots) || (raw.slots as number) < 1)
+      throw new Error('slots должен быть целым числом не меньше 1.');
+    const result = await advanceTime({ campaignId: ctx.campaignId, slots: raw.slots as number });
     return {
       campaignId: result.campaignId,
       dayIndex: result.dayIndex,

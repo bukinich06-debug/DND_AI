@@ -29,6 +29,7 @@ export const getPlayerConditions = async (input: IGetPlayerConditions): Promise<
     playerId: player.id,
     conditions: player.conditions,
     exhaustionLevel: player.exhaustionLevel,
+    dead: player.dead,
     rules,
   };
 };

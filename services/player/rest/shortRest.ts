@@ -6,6 +6,7 @@ import { rollDie } from '@/domain/dice';
 import {
   abilityMod,
   parseHitDie,
+  syncDeath,
   syncUnconscious,
   validateShortRest,
   type IPlayerRestResult,
@@ -22,6 +23,8 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
   const player = await playerRepository.getById(input.playerId);
   if (!player) throw new Error('Игрок не найден.');
   if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
+
+  if (player.dead) throw new Error('Мёртвый персонаж не может отдыхать.');
 
   if (player.shortRestDayIndex === campaign.dayIndex && player.shortRestsToday >= 2)
     throw new Error('Вы уже использовали 2 коротких отдыха за сегодня.');
@@ -46,6 +49,7 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
     conditions: player.conditions,
     exhaustionLevel: player.exhaustionLevel,
   });
+  const dead = syncDeath(next.exhaustionLevel, player.dead);
 
   const newClock = advanceSlots({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay }, 1);
 
@@ -62,6 +66,7 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
     hitDiceLeft,
     conditions: next.conditions,
     exhaustionLevel: next.exhaustionLevel,
+    dead,
     shortRestsToday,
     shortRestDayIndex: campaign.dayIndex,
   });
@@ -74,6 +79,7 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
     hitDiceLeft: updated.hitDiceLeft,
     conditions: updated.conditions,
     exhaustionLevel: updated.exhaustionLevel,
+    dead: updated.dead,
     healed,
     dice,
   };

@@ -6,6 +6,7 @@ import {
   CONDITION_RULES,
   normalizeConditionKey,
   removeCondition,
+  syncDeath,
   validateRemovePlayerCondition,
   type IPlayerConditions,
   type IRemovePlayerCondition,
@@ -21,6 +22,8 @@ export const removePlayerCondition = async (input: IRemovePlayerCondition): Prom
   if (!player) throw new Error('Игрок не найден.');
   if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
+  if (player.dead) throw new Error('Невозможно изменить состояния мёртвого персонажа.');
+
   const key = normalizeConditionKey(input.condition);
   if (!key) throw new Error('Неизвестное состояние.');
 
@@ -29,10 +32,12 @@ export const removePlayerCondition = async (input: IRemovePlayerCondition): Prom
     condition: key,
     exhaustionLevel: input.exhaustionLevel ?? undefined,
   });
+  const dead = syncDeath(next.exhaustionLevel, player.dead);
 
   const updated = await playerRepository.update(player.id, {
     conditions: next.conditions,
     exhaustionLevel: next.exhaustionLevel,
+    dead,
   });
 
   const rules: Record<string, string> = {};
@@ -44,6 +49,7 @@ export const removePlayerCondition = async (input: IRemovePlayerCondition): Prom
     playerId: updated.id,
     conditions: updated.conditions,
     exhaustionLevel: updated.exhaustionLevel,
+    dead: updated.dead,
     rules,
   };
 };
