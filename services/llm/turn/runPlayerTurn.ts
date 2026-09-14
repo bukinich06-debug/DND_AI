@@ -9,6 +9,7 @@ import { chatWithNpc } from '@/services/llm/npc/chatWithNpc';
 import type { IPlanStep } from '@/services/llm/plan/parsePlanReply';
 import { planPlayerInput } from '@/services/llm/plan/planPlayerInput';
 import { getNpc } from '@/services/npc/crud/getNpc';
+import { movePlayer } from '@/services/player/location/movePlayer';
 import { tryFireDueMeeting } from '@/services/world-event/tryFireDueMeeting';
 import { resolveRequestedCheck } from './resolveRequestedCheck';
 import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume } from './types';
@@ -172,10 +173,12 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
   let arrivalTitle: string | undefined;
   let steps: IPlanStep[];
   if (fired) {
-    const npc = await getNpc(fired.npcId);
-    if (npc.campaignId !== campaignId) throw new Error('NPC не принадлежит этой кампании.');
+    if (fired.requiresMove) {
+      await movePlayer({ campaignId, playerId, locationId: fired.locationId });
+    }
+
     arrivalTitle = fired.title;
-    steps = [{ agent: 'npc', npcId: npc.id, npcName: npc.name }];
+    steps = [{ agent: 'npc', npcId: fired.npcId, npcName: fired.npcName }];
   } else {
     ({ steps } = await planPlayerInput({ campaignId, playerId, messages }));
   }

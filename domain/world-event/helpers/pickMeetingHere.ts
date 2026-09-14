@@ -16,7 +16,9 @@ export const pickMeetingHere = (events: IWorldEvent[], locationId: string, clock
     const dayA = a.dayIndex ?? 0;
     const dayB = b.dayIndex ?? 0;
     if (dayA !== dayB) return dayA - dayB;
-    return slotIndex(a.slot) - slotIndex(b.slot);
+    const slotDiff = slotIndex(a.slot) - slotIndex(b.slot);
+    if (slotDiff !== 0) return slotDiff;
+    return a.id.localeCompare(b.id);
   });
 
   const due = here.find((e) => isMeetingDue(e, clock, locationId));
