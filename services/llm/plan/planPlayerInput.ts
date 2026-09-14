@@ -1,6 +1,6 @@
 'use server';
 
-import { loadWorldContext } from '@/services/llm/world/loadWorldContext';
+import { loadLocationContext } from '@/services/location/loadLocationContext';
 import { fillPlanStepNames } from './fillPlanStepNames';
 import { buildPlanPrompt } from './buildPlanPrompt';
 import type { IPlanStep } from './parsePlanReply';
@@ -44,7 +44,7 @@ export const planPlayerInput = async (input: IPlanPlayerInputParams): Promise<IP
   if (!playerId) throw new Error('playerId обязателен.');
 
   const messages = parseMessages(input.messages);
-  const ctx = await loadWorldContext({ campaignId, playerId });
+  const ctx = await loadLocationContext({ campaignId, playerId });
 
   const { steps, toolCalls } = await runPlanToolLoop({
     system: buildPlanPrompt(ctx),

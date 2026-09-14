@@ -350,36 +350,6 @@ Content-Type: application/json
 
 ---
 
-## Осмотр (world look) — LEGACY
-
-**Устарело для arrival-описаний.** UI должен вызывать `POST /api/location/describe` (Мастер). Этот агент оставлен только для тестирования: каждый запрос — LLM, запись в `description`, фон-хуки.
-
-### `POST /api/test/location`
-
-Игрок должен уже стоять в месте (`GET/PATCH …/player`). `200`:
-
-```ts
-{
-  look: string
-  locationId: string
-  turnId: string
-}
-```
-
-```
-POST /api/test/location
-Content-Type: application/json
-
-{
-  "campaignId": "string",
-  "playerId": "string"
-}
-```
-
-Статус хуков: `GET /api/test/npc-chat/hooks?turnId={turnId}`.
-
----
-
 ## Карта (минимум запросов)
 
 1. `GET /api/location?campaignId=` — узлы  

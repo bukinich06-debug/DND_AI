@@ -1418,15 +1418,6 @@ export const schemas = {
     oneOf: [
       {
         type: 'object',
-        required: ['agent', 'locationId', 'locationName'],
-        properties: {
-          agent: { type: 'string', enum: ['world'] },
-          locationId: { type: 'string' },
-          locationName: { type: 'string' },
-        },
-      },
-      {
-        type: 'object',
         required: ['agent', 'npcId', 'npcName'],
         properties: {
           agent: { type: 'string', enum: ['npc'] },

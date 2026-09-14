@@ -1,10 +1,6 @@
-export type IPlanStep =
-  | { agent: 'world'; locationId: string; locationName: string }
-  | { agent: 'npc'; npcId: string; npcName: string }
-  | { agent: 'master' };
+export type IPlanStep = { agent: 'npc'; npcId: string; npcName: string } | { agent: 'master' };
 
-export type IParsedPlanStep =
-  { agent: 'world'; locationId: string } | { agent: 'npc'; npcId: string } | { agent: 'master' };
+export type IParsedPlanStep = { agent: 'npc'; npcId: string } | { agent: 'master' };
 
 const tryParseJson = (raw: string): unknown => {
   try {
@@ -38,7 +34,6 @@ const asStep = (value: unknown, index: number): IParsedPlanStep => {
   const obj = value as Record<string, unknown>;
   const agent = obj.agent;
 
-  if (agent === 'world') return { agent: 'master' };
   if (agent === 'npc') {
     if (typeof obj.npcId !== 'string' || !obj.npcId.trim()) throw new Error(`steps[${index}].npcId обязателен.`);
     return { agent: 'npc', npcId: obj.npcId.trim() };

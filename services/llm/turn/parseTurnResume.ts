@@ -6,14 +6,6 @@ const asPlanStep = (value: unknown, index: number): IPlanStep => {
     throw new Error(`remainingSteps[${index}] некорректен.`);
   const obj = value as Record<string, unknown>;
 
-  if (obj.agent === 'world') {
-    if (typeof obj.locationId !== 'string' || !obj.locationId.trim())
-      throw new Error(`remainingSteps[${index}].locationId обязателен.`);
-    if (typeof obj.locationName !== 'string' || !obj.locationName.trim())
-      throw new Error(`remainingSteps[${index}].locationName обязателен.`);
-    return { agent: 'world', locationId: obj.locationId.trim(), locationName: obj.locationName.trim() };
-  }
-
   if (obj.agent === 'npc') {
     if (typeof obj.npcId !== 'string' || !obj.npcId.trim())
       throw new Error(`remainingSteps[${index}].npcId обязателен.`);
@@ -23,7 +15,7 @@ const asPlanStep = (value: unknown, index: number): IPlanStep => {
   }
 
   if (obj.agent === 'master') return { agent: 'master' };
-  throw new Error(`remainingSteps[${index}].agent должен быть world, npc или master.`);
+  throw new Error(`remainingSteps[${index}].agent должен быть npc или master.`);
 };
 
 export const parseTurnResume = (value: unknown): ITurnResume => {
