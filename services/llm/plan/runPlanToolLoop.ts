@@ -1,8 +1,4 @@
-import {
-  sendDeepseekChat,
-  type IDeepseekMessage,
-  type IDeepseekToolCall,
-} from '@/services/llm/providers/sendDeepseekChat';
+import { sendLlmChat, type ILlmMessage, type ILlmToolCall } from '@/services/llm/providers/sendLlmChat';
 import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
 import type { IToolContext } from '@/services/llm/tools/types';
 import { buildPlanUserMessage } from './buildPlanUserMessage';
@@ -41,7 +37,7 @@ const parseToolArgs = (raw: string): unknown => {
   }
 };
 
-const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
+const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
   const name = call.function?.name?.trim() || '';
   let args: unknown = {};
   try {
@@ -62,7 +58,7 @@ const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<I
 
 const parseFinalContent = async (
   content: string,
-  history: IDeepseekMessage[],
+  history: ILlmMessage[],
   openAiTools: unknown[]
 ): Promise<IParsedPlanStep[]> => {
   try {
@@ -71,12 +67,12 @@ const parseFinalContent = async (
     history.push({ role: 'assistant', content });
     history.push({ role: 'user', content: RETRY_JSON_HINT });
 
-    const retry = await sendDeepseekChat({ messages: history, temperature: 0.1, tools: openAiTools });
+    const retry = await sendLlmChat({ messages: history, temperature: 0.1, tools: openAiTools });
     if (retry.tool_calls && retry.tool_calls.length > 0)
       throw firstError instanceof Error ? firstError : new Error('Некорректный ответ планировщика.');
 
     const retryContent = typeof retry.content === 'string' ? retry.content.trim() : '';
-    if (!retryContent) throw new Error('Пустой ответ DeepSeek.');
+    if (!retryContent) throw new Error('Пустой ответ LLM.');
     return parsePlanReply(retryContent);
   }
 };
@@ -87,19 +83,19 @@ export const runPlanToolLoop = async ({
   ctx,
 }: IRunPlanToolLoopParams): Promise<IRunPlanToolLoopResult> => {
   const openAiTools = planTools.map(toOpenAiCompatibleTool);
-  const history: IDeepseekMessage[] = [
+  const history: ILlmMessage[] = [
     { role: 'system', content: system },
     { role: 'user', content: buildPlanUserMessage(messages) },
   ];
   const toolCalls: IToolCallLog[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.1, tools: openAiTools });
+    const assistant = await sendLlmChat({ messages: history, temperature: 0.1, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
-      if (!content) throw new Error('Пустой ответ DeepSeek.');
+      if (!content) throw new Error('Пустой ответ LLM.');
       return { steps: await parseFinalContent(content, history, openAiTools), toolCalls };
     }
 

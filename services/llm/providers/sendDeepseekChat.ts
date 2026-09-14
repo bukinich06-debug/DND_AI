@@ -1,5 +1,7 @@
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEEPSEEK_MODEL = 'deepseek-chat';
+import type { ILlmMessage, ISendChatParams } from './types';
+
+const DEFAULT_DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEFAULT_DEEPSEEK_MODEL = 'deepseek-chat';
 const DEEPSEEK_MAX_TOKENS = 800;
 
 export interface IDeepseekToolCall {
@@ -19,24 +21,21 @@ export interface IDeepseekMessage {
   name?: string;
 }
 
-interface ISendDeepseekChatParams {
-  messages: IDeepseekMessage[];
-  temperature: number;
-  tools?: unknown[];
-}
-
 interface IDeepseekChoiceMessage {
   role?: string;
   content?: string | null;
   tool_calls?: IDeepseekToolCall[];
 }
 
-export const sendDeepseekChat = async ({ messages, temperature, tools }: ISendDeepseekChatParams) => {
+export const sendDeepseekChat = async ({ messages, temperature, tools }: ISendChatParams) => {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey?.trim()) throw new Error('DEEPSEEK_API_KEY не задан.');
 
+  const apiUrl = process.env.DEEPSEEK_API_URL?.trim() || DEFAULT_DEEPSEEK_API_URL;
+  const model = process.env.DEEPSEEK_MODEL?.trim() || DEFAULT_DEEPSEEK_MODEL;
+
   const body: Record<string, unknown> = {
-    model: DEEPSEEK_MODEL,
+    model,
     messages,
     temperature,
     max_tokens: DEEPSEEK_MAX_TOKENS,
@@ -46,7 +45,7 @@ export const sendDeepseekChat = async ({ messages, temperature, tools }: ISendDe
     body.tool_choice = 'auto';
   }
 
-  const response = await fetch(DEEPSEEK_API_URL, {
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -76,5 +75,5 @@ export const sendDeepseekChat = async ({ messages, temperature, tools }: ISendDe
     role: message.role ?? 'assistant',
     content: message.content ?? null,
     tool_calls: message.tool_calls,
-  } satisfies IDeepseekMessage;
+  } satisfies ILlmMessage;
 };

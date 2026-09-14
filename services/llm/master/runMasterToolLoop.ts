@@ -1,8 +1,4 @@
-import {
-  sendDeepseekChat,
-  type IDeepseekMessage,
-  type IDeepseekToolCall,
-} from '@/services/llm/providers/sendDeepseekChat';
+import { sendLlmChat, type ILlmMessage, type ILlmToolCall } from '@/services/llm/providers/sendLlmChat';
 import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
 import type { IToolContext } from '@/services/llm/tools/types';
 import { masterToolByName, masterTools } from './masterTools';
@@ -39,7 +35,7 @@ const parseToolArgs = (raw: string): unknown => {
   }
 };
 
-const runOneTool = async (call: IDeepseekToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
+const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
   const name = call.function?.name?.trim() || '';
   let args: unknown = {};
   try {
@@ -70,19 +66,19 @@ export const runMasterToolLoop = async ({
   ctx,
 }: IRunMasterToolLoopParams): Promise<IRunMasterToolLoopResult> => {
   const openAiTools = masterTools.map(toOpenAiCompatibleTool);
-  const history: IDeepseekMessage[] = [
+  const history: ILlmMessage[] = [
     { role: 'system', content: system },
     ...messages.map((m) => ({ role: m.role, content: m.content })),
   ];
   const toolCalls: IToolCallLog[] = [];
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendDeepseekChat({ messages: history, temperature: 0.3, tools: openAiTools });
+    const assistant = await sendLlmChat({ messages: history, temperature: 0.3, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
-      if (!content) throw new Error('Пустой ответ DeepSeek.');
+      if (!content) throw new Error('Пустой ответ LLM.');
       const reply = parseMasterReply(content);
       
       const ui = toolCalls.find((log) => log.ui)?.ui;
