@@ -11,6 +11,7 @@ import {
   type IPlayerRestResult,
   type IShortRest,
 } from '@/domain/player';
+import { advanceSlots } from '@/domain/world-clock';
 
 export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> => {
   validateShortRest(input);
@@ -21,6 +22,10 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
   const player = await playerRepository.getById(input.playerId);
   if (!player) throw new Error('Игрок не найден.');
   if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
+
+  if (player.shortRestDayIndex === campaign.dayIndex && player.shortRestsToday >= 2)
+    throw new Error('Вы уже использовали 2 коротких отдыха за сегодня.');
+
   if (input.hitDice > player.hitDiceLeft) throw new Error('Недостаточно костей хитов.');
 
   const { sides } = parseHitDie(player.hitDie);
@@ -42,11 +47,23 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
     exhaustionLevel: player.exhaustionLevel,
   });
 
+  const newClock = advanceSlots({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay }, 1);
+
+  const shortRestsToday =
+    player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday + 1 : 1;
+
+  await campaignRepository.update(campaign.id, {
+    dayIndex: newClock.dayIndex,
+    timeOfDay: newClock.timeOfDay,
+  });
+
   const updated = await playerRepository.update(player.id, {
     hpCurrent,
     hitDiceLeft,
     conditions: next.conditions,
     exhaustionLevel: next.exhaustionLevel,
+    shortRestsToday,
+    shortRestDayIndex: campaign.dayIndex,
   });
 
   return {

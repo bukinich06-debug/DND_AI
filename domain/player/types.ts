@@ -48,6 +48,8 @@ export interface IPlayer {
   travelRoute: string[] | null;
   travelLegIndex: number | null;
   travelDaysLeft: number | null;
+  shortRestsToday: number;
+  shortRestDayIndex: number;
 }
 
 export type ICreatePlayer = Omit<
@@ -65,6 +67,8 @@ export type ICreatePlayer = Omit<
   | 'travelRoute'
   | 'travelLegIndex'
   | 'travelDaysLeft'
+  | 'shortRestsToday'
+  | 'shortRestDayIndex'
 > & {
   hpTemp?: number;
   inspiration?: boolean;
@@ -186,6 +190,11 @@ export interface IAdvanceTravel {
   campaignId: string;
   playerId: string;
   days?: number;
+}
+
+export interface IAdvanceTime {
+  campaignId: string;
+  slots: number;
 }
 
 export interface IPlayerTravelState {

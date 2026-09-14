@@ -3,6 +3,7 @@
 import { campaignRepository } from '@/data/campaign';
 import { playerRepository } from '@/data/player';
 import { Condition, removeCondition, validateLongRest, type ILongRest, type IPlayerRestResult } from '@/domain/player';
+import { snapToNextMorning } from '@/domain/world-clock';
 
 export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => {
   validateLongRest(input);
@@ -25,12 +26,21 @@ export const longRest = async (input: ILongRest): Promise<IPlayerRestResult> => 
     condition: Condition.unconscious,
   });
 
+  const newClock = snapToNextMorning({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay });
+
+  await campaignRepository.update(campaign.id, {
+    dayIndex: newClock.dayIndex,
+    timeOfDay: newClock.timeOfDay,
+  });
+
   const updated = await playerRepository.update(player.id, {
     hpCurrent: player.hpMax,
     hpTemp: 0,
     hitDiceLeft,
     conditions: awake.conditions,
     exhaustionLevel: awake.exhaustionLevel,
+    shortRestsToday: 0,
+    shortRestDayIndex: newClock.dayIndex,
   });
 
   return {

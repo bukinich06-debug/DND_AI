@@ -24,6 +24,7 @@ export interface IMasterContext {
     level: number;
     conditions: string[];
     exhaustionLevel: number;
+    shortRestsToday: number;
   };
   itemsHere: Array<{
     id: string;
@@ -70,6 +71,8 @@ export const loadMasterContext = async ({
       level: player.level,
       conditions: player.conditions,
       exhaustionLevel: player.exhaustionLevel,
+      shortRestsToday:
+        player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday : 0,
     },
     itemsHere: itemsHere.map((item) => ({
       id: item.id,

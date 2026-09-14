@@ -21,6 +21,7 @@ export {
 } from './helpers/normalizeKey';
 export type {
   IAddPlayerCondition,
+  IAdvanceTime,
   IAdvanceTravel,
   IApplyPlayerHp,
   IApplyPlayerHpResult,
@@ -51,6 +52,7 @@ export {
 } from './validation/validateConditions';
 export {
   validateAdvanceTravel,
+  validateAdvanceTime,
   validateGetPlayerLocation,
   validateMovePlayer,
   validateStartTravel,

@@ -1,4 +1,5 @@
 import { addPlayerConditionTool } from '@/services/llm/tools/addPlayerConditionTool';
+import { advanceTimeTool } from '@/services/llm/tools/advanceTimeTool';
 import { advanceTravelTool } from '@/services/llm/tools/advanceTravelTool';
 import { applyPlayerHpTool } from '@/services/llm/tools/applyPlayerHpTool';
 import { dropItemTool } from '@/services/llm/tools/dropItemTool';
@@ -36,6 +37,7 @@ export const masterTools: ILlmTool[] = [
   getPlayerLocationTool,
   startTravelTool,
   advanceTravelTool,
+  advanceTimeTool,
   scheduleMeetingTool,
 ];
 
