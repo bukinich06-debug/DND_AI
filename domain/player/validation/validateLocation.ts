@@ -1,4 +1,4 @@
-import type { IAdvanceTravel, IGetPlayerLocation, IMovePlayer, IStartTravel } from '../types';
+import type { IAdvanceTime, IAdvanceTravel, IGetPlayerLocation, IMovePlayer, IStartTravel } from '../types';
 
 export const validateGetPlayerLocation = (input: IGetPlayerLocation) => {
   if (!input.campaignId.trim()) throw new Error('Кампания обязательна.');
@@ -22,4 +22,10 @@ export const validateAdvanceTravel = (input: IAdvanceTravel) => {
   if (!input.playerId.trim()) throw new Error('Игрок обязателен.');
   if (input.days !== undefined && (!Number.isInteger(input.days) || input.days < 1))
     throw new Error('Число дней должно быть целым числом не меньше 1.');
+};
+
+export const validateAdvanceTime = (input: IAdvanceTime) => {
+  if (!input.campaignId.trim()) throw new Error('Кампания обязательна.');
+  if (!Number.isInteger(input.slots) || input.slots < 1)
+    throw new Error('Число слотов должно быть целым числом не меньше 1.');
 };

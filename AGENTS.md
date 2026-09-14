@@ -32,12 +32,12 @@ Follow these rules when creating or modifying code.
 - **Files:** camelCase (`fileName.ts`, `useButton.ts`, `appLayout.tsx`)
 - **Single-word folders** (`button`, `form`, `providers`) — no hyphen. **Multi-word** — always kebab-case.
 
-| Entity | Style | Example |
-|--------|-------|---------|
-| Folder (feature, component) | kebab-case | `app-layout`, `app-menu` |
-| File `.ts` / `.tsx` | camelCase | `appLayout.tsx`, `useAppMenu.ts`, `menuItems.ts` |
-| React export (component, hook) | PascalCase / camelCase | `AppLayout`, `useAppMenu` |
-| Public barrel | `index.ts` | always `index.ts` (except `services/` — see below) |
+| Entity                         | Style                  | Example                                            |
+| ------------------------------ | ---------------------- | -------------------------------------------------- |
+| Folder (feature, component)    | kebab-case             | `app-layout`, `app-menu`                           |
+| File `.ts` / `.tsx`            | camelCase              | `appLayout.tsx`, `useAppMenu.ts`, `menuItems.ts`   |
+| React export (component, hook) | PascalCase / camelCase | `AppLayout`, `useAppMenu`                          |
+| Public barrel                  | `index.ts`             | always `index.ts` (except `services/` — see below) |
 
 **File name ≠ export name.** File `appLayout.tsx` exports `export const AppLayout`.
 
@@ -59,12 +59,12 @@ components  →  services  →  domain  ←  data
    (UI)      (scenarios)  (rules)    (storage)
 ```
 
-| From | May import | Must NOT import |
-|------|------------|-----------------|
+| From         | May import                                                                                                                   | Must NOT import                                                                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `components` | `services` (Server Actions only as entry); `import type` from `domain`; client wrappers in `components/shared/api` if needed | `data`; **any runtime** from `domain` (no calling domain functions/constants from UI) |
-| `services` | `domain` (rules + repo interfaces), concrete repo from `data` | `components`; Prisma/SQL directly |
-| `data` | `domain` (types, repository interfaces) | `services`, `components` |
-| `domain` | nothing from other layers | `data`, `services`, `components`, Next, React, Prisma |
+| `services`   | `domain` (rules + repo interfaces), concrete repo from `data`                                                                | `components`; Prisma/SQL directly                                                     |
+| `data`       | `domain` (types, repository interfaces)                                                                                      | `services`, `components`                                                              |
+| `domain`     | nothing from other layers                                                                                                    | `data`, `services`, `components`, Next, React, Prisma                                 |
 
 **Types vs runtime:** `components` may use `import type { … } from "@/domain/..."`. UI must **not** run domain business logic. Domain functions are called only from `services`.
 
@@ -82,13 +82,13 @@ No DI container. Swap storage by rewriting `data/` under the same interfaces.
 
 ### What goes in each layer
 
-| Layer | Responsibility | Examples |
-|-------|----------------|----------|
-| `domain/` | Entities, validation, business rules, repository **interfaces** — pure TS | `ISetting`, `validateSetting`, `ISettingRepository` |
-| `data/` | Repository **implementations**, DB connection, SQL/ORM, row mapping | `settingRepository.ts`, `dbClient.ts` |
-| `services/` | One `'use server'` action per file — uses `domain` rules + repo from `data`. **No** `index.ts` barrels | `getSettings.ts`, `updateSettings.ts` |
-| `components/` | React UI, display hooks, forms, layout | `AppLayout`, `SettingsForm` |
-| `app/` | Thin route pages; Route Handlers only in `app/api/` | `app/settings/page.tsx`, `app/api/settings/route.ts` |
+| Layer         | Responsibility                                                                                         | Examples                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| `domain/`     | Entities, validation, business rules, repository **interfaces** — pure TS                              | `ISetting`, `validateSetting`, `ISettingRepository`  |
+| `data/`       | Repository **implementations**, DB connection, SQL/ORM, row mapping                                    | `settingRepository.ts`, `dbClient.ts`                |
+| `services/`   | One `'use server'` action per file — uses `domain` rules + repo from `data`. **No** `index.ts` barrels | `getSettings.ts`, `updateSettings.ts`                |
+| `components/` | React UI, display hooks, forms, layout                                                                 | `AppLayout`, `SettingsForm`                          |
+| `app/`        | Thin route pages; Route Handlers only in `app/api/`                                                    | `app/settings/page.tsx`, `app/api/settings/route.ts` |
 
 ### `services/` imports and helpers
 
@@ -182,10 +182,10 @@ Prefer something like `services/llm/plan/`, `services/llm/rewrite/`, `services/l
 
 **Rules by layer**
 
-| Layer | Subfolders | Barrels |
-|-------|------------|---------|
-| `domain/` | yes, by concern | `index.ts` at feature and concern folders OK |
-| `data/` | yes, by concern | same |
+| Layer       | Subfolders      | Barrels                                                              |
+| ----------- | --------------- | -------------------------------------------------------------------- |
+| `domain/`   | yes, by concern | `index.ts` at feature and concern folders OK                         |
+| `data/`     | yes, by concern | same                                                                 |
 | `services/` | yes, by concern | **still no** `services/**/index.ts` — import the action file by path |
 
 Subfolder names: kebab-case, short, simple English (`crud`, `search`, `validation`, `helpers` — not `validation-utilities-and-guards`).
@@ -301,11 +301,11 @@ components/app-layout/
 
 There is **no** root-level `shared/` folder. Reusable code lives in `shared/` **inside its layer**:
 
-| Location | What goes here | Examples |
-|----------|----------------|----------|
+| Location             | What goes here                                    | Examples                              |
+| -------------------- | ------------------------------------------------- | ------------------------------------- |
 | `components/shared/` | UI hooks, display formatters, client-only helpers | `useDebounce`, `formatDateForDisplay` |
-| `domain/shared/` | Pure utilities with no React, no DB | shared validators, common types |
-| `data/shared/` | DB connection, row mapping, persistence helpers | `dbClient`, `mapRowToEntity` |
+| `domain/shared/`     | Pure utilities with no React, no DB               | shared validators, common types       |
+| `data/shared/`       | DB connection, row mapping, persistence helpers   | `dbClient`, `mapRowToEntity`          |
 
 Rules:
 

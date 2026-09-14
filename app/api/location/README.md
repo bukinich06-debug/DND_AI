@@ -75,10 +75,10 @@ NpcAtLocation {
 
 Все локации кампании.
 
-| | |
-|--|--|
+|       |                           |
+| ----- | ------------------------- |
 | Query | `campaignId` (обязателен) |
-| 200 | `Location[]` |
+| 200   | `Location[]`              |
 
 ```
 GET /api/location?campaignId={campaignId}
@@ -161,10 +161,10 @@ GET /api/location/{id}/children
 
 ### `GET /api/location/links`
 
-| | |
-|--|--|
+|       |                           |
+| ----- | ------------------------- |
 | Query | `campaignId` (обязателен) |
-| 200 | `LocationLink[]` |
+| 200   | `LocationLink[]`          |
 
 ```
 GET /api/location/links?campaignId={campaignId}
@@ -229,10 +229,10 @@ DELETE /api/location/links/{id}
 
 ### `GET /api/location/player`
 
-| | |
-|--|--|
+|       |                         |
+| ----- | ----------------------- |
 | Query | `playerId` (обязателен) |
-| 200 | `PlayerLocation` |
+| 200   | `PlayerLocation`        |
 
 ```
 GET /api/location/player?playerId={playerId}
@@ -272,10 +272,10 @@ Content-Type: application/json
 
 NPC в той же локации, где стоит игрок (`player.locationId`). В travel — текущее место, не destination. Нет локации — `[]`.
 
-| | |
-|--|--|
+|       |                         |
+| ----- | ----------------------- |
 | Query | `playerId` (обязателен) |
-| 200 | `NpcAtLocation[]` |
+| 200   | `NpcAtLocation[]`       |
 
 ```
 GET /api/location/player/npcs?playerId={playerId}
@@ -330,9 +330,9 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 
 ```ts
 {
-  description: string
-  locationId: string
-  locationName: string
+  description: string;
+  locationId: string;
+  locationName: string;
 }
 ```
 
@@ -352,8 +352,8 @@ Content-Type: application/json
 
 ## Карта (минимум запросов)
 
-1. `GET /api/location?campaignId=` — узлы  
-2. `GET /api/location/links?campaignId=` — рёбра с `days`  
-3. `GET /api/location/player?playerId=` — текущий узел + travel  
-4. Клик: `PATCH /api/location/player` `{ playerId, locationId }`  
+1. `GET /api/location?campaignId=` — узлы
+2. `GET /api/location/links?campaignId=` — рёбра с `days`
+3. `GET /api/location/player?playerId=` — текущий узел + travel
+4. Клик: `PATCH /api/location/player` `{ playerId, locationId }`
 5. День пути: `POST /api/location/player/advance` `{ playerId, days }`

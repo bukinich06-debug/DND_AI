@@ -185,6 +185,8 @@ model Player {
   travelRoute          Json?
   travelLegIndex       Int?
   travelDaysLeft       Int?
+  shortRestsToday      Int      @default(0)
+  shortRestDayIndex    Int      @default(1)
 
   campaign          Campaign  @relation(fields: [campaignId], references: [id])
   location          Location? @relation("PlayerLocation", fields: [locationId], references: [id])

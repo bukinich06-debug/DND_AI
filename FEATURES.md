@@ -67,7 +67,7 @@ CRUD предметов и поиск по инвентарю игрока дл�
 
 ### Локация и travel
 
-Текущая локация, мгновенный перенос и путешествие по дням.
+Текущая локация, мгновенный перенос и путешествие по дням. **Travel автоматически продвигает время кампании** на число дней пути.
 
 | Слой | Путь |
 |------|------|
@@ -75,6 +75,30 @@ CRUD предметов и поиск по инвентарю игрока дл�
 | services | [`services/player/location/`](services/player/location/) |
 | tools | [`getPlayerLocationTool.ts`](services/llm/tools/getPlayerLocationTool.ts) — [`get_player_location`](services/llm/tools/README.md#get_player_location); [`movePlayerTool.ts`](services/llm/tools/movePlayerTool.ts) — [`move_player`](services/llm/tools/README.md#move_player); [`startTravelTool.ts`](services/llm/tools/startTravelTool.ts) — [`start_travel`](services/llm/tools/README.md#start_travel); [`advanceTravelTool.ts`](services/llm/tools/advanceTravelTool.ts) — [`advance_travel`](services/llm/tools/README.md#advance_travel) |
 | API | [`app/api/location/player/`](app/api/location/player/) |
+
+### Время кампании (world clock)
+
+Часы кампании: `Campaign.dayIndex` + `Campaign.timeOfDay`. Слоты суток по порядку: `morning` → `noon` → `afternoon` → `evening` → `lateEvening` → `midnight` → `night` → (следующий день) `morning`.
+
+**Автоматическое продвижение времени:**
+- **Travel:** `advance_travel` на N дней → `dayIndex += N`.
+- **Короткий отдых:** `short_rest` → время +1 слот. Лимит: 2 коротких отдыха за игровой день (счётчик на Player).
+- **Длинный отдых:** `long_rest` → снап к утру следующего дня (`dayIndex + 1`, `timeOfDay = morning`), сброс счётчика коротких отдыхов.
+- **Ролевой отдых / ожидание:** `advance_time` (мастер-тул) — двигает время на N слотов без восстановления HP и без траты костей хитов.
+
+**Ролевой отдых vs механический короткий отдых:**
+Master system prompt различает:
+- Игрок отдыхает / сидит в таверне / чиллит → `advance_time` (нет механики).
+- Игрок хочет короткий отдых по правилам (восстановление HP) → `short_rest` (механика D&D, лимит 2/день).
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/world-clock/`](domain/world-clock/) (helpers: `advanceSlots`, `snapToNextMorning`) |
+| services | [`services/player/rest/`](services/player/rest/), [`services/player/location/advanceTime.ts`](services/player/location/advanceTime.ts) |
+| tools | [`advanceTimeTool.ts`](services/llm/tools/advanceTimeTool.ts) — [`advance_time`](services/llm/tools/README.md#advance_time); [`shortRestTool.ts`](services/llm/tools/shortRestTool.ts) — [`short_rest`](services/llm/tools/README.md#short_rest--long_rest); [`longRestTool.ts`](services/llm/tools/longRestTool.ts) — [`long_rest`](services/llm/tools/README.md#short_rest--long_rest) |
+| API | — |
+| Prompt | [`buildMasterPrompt.ts`](services/llm/master/buildMasterPrompt.ts) — секция «Отдых: ролевой vs механический» |
+
 
 ### NPC: отношения, память, знания
 

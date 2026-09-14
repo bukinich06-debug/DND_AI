@@ -75,10 +75,10 @@ EquipItemResult {
 
 Ровно один query: кампания **или** игрок.
 
-| | |
-|--|--|
+|       |                                 |
+| ----- | ------------------------------- |
 | Query | `campaignId` **или** `playerId` |
-| 200 | `Item[]` |
+| 200   | `Item[]`                        |
 
 ```
 GET /api/items?campaignId={campaignId}
