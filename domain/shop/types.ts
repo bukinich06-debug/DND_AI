@@ -1,4 +1,5 @@
 import type { ItemKind, ItemRarity } from '@/domain/shared';
+import type { IItemProp } from '@/domain/item';
 
 export interface IShopItem {
   id: string;
@@ -10,6 +11,8 @@ export interface IShopItem {
   priceCp: number;
   rarity: ItemRarity | null;
   isMagical: boolean;
+  properties: IItemProp[] | null;
+  weight: number | null;
 }
 
 export interface IShopData {

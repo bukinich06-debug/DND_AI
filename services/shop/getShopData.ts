@@ -33,6 +33,8 @@ export const getShopData = async (npcId: string, playerId: string): Promise<ISho
       priceCp: item.valueCp!,
       rarity: item.rarity,
       isMagical: item.isMagical,
+      properties: item.properties,
+      weight: item.weight,
     }));
 
   return {

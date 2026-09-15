@@ -13,7 +13,8 @@ export const buyFromShop = async (input: IBuyFromShopInput): Promise<IBuyFromSho
   const [npc, player] = await Promise.all([getNpc(input.npcId), getPlayer(input.playerId)]);
 
   if (player.campaignId !== npc.campaignId) throw new Error('Игрок и NPC принадлежат разным кампаниям.');
-  if (input.campaignId && input.campaignId !== npc.campaignId) throw new Error('campaignId не соответствует кампании NPC.');
+  if (input.campaignId && input.campaignId !== npc.campaignId)
+    throw new Error('campaignId не соответствует кампании NPC.');
   if (!npc.shopSpecialtyKey) throw new Error('NPC не является торговцем.');
 
   const item = await itemRepository.getById(input.itemId);
@@ -80,6 +81,8 @@ export const buyFromShop = async (input: IBuyFromShopInput): Promise<IBuyFromSho
       priceCp: updatedPlayerItem.valueCp ?? 0,
       rarity: updatedPlayerItem.rarity,
       isMagical: updatedPlayerItem.isMagical,
+      properties: updatedPlayerItem.properties,
+      weight: updatedPlayerItem.weight,
     },
     playerCoinsCp: coinResult.fromCoinsCp,
     npcCoinsCp: coinResult.toCoinsCp,
