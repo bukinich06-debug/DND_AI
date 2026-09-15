@@ -1,7 +1,6 @@
 import type { IBuyFromShopInput } from '../types';
 
 export const validateBuyFromShop = (input: IBuyFromShopInput) => {
-  if (!input.campaignId?.trim()) throw new Error('campaignId обязателен.');
   if (!input.playerId?.trim()) throw new Error('playerId обязателен.');
   if (!input.npcId?.trim()) throw new Error('npcId обязателен.');
   if (!input.itemId?.trim()) throw new Error('itemId обязателен.');
