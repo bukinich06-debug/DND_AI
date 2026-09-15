@@ -42,6 +42,8 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Рефери заявки игрока. HTTP: `POST /api/test/master`. Нет `move_player`, нет spawn предметов, нет mention-hooks.
 
+**Открытие магазина:** NPC-торговцы открывают магазин через JSON-поле `openShop: { specialtyKey: "..." }` в своём ответе. Это **не tool** — NPC сам возвращает поле в JSON когда игрок хочет посмотреть товары.
+
 | name | Файл | Назначение |
 |------|------|------------|
 | `search_location_items` | `searchLocationItemsTool.ts` | Предметы на полу локации |

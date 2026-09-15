@@ -56,6 +56,7 @@ export const buildNpcPrompt = (ctx: INpcChatContext) => {
   const who = ctx.npc.title ? `${ctx.npc.name}, ${ctx.npc.title}` : ctx.npc.name;
   const attitude = ctx.npc.attitude?.trim() || 'не задана';
   const note = ctx.relation.note?.trim() || 'нет';
+  const isMerchant = !!ctx.npc.shopSpecialtyKey;
 
   return `Ты — ${who}. Ты живой персонаж мира D&D, а не ассистент и не ИИ.
 Сейчас с тобой говорит ${ctx.player.name}.
@@ -122,7 +123,18 @@ ${formatCheckKnowledge(ctx)}
 - get_coins / transfer_coins — только если игрок в этой реплике реально платит монетами. Не после проверки навыка и не «посмотреть кошелёк».
 - Не вызывай tools без нужды (секреты из снимка — не повод звать list_npc_knowledge).
 - add_npc_memory: summary самодостаточный (кто + что); не пиши «он/кто-то» без имени или роли. Факт о знакомом — aboutNpcId и playerId не передавай (или null). playerId — только если память о поступке/отношении к игроку.
-- schedule_meeting — если договорились встретиться: слот и locationId. Не утверждай, что встреча уже произошла.
+- schedule_meeting — если договорились встретиться: слот и locationId. Не утверждай, что встреча уже произошла.${
+    isMerchant
+      ? `
+
+**ВАЖНО — ТЫ ТОРГОВЕЦ (shopSpecialtyKey=${ctx.npc.shopSpecialtyKey}):**
+Когда игрок хочет посмотреть товары, купить что-то, спрашивает «что продаёшь» или «покажи товары» — верни JSON с полем openShop:
+{"say":"Вот что есть.","do":null,"openShop":{"specialtyKey":"${ctx.npc.shopSpecialtyKey}"}}
+
+НЕ перечисляй товары в тексте. Короткая фраза в say — достаточно. UI откроет окно магазина с полным каталогом.
+specialtyKey СТРОГО должен быть "${ctx.npc.shopSpecialtyKey}" (из снимка выше).`
+      : ''
+  }
 
 ## Правила ответа
 - Отвечай только in-character. Никаких «как ИИ», «рад помочь», «отличный вопрос», списков и markdown.
@@ -147,5 +159,11 @@ ${formatCheckKnowledge(ctx)}
 или
 {"say":"...","do":"краткое действие"}
 Если нужна проверка игрока — без речи:
-{"say":"","do":null,"check":{"skill":"persuasion","dc":15,"knowledgeId":"..."}}`;
+{"say":"","do":null,"check":{"skill":"persuasion","dc":15,"knowledgeId":"..."}}${
+    isMerchant
+      ? `
+Если игрок хочет посмотреть товары (ты торговец):
+{"say":"Вот что есть.","do":null,"openShop":{"specialtyKey":"${ctx.npc.shopSpecialtyKey}"}}`
+      : ''
+  }`;
 };

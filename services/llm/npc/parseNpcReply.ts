@@ -4,6 +4,7 @@ export interface INpcReply {
   say: string;
   do: string | null;
   check?: IRequestedCheck | null;
+  openShop?: { specialtyKey: string };
 }
 
 const tryParseJson = (raw: string): unknown => {
@@ -40,7 +41,17 @@ const asReply = (value: unknown): INpcReply | null => {
   else if (typeof obj.do === 'string') action = obj.do.trim() || null;
   else return null;
 
-  return { say: speech, do: action, check };
+  let openShop: { specialtyKey: string } | undefined;
+  if (obj.openShop !== undefined && obj.openShop !== null) {
+    if (typeof obj.openShop === 'object' && obj.openShop !== null) {
+      const shop = obj.openShop as Record<string, unknown>;
+      if (typeof shop.specialtyKey === 'string' && shop.specialtyKey.trim()) {
+        openShop = { specialtyKey: shop.specialtyKey.trim() };
+      }
+    }
+  }
+
+  return { say: speech, do: action, check, openShop };
 };
 
 export const parseNpcReply = (raw: string): INpcReply => {

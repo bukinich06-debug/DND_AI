@@ -13,6 +13,7 @@ import { movePlayer } from '@/services/player/location/movePlayer';
 import { tryFireDueMeeting } from '@/services/world-event/tryFireDueMeeting';
 import { resolveRequestedCheck } from './resolveRequestedCheck';
 import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume } from './types';
+import { ensureShopStock } from '@/services/shop/ensureShopStock';
 
 const lastUserMessage = (messages: IChatMessage[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -64,6 +65,19 @@ const runStep = async (
       checkOutcome,
       arrivalTitle,
     });
+
+    let finalOpenShop = result.openShop;
+
+    if (finalOpenShop) {
+      const npc = await getNpc(step.npcId);
+      if (!npc.shopSpecialtyKey) {
+        finalOpenShop = undefined;
+      } else if (finalOpenShop.specialtyKey !== npc.shopSpecialtyKey) {
+        finalOpenShop = { specialtyKey: npc.shopSpecialtyKey };
+      }
+      if (finalOpenShop) await ensureShopStock(step.npcId);
+    }
+
     return {
       requested: result.check,
       reply: {
@@ -72,6 +86,7 @@ const runStep = async (
         npcName: step.npcName,
         say: result.say,
         do: result.do,
+        openShop: finalOpenShop,
       },
     };
   }
@@ -79,7 +94,7 @@ const runStep = async (
   const result = await adjudicatePlayerAction({ campaignId, playerId, messages, checkOutcome });
   return {
     requested: result.check,
-    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls, ui: result.ui },
+    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls },
   };
 };
 
@@ -126,6 +141,21 @@ const resumeStep = async (campaignId: string, resume: ITurnResume): Promise<IPla
   return { agent: 'npc', npcId: npc.id, npcName: npc.name };
 };
 
+const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcName: string; specialtyKey: string } } | undefined => {
+  for (const reply of replies) {
+    if (reply.agent === 'npc' && reply.openShop) {
+      return {
+        openShop: {
+          npcId: reply.npcId,
+          npcName: reply.npcName,
+          specialtyKey: reply.openShop.specialtyKey,
+        },
+      };
+    }
+  }
+  return undefined;
+};
+
 export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnResult> => {
   const campaignId = input.campaignId.trim();
   const playerId = input.playerId.trim();
@@ -158,10 +188,11 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
         replies,
         check,
         resume: toResume(next, input.resume.remainingSteps.slice(i + 1)),
+        ui: aggregateUi(replies),
       };
     }
 
-    return { status: 'done', replies };
+    return { status: 'done', replies, ui: aggregateUi(replies) };
   }
 
   const fired = await tryFireDueMeeting({
@@ -205,8 +236,9 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
       replies,
       check,
       resume: toResume(step, steps.slice(i + 1)),
+      ui: aggregateUi(replies),
     };
   }
 
-  return { status: 'done', replies };
+  return { status: 'done', replies, ui: aggregateUi(replies) };
 };

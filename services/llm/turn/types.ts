@@ -19,13 +19,19 @@ export type ITurnReply =
       summary: string;
       features: string;
     }
-  | { agent: 'npc'; npcId: string; npcName: string; say: string; do: string | null }
+  | {
+      agent: 'npc';
+      npcId: string;
+      npcName: string;
+      say: string;
+      do: string | null;
+      openShop?: { specialtyKey: string };
+    }
   | {
       agent: 'master';
       verdict: MasterVerdict;
       say: string;
       toolCalls: IToolCallLog[];
-      ui?: { openShop?: { npcId: string; npcName: string } };
     };
 
 export type ITurnResume =
@@ -36,11 +42,13 @@ export interface INeedCheckTurn {
   replies: ITurnReply[];
   check: IResolvedCheck;
   resume: ITurnResume;
+  ui?: { openShop?: { npcId: string; npcName: string; specialtyKey: string } };
 }
 
 export interface IDoneTurn {
   status: 'done';
   replies: ITurnReply[];
+  ui?: { openShop?: { npcId: string; npcName: string; specialtyKey: string } };
 }
 
 export type ITurnResult = INeedCheckTurn | IDoneTurn;

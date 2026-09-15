@@ -30,6 +30,7 @@ export interface INpcChatContext {
     speech: string;
     habits: string;
     attitude: string | null;
+    shopSpecialtyKey: string | null;
   };
   player: {
     id: string;
@@ -167,6 +168,7 @@ export const loadNpcChatContext = async ({
       speech: npc.speech,
       habits: npc.habits,
       attitude: npc.attitude,
+      shopSpecialtyKey: npc.shopSpecialtyKey,
     },
     player: {
       id: player.id,

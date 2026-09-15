@@ -32,6 +32,7 @@ export interface IChatWithNpcResult {
   check: IRequestedCheck | null;
   toolCalls: IToolCallLog[];
   turnId: string;
+  openShop?: { specialtyKey: string };
 }
 
 const parseMessages = (messages: unknown): IChatMessage[] => {
@@ -113,5 +114,5 @@ export const chatWithNpc = async (input: IChatWithNpcParams): Promise<IChatWithN
     },
   });
 
-  return { ...out, check: out.check ?? null, turnId };
+  return { ...out, check: out.check ?? null, turnId, openShop: out.openShop };
 };
