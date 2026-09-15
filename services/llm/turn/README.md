@@ -78,9 +78,9 @@ UI должен **сохранить** `messages`, `check` и `resume` (state). 
 
 ### Описание прибытия
 
-Когда игрок меняет локацию (`move_player`, `advance_travel` с прибытием), **turn** этого не описывает. UI должен вызвать `POST /api/location/describe { campaignId, playerId }` → `{ description, locationId, locationName }`.
+Когда игрок меняет локацию (`move_player`, `advance_travel` с прибытием), **turn** этого не описывает. UI должен вызвать **`POST /api/master`** с сообщением игрока типа `"Осматриваюсь. Где я и что вижу вокруг?"` → `{ verdict, say, check, toolCalls }`.
 
-Мастер опишет, где игрок и что видит, по текущей локации из БД. Этот текст можно добавить в лог как `{ role: 'assistant', content: description }`.
+Master опишет, где игрок и что видит, используя tools (`get_player_location`, список NPC здесь, предметы). Поле `say` из ответа можно добавить в лог как `{ role: 'assistant', content: say }`.
 
 ---
 

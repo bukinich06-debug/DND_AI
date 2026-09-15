@@ -320,36 +320,6 @@ DELETE /api/location/npcs/{npcId}/{locationId}
 
 ---
 
-## Описание прибытия (Master)
-
-**UI должен вызывать этот API после смены локации** (`move_player`, `advance_travel` с прибытием). Мастер описывает текущую локацию игрока.
-
-### `POST /api/location/describe`
-
-`200`:
-
-```ts
-{
-  description: string;
-  locationId: string;
-  locationName: string;
-}
-```
-
-```
-POST /api/location/describe
-Content-Type: application/json
-
-{
-  "campaignId": "string",
-  "playerId": "string"
-}
-```
-
-`description` можно добавить в лог чата как `{ role: 'assistant', content: description }`.
-
----
-
 ## Карта (минимум запросов)
 
 1. `GET /api/location?campaignId=` — узлы

@@ -1,10 +1,11 @@
 import { parseJson } from '@/app/api/_shared/parseJson';
 import { ok, toErrorResponse } from '@/app/api/_shared/respond';
-import { describeArrival } from '@/services/llm/master/describeArrival';
+import { adjudicatePlayerAction } from '@/services/llm/master/adjudicatePlayerAction';
 
 interface IBody {
   campaignId: string;
   playerId: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 const parseBody = (body: IBody) => {
@@ -14,13 +15,14 @@ const parseBody = (body: IBody) => {
   return {
     campaignId: body.campaignId.trim(),
     playerId: body.playerId.trim(),
+    messages: body.messages,
   };
 };
 
 export const POST = async (req: Request) => {
   try {
     const body = await parseJson<IBody>(req);
-    return ok(await describeArrival(parseBody(body)));
+    return ok(await adjudicatePlayerAction(parseBody(body)));
   } catch (e) {
     return toErrorResponse(e);
   }

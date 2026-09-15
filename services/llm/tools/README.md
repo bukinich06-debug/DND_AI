@@ -6,7 +6,7 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 
 Курсы монет: `1 sp = 10 cp`, `1 ep = 50 cp`, `1 gp = 100 cp`, `1 pp = 1000 cp`.
 
-Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). Описание прибытия: [`../master/describeArrival.ts`](../master/describeArrival.ts) (HTTP `POST /api/location/describe`). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
+Диалог NPC: registry [`npcTools.ts`](../npc/npcTools.ts). Мастер: [`masterTools.ts`](../master/masterTools.ts). Post-hooks: [`../hooks/README.md`](../hooks/README.md).
 
 ---
 
