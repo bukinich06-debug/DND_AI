@@ -12,6 +12,7 @@ export interface IToolCallLog {
   ok: boolean;
   result?: unknown;
   error?: string;
+  ui?: { openShop?: { npcId: string; npcName: string } };
 }
 
 interface IRunNpcToolLoopParams {
@@ -22,6 +23,7 @@ interface IRunNpcToolLoopParams {
 
 interface IRunNpcToolLoopResult extends INpcReply {
   toolCalls: IToolCallLog[];
+  ui?: { openShop?: { npcId: string; npcName: string } };
 }
 
 const parseToolArgs = (raw: string): unknown => {
@@ -41,7 +43,13 @@ const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolC
     const tool = npcToolByName.get(name);
     if (!tool) throw new Error(`Неизвестный tool: ${name || '(пусто)'}.`);
     const result = await tool.execute(args, ctx);
-    return { name, args, ok: true, result };
+    
+    const ui =
+      result && typeof result === 'object' && 'ui' in result
+        ? (result.ui as { openShop?: { npcId: string; npcName: string } })
+        : undefined;
+    
+    return { name, args, ok: true, result, ui };
   } catch (e) {
     return {
       name: name || 'unknown',
@@ -72,7 +80,10 @@ export const runNpcToolLoop = async ({
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
       if (!content) throw new Error('Пустой ответ LLM.');
       const reply = parseNpcReply(content);
-      return { ...reply, toolCalls };
+      
+      const ui = toolCalls.find((log) => log.ui)?.ui;
+      
+      return { ...reply, toolCalls, ui };
     }
 
     history.push({

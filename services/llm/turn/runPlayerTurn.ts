@@ -72,6 +72,7 @@ const runStep = async (
         npcName: step.npcName,
         say: result.say,
         do: result.do,
+        ui: result.ui,
       },
     };
   }
@@ -126,6 +127,13 @@ const resumeStep = async (campaignId: string, resume: ITurnResume): Promise<IPla
   return { agent: 'npc', npcId: npc.id, npcName: npc.name };
 };
 
+const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcName: string } } | undefined => {
+  for (const reply of replies) {
+    if ('ui' in reply && reply.ui?.openShop) return reply.ui;
+  }
+  return undefined;
+};
+
 export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnResult> => {
   const campaignId = input.campaignId.trim();
   const playerId = input.playerId.trim();
@@ -158,10 +166,11 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
         replies,
         check,
         resume: toResume(next, input.resume.remainingSteps.slice(i + 1)),
+        ui: aggregateUi(replies),
       };
     }
 
-    return { status: 'done', replies };
+    return { status: 'done', replies, ui: aggregateUi(replies) };
   }
 
   const fired = await tryFireDueMeeting({
@@ -205,8 +214,9 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
       replies,
       check,
       resume: toResume(step, steps.slice(i + 1)),
+      ui: aggregateUi(replies),
     };
   }
 
-  return { status: 'done', replies };
+  return { status: 'done', replies, ui: aggregateUi(replies) };
 };

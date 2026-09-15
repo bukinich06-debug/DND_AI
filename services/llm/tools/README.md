@@ -37,10 +37,11 @@ Tools для агента Мастера. Контекст (`IToolContext`): в�
 | `add_npc_memory` | `addNpcMemoryTool.ts` | Добавить воспоминание |
 | `list_npc_knowledge` | `listNpcKnowledgeTool.ts` | Знания NPC (open/check) |
 | `get_npc_knowledge` | `getNpcKnowledgeTool.ts` | Одно знание NPC |
+| `open_shop` | `openShopTool.ts` | Открыть магазин торговца |
 
 ### Мастер (`masterTools.ts`)
 
-Рефери заявки игрока. HTTP: `POST /api/test/master`. Нет `move_player`, нет spawn предметов, нет mention-hooks.
+Рефери заявки игрока. HTTP: `POST /api/test/master`. Нет `move_player`, нет spawn предметов, нет mention-hooks. `open_shop` доступен и мастеру, и NPC.
 
 | name | Файл | Назначение |
 |------|------|------------|
