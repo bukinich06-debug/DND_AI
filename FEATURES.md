@@ -187,14 +187,14 @@ Master system prompt различает:
 | services | [`services/llm/turn/runPlayerTurn.ts`](services/llm/turn/runPlayerTurn.ts) |
 | API | [`app/api/turn/`](app/api/turn/) |
 
-### Master: arrival description
+### Master: прямой вызов (без планировщика)
 
-**Мастер** описывает место при прибытии игрока. UI должен вызывать этот API после смены локации (`move_player`, `advance_travel` с прибытием).
+**Мастер** может быть вызван напрямую для описания окружения, осмотра локации или любых других запросов, где не требуется диалог с NPC. При прибытии в новое место UI вызывает `/api/master` с сообщением игрока типа «Осматриваюсь. Где я?». Master использует tools (`get_player_location`, `search_location_items`, список NPC) для описания.
 
 | Слой | Путь |
 |------|------|
-| services | [`services/llm/master/describeArrival.ts`](services/llm/master/describeArrival.ts) |
-| API | [`app/api/location/describe/`](app/api/location/describe/) — `POST { campaignId, playerId }` → `{ description, locationId, locationName }` |
+| services | [`services/llm/master/adjudicatePlayerAction.ts`](services/llm/master/adjudicatePlayerAction.ts) |
+| API | [`app/api/master/`](app/api/master/) — `POST { campaignId, playerId, messages }` → `{ verdict, say, check, toolCalls }` |
 
 ---
 
