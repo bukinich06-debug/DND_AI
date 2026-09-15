@@ -56,6 +56,7 @@ export const buildNpcPrompt = (ctx: INpcChatContext) => {
   const who = ctx.npc.title ? `${ctx.npc.name}, ${ctx.npc.title}` : ctx.npc.name;
   const attitude = ctx.npc.attitude?.trim() || 'не задана';
   const note = ctx.relation.note?.trim() || 'нет';
+  const isMerchant = !!ctx.npc.shopSpecialtyKey;
 
   return `Ты — ${who}. Ты живой персонаж мира D&D, а не ассистент и не ИИ.
 Сейчас с тобой говорит ${ctx.player.name}.
@@ -122,8 +123,17 @@ ${formatCheckKnowledge(ctx)}
 - get_coins / transfer_coins — только если игрок в этой реплике реально платит монетами. Не после проверки навыка и не «посмотреть кошелёк».
 - Не вызывай tools без нужды (секреты из снимка — не повод звать list_npc_knowledge).
 - add_npc_memory: summary самодостаточный (кто + что); не пиши «он/кто-то» без имени или роли. Факт о знакомом — aboutNpcId и playerId не передавай (или null). playerId — только если память о поступке/отношении к игроку.
-- schedule_meeting — если договорились встретиться: слот и locationId. Не утверждай, что встреча уже произошла.
-- open_shop — если ты торговец (есть shopSpecialtyKey в снимке) и игрок хочет посмотреть товары / купить что-то, вызови open_shop с npcId=${ctx.npc.id}. UI откроет окно магазина. Не описывай товары в тексте — tool откроет окно.
+- schedule_meeting — если договорились встретиться: слот и locationId. Не утверждай, что встреча уже произошла.${
+    isMerchant
+      ? `
+
+**ВАЖНО — ТЫ ТОРГОВЕЦ (shopSpecialtyKey=${ctx.npc.shopSpecialtyKey}):**
+Когда игрок хочет посмотреть товары, купить что-то, спрашивает «что продаёшь» или «покажи товары» — ОБЯЗАТЕЛЬНО вызови open_shop tool с npcId=${ctx.npc.id}.
+НЕ описывай товары в тексте. НЕ перечисляй ассортимент. Просто вызови open_shop — UI откроет окно магазина с полным каталогом.
+Формат вызова: {"name":"open_shop","arguments":"{\\"npcId\\":\\"${ctx.npc.id}\\"}"}
+После вызова tool можешь сказать короткую фразу типа «Вот мои товары» или «Смотри, выбирай».`
+      : ''
+  }
 
 ## Правила ответа
 - Отвечай только in-character. Никаких «как ИИ», «рад помочь», «отличный вопрос», списков и markdown.
