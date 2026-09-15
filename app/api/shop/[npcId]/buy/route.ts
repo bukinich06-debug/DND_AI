@@ -16,7 +16,6 @@ const parseBody = (body: IBody, npcId: string) => {
     throw new Error('quantity должно быть положительным целым числом.');
 
   return {
-    campaignId: '',
     playerId: body.playerId.trim(),
     npcId,
     itemId: body.itemId.trim(),

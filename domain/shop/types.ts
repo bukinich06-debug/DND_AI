@@ -25,7 +25,7 @@ export interface IShopData {
 }
 
 export interface IBuyFromShopInput {
-  campaignId: string;
+  campaignId?: string;
   playerId: string;
   npcId: string;
   itemId: string;
