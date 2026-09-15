@@ -20,14 +20,14 @@ NPC могут быть торговцами с определённой спе�
 - GET `/api/shop/:npcId?playerId=...` — получить данные магазина (автоматически заполняет инвентарь из каталога)
 - POST `/api/shop/:npcId/buy` — купить предмет (атомарно переводит монеты и перемещает предмет)
 
-**UI сигнал:** NPC возвращает в JSON поле `openShop: { specialtyKey: "..." }` → turn result агрегирует это в `{ "ui": { "openShop": { "npcId": "...", "npcName": "...", "specialtyKey": "..." } } }` на верхнем уровне и UI открывает окно магазина.
+**Открытие магазина:** NPC-торговец возвращает в JSON-ответе поле `openShop: { specialtyKey: "armorer" }`. Turn result агрегирует на верхний уровень `ui.openShop: { npcId, npcName, specialtyKey }` → UI открывает окно магазина. Валидация: specialtyKey всегда соответствует реальному `Npc.shopSpecialtyKey` (при несоответствии автокоррекция; если NPC не торговец — поле удаляется).
 
 | Слой | Путь |
 |------|------|
 | domain | [`domain/shop/`](domain/shop/) — `specialty/` каталог специализаций, типы магазина, валидация |
 | data | [`data/npc/`](data/npc/) — `Npc.shopSpecialtyKey` |
 | services | [`services/shop/`](services/shop/) — `ensureShopStock`, `getShopData`, `buyFromShop` |
-| tools | [`openShopTool.ts`](services/llm/tools/openShopTool.ts) — [`open_shop`](services/llm/tools/README.md#open_shop) |
+| NPC agent | NPC JSON-ответ: `{"say":"...","do":null,"openShop":{"specialtyKey":"armorer"}}` |
 | API | [`app/api/shop/`](app/api/shop/) |
 
 ### Броски кубиков

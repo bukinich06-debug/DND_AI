@@ -66,7 +66,17 @@ const runStep = async (
       arrivalTitle,
     });
 
-    if (result.openShop) await ensureShopStock(step.npcId);
+    let finalOpenShop = result.openShop;
+
+    if (finalOpenShop) {
+      const npc = await getNpc(step.npcId);
+      if (!npc.shopSpecialtyKey) {
+        finalOpenShop = undefined;
+      } else if (finalOpenShop.specialtyKey !== npc.shopSpecialtyKey) {
+        finalOpenShop = { specialtyKey: npc.shopSpecialtyKey };
+      }
+      if (finalOpenShop) await ensureShopStock(step.npcId);
+    }
 
     return {
       requested: result.check,
@@ -76,7 +86,7 @@ const runStep = async (
         npcName: step.npcName,
         say: result.say,
         do: result.do,
-        openShop: result.openShop,
+        openShop: finalOpenShop,
       },
     };
   }
@@ -84,7 +94,7 @@ const runStep = async (
   const result = await adjudicatePlayerAction({ campaignId, playerId, messages, checkOutcome });
   return {
     requested: result.check,
-    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls, ui: result.ui },
+    reply: { agent: 'master', verdict: result.verdict, say: result.say, toolCalls: result.toolCalls },
   };
 };
 

@@ -24,7 +24,6 @@ export interface IAdjudicatePlayerActionResult {
   say: string;
   check: IRequestedCheck | null;
   toolCalls: IToolCallLog[];
-  ui?: { openShop?: { npcId: string; npcName: string } };
 }
 
 const parseMessages = (messages: unknown): IChatMessage[] => {
@@ -74,8 +73,7 @@ export const adjudicatePlayerAction = async (
       say: reply.say,
       check: null,
       toolCalls: reply.toolCalls,
-      ui: reply.ui,
     };
 
-  return { verdict: reply.verdict, say: reply.say, check: reply.check, toolCalls: reply.toolCalls, ui: reply.ui };
+  return { verdict: reply.verdict, say: reply.say, check: reply.check, toolCalls: reply.toolCalls };
 };

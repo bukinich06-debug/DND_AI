@@ -10,7 +10,6 @@ import { getPlayerLocationTool } from '@/services/llm/tools/getPlayerLocationToo
 import { getPlayerProficienciesTool } from '@/services/llm/tools/getPlayerProficienciesTool';
 import { grantCatalogItemTool } from '@/services/llm/tools/grantCatalogItemTool';
 import { longRestTool } from '@/services/llm/tools/longRestTool';
-import { openShopTool } from '@/services/llm/tools/openShopTool';
 import { removePlayerConditionTool } from '@/services/llm/tools/removePlayerConditionTool';
 import { scheduleMeetingTool } from '@/services/llm/tools/scheduleMeetingTool';
 import { searchItemCatalogTool } from '@/services/llm/tools/searchItemCatalogTool';
@@ -44,7 +43,6 @@ export const masterTools: ILlmTool[] = [
   advanceTravelTool,
   advanceTimeTool,
   scheduleMeetingTool,
-  openShopTool,
 ];
 
 export const masterToolByName = new Map(masterTools.map((tool) => [tool.name, tool]));

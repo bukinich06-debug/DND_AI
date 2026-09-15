@@ -32,7 +32,6 @@ export type ITurnReply =
       verdict: MasterVerdict;
       say: string;
       toolCalls: IToolCallLog[];
-      ui?: { openShop?: { npcId: string; npcName: string } };
     };
 
 export type ITurnResume =
