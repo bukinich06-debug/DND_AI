@@ -1,6 +1,6 @@
 # LLM providers
 
-Провайдеры языковых моделей для DND_AI. Поддерживаются DeepSeek и Ollama через OpenAI-совместимый API.
+Провайдеры языковых моделей для DND_AI. Поддерживаются DeepSeek, Ollama и Grok через OpenAI-совместимый API.
 
 ---
 
@@ -14,6 +14,9 @@ LLM_PROVIDER=deepseek
 
 # Ollama
 LLM_PROVIDER=ollama
+
+# Grok (xAI)
+LLM_PROVIDER=grok
 ```
 
 ---
@@ -22,7 +25,7 @@ LLM_PROVIDER=ollama
 
 | Переменная | Требуется | Умолчание | Описание |
 |------------|-----------|-----------|----------|
-| `LLM_PROVIDER` | нет | `deepseek` | Провайдер: `deepseek` или `ollama` |
+| `LLM_PROVIDER` | нет | `deepseek` | Провайдер: `deepseek`, `ollama` или `grok` |
 | **DeepSeek** |
 | `DEEPSEEK_API_KEY` | да (для deepseek) | — | API-ключ DeepSeek |
 | `DEEPSEEK_API_URL` | нет | `https://api.deepseek.com/v1/chat/completions` | URL DeepSeek API |
@@ -31,6 +34,10 @@ LLM_PROVIDER=ollama
 | `OLLAMA_BASE_URL` | нет | `http://localhost:11434` | Базовый URL Ollama |
 | `OLLAMA_MODEL` | да (для ollama) | — | Название модели (например, `llama3.1`, `mistral`) |
 | `OLLAMA_API_KEY` | нет | — | API-ключ (если требуется; обычно не нужен локально) |
+| **Grok (xAI)** |
+| `GROK_API_KEY` | да (для grok) | — | API-ключ xAI (получить на https://console.x.ai) |
+| `GROK_API_URL` | нет | `https://api.x.ai/v1/chat/completions` | URL Grok API |
+| `GROK_MODEL` | нет | `grok-2-latest` | Модель Grok |
 
 ---
 
@@ -44,6 +51,16 @@ DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
 # Опционально:
 # DEEPSEEK_API_URL=https://api.deepseek.com/v1/chat/completions
 # DEEPSEEK_MODEL=deepseek-chat
+```
+
+### Grok (облачный API xAI)
+
+```bash
+LLM_PROVIDER=grok
+GROK_API_KEY=xai-xxxxxxxxxxxxxxxx
+# Опционально:
+# GROK_API_URL=https://api.x.ai/v1/chat/completions
+# GROK_MODEL=grok-2-latest
 ```
 
 ### Ollama (локальный)
@@ -85,6 +102,7 @@ Ollama использует OpenAI-совместимый endpoint `/v1/chat/com
 Роутер читает `LLM_PROVIDER` и диспетчеризует запрос в:
 - `sendDeepseekChat` для DeepSeek
 - `sendOllamaChat` для Ollama
+- `sendGrokChat` для Grok (xAI)
 
 Вызывающий код не знает о конкретном провайдере — использует только `sendLlmChat` и общие типы (`ILlmMessage`, `ILlmToolCall`).
 
@@ -95,6 +113,7 @@ Ollama использует OpenAI-совместимый endpoint `/v1/chat/com
 | `sendLlmChat.ts` | Роутер, выбирает провайдера по env |
 | `sendDeepseekChat.ts` | Реализация DeepSeek API |
 | `sendOllamaChat.ts` | Реализация Ollama API (OpenAI-compatible) |
+| `sendGrokChat.ts` | Реализация Grok API (xAI, OpenAI-compatible) |
 | `types.ts` | Общие типы сообщений и tool calls |
 
 ### Использующие модули
