@@ -25,7 +25,7 @@ export type ITurnReply =
       npcName: string;
       say: string;
       do: string | null;
-      ui?: { openShop?: { npcId: string; npcName: string } };
+      openShop?: { specialtyKey: string };
     }
   | {
       agent: 'master';
@@ -43,13 +43,13 @@ export interface INeedCheckTurn {
   replies: ITurnReply[];
   check: IResolvedCheck;
   resume: ITurnResume;
-  ui?: { openShop?: { npcId: string; npcName: string } };
+  ui?: { openShop?: { npcId: string; npcName: string; specialtyKey: string } };
 }
 
 export interface IDoneTurn {
   status: 'done';
   replies: ITurnReply[];
-  ui?: { openShop?: { npcId: string; npcName: string } };
+  ui?: { openShop?: { npcId: string; npcName: string; specialtyKey: string } };
 }
 
 export type ITurnResult = INeedCheckTurn | IDoneTurn;

@@ -15,27 +15,6 @@ import { resolveRequestedCheck } from './resolveRequestedCheck';
 import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume } from './types';
 import { ensureShopStock } from '@/services/shop/ensureShopStock';
 
-const SHOP_INTENT_KEYWORDS = [
-  'покажи товар',
-  'что продаёшь',
-  'чем торгуешь',
-  'что продаешь',
-  'хочу купить',
-  'показ товар',
-  'show wares',
-  'show goods',
-  'what do you sell',
-  'want to buy',
-  'browse',
-  'shop',
-  'магазин',
-];
-
-const detectShopIntent = (message: string): boolean => {
-  const lower = message.toLowerCase();
-  return SHOP_INTENT_KEYWORDS.some((keyword) => lower.includes(keyword));
-};
-
 const lastUserMessage = (messages: IChatMessage[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
     if (messages[i].role === 'user') return messages[i].content;
@@ -87,20 +66,7 @@ const runStep = async (
       arrivalTitle,
     });
 
-    let finalUi = result.ui;
-
-    if (!finalUi && detectShopIntent(lastUserMessage(messages))) {
-      const npc = await getNpc(step.npcId);
-      if (npc.shopSpecialtyKey) {
-        await ensureShopStock(npc.id);
-        finalUi = {
-          openShop: {
-            npcId: npc.id,
-            npcName: npc.name,
-          },
-        };
-      }
-    }
+    if (result.openShop) await ensureShopStock(step.npcId);
 
     return {
       requested: result.check,
@@ -110,7 +76,7 @@ const runStep = async (
         npcName: step.npcName,
         say: result.say,
         do: result.do,
-        ui: finalUi,
+        openShop: result.openShop,
       },
     };
   }
@@ -165,9 +131,17 @@ const resumeStep = async (campaignId: string, resume: ITurnResume): Promise<IPla
   return { agent: 'npc', npcId: npc.id, npcName: npc.name };
 };
 
-const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcName: string } } | undefined => {
+const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcName: string; specialtyKey: string } } | undefined => {
   for (const reply of replies) {
-    if ('ui' in reply && reply.ui?.openShop) return reply.ui;
+    if (reply.agent === 'npc' && reply.openShop) {
+      return {
+        openShop: {
+          npcId: reply.npcId,
+          npcName: reply.npcName,
+          specialtyKey: reply.openShop.specialtyKey,
+        },
+      };
+    }
   }
   return undefined;
 };

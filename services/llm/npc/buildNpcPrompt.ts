@@ -128,10 +128,11 @@ ${formatCheckKnowledge(ctx)}
       ? `
 
 **ВАЖНО — ТЫ ТОРГОВЕЦ (shopSpecialtyKey=${ctx.npc.shopSpecialtyKey}):**
-Когда игрок хочет посмотреть товары, купить что-то, спрашивает «что продаёшь» или «покажи товары» — ОБЯЗАТЕЛЬНО вызови open_shop tool с npcId=${ctx.npc.id}.
-НЕ описывай товары в тексте. НЕ перечисляй ассортимент. Просто вызови open_shop — UI откроет окно магазина с полным каталогом.
-Формат вызова: {"name":"open_shop","arguments":"{\\"npcId\\":\\"${ctx.npc.id}\\"}"}
-После вызова tool можешь сказать короткую фразу типа «Вот мои товары» или «Смотри, выбирай».`
+Когда игрок хочет посмотреть товары, купить что-то, спрашивает «что продаёшь» или «покажи товары» — верни JSON с полем openShop:
+{"say":"Вот что есть.","do":null,"openShop":{"specialtyKey":"${ctx.npc.shopSpecialtyKey}"}}
+
+НЕ перечисляй товары в тексте. Короткая фраза в say — достаточно. UI откроет окно магазина с полным каталогом.
+specialtyKey СТРОГО должен быть "${ctx.npc.shopSpecialtyKey}" (из снимка выше).`
       : ''
   }
 
@@ -158,5 +159,11 @@ ${formatCheckKnowledge(ctx)}
 или
 {"say":"...","do":"краткое действие"}
 Если нужна проверка игрока — без речи:
-{"say":"","do":null,"check":{"skill":"persuasion","dc":15,"knowledgeId":"..."}}`;
+{"say":"","do":null,"check":{"skill":"persuasion","dc":15,"knowledgeId":"..."}}${
+    isMerchant
+      ? `
+Если игрок хочет посмотреть товары (ты торговец):
+{"say":"Вот что есть.","do":null,"openShop":{"specialtyKey":"${ctx.npc.shopSpecialtyKey}"}}`
+      : ''
+  }`;
 };
