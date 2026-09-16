@@ -132,6 +132,8 @@ model Campaign {
   monsterTemplates MonsterTemplate[]
   diceRolls        DiceRoll[]
   worldEvents      WorldEvent[]
+  encounters       Encounter[]
+  monsterInstances MonsterInstance[]
 
   @@map("campaign")
 }
@@ -189,14 +191,15 @@ model Player {
   shortRestsToday      Int      @default(0)
   shortRestDayIndex    Int      @default(1)
 
-  campaign          Campaign  @relation(fields: [campaignId], references: [id])
-  location          Location? @relation("PlayerLocation", fields: [locationId], references: [id])
-  travelDestination Location? @relation("PlayerTravelDestination", fields: [travelDestinationId], references: [id])
-  items             Item[]
-  diceRolls         DiceRoll[]
-  npcRelations      NpcRelation[]
-  npcMemories       NpcMemory[]
-  worldEvents       WorldEvent[]
+  campaign            Campaign               @relation(fields: [campaignId], references: [id])
+  location            Location?              @relation("PlayerLocation", fields: [locationId], references: [id])
+  travelDestination   Location?              @relation("PlayerTravelDestination", fields: [travelDestinationId], references: [id])
+  items               Item[]
+  diceRolls           DiceRoll[]
+  npcRelations        NpcRelation[]
+  npcMemories         NpcMemory[]
+  worldEvents         WorldEvent[]
+  encounterParticipants EncounterParticipant[]
 
   @@map("player")
 }
@@ -225,6 +228,7 @@ model Location {
   linksFrom          LocationLink[] @relation("LocationLinkFrom")
   linksTo            LocationLink[] @relation("LocationLinkTo")
   worldEvents        WorldEvent[]
+  encounters         Encounter[]
 
   @@map("location")
 }
@@ -268,12 +272,13 @@ model Npc {
   quests    QuestNpc[]
   statBlock NpcStatBlock?
   diceRolls DiceRoll[]
-  relations       NpcRelation[]
-  memories        NpcMemory[]      @relation("NpcOwnsMemory")
-  aboutInMemories NpcMemory[]      @relation("NpcAboutMemory")
-  knows           NpcAcquaintance[] @relation("NpcKnows")
-  knownBy         NpcAcquaintance[] @relation("NpcKnownBy")
-  worldEvents     WorldEvent[]
+  relations           NpcRelation[]
+  memories            NpcMemory[]            @relation("NpcOwnsMemory")
+  aboutInMemories     NpcMemory[]            @relation("NpcAboutMemory")
+  knows               NpcAcquaintance[]      @relation("NpcKnows")
+  knownBy             NpcAcquaintance[]      @relation("NpcKnownBy")
+  worldEvents         WorldEvent[]
+  encounterParticipants EncounterParticipant[]
 
   @@map("npc")
 }
@@ -360,7 +365,8 @@ model MonsterTemplate {
   legendaryActions    Json?
   lootCoinsCp         Int      @default(0)
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign         Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  monsterInstances MonsterInstance[]
 
   @@map("monster_template")
 }
@@ -523,4 +529,86 @@ model WorldEvent {
 
   @@index([campaignId, status])
   @@map("world_event")
+}
+
+/// Статус боевой сцены
+enum EncounterStatus {
+  active
+  ended
+}
+
+/// Боевая сцена (encounter) — текущий или завершённый бой в кампании
+model Encounter {
+  id               String          @id @default(cuid())
+  campaignId       String
+  status           EncounterStatus @default(active)
+  round            Int             @default(1)
+  currentTurnIndex Int             @default(0)
+  locationId       String?
+
+  campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  location     Location?              @relation(fields: [locationId], references: [id])
+  participants EncounterParticipant[]
+
+  @@index([campaignId, status])
+  @@map("encounter")
+}
+
+/// Участник боевой сцены — игрок, NPC или экземпляр монстра
+model EncounterParticipant {
+  id                String  @id @default(cuid())
+  encounterId       String
+  initiative        Int
+  order             Int
+  isOut             Boolean @default(false)
+  playerId          String?
+  npcId             String?
+  monsterInstanceId String?
+
+  encounter       Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  player          Player?          @relation(fields: [playerId], references: [id])
+  npc             Npc?             @relation(fields: [npcId], references: [id])
+  monsterInstance MonsterInstance? @relation(fields: [monsterInstanceId], references: [id])
+
+  @@map("encounter_participant")
+}
+
+/// Экземпляр монстра — живой монстр в бою с собственным HP и состоянием
+model MonsterInstance {
+  id                  String   @id @default(cuid())
+  campaignId          String
+  templateId          String
+  name                String
+  hpCurrent           Int
+  hpMax               Int
+  size                String?
+  creatureType        String?
+  challengeRating     String?
+  proficiencyBonus    Int?
+  str                 Int
+  dex                 Int
+  con                 Int
+  int                 Int
+  wis                 Int
+  cha                 Int
+  ac                  Int
+  speed               Int
+  initiativeBonus     Int?
+  saveProf            String[]
+  resistances         String[]
+  immunities          String[]
+  vulnerabilities     String[]
+  conditionImmunities String[]
+  senses              String[]
+  languages           String[]
+  traits              Json?
+  actions             Json?
+  reactions           Json?
+  legendaryActions    Json?
+
+  campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  template     MonsterTemplate        @relation(fields: [templateId], references: [id])
+  participants EncounterParticipant[]
+
+  @@map("monster_instance")
 }
