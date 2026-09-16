@@ -5,6 +5,12 @@ import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 
+const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [];
+};
+
 interface ILoadMonsterCombatContextParams {
   campaignId: string;
   encounterId: string;
@@ -69,8 +75,8 @@ export const loadMonsterCombatContext = async ({
   let catalogTraits: IMonsterAbility[] | null = null;
   try {
     const catalogEntry = getCatalogMonsterByKey(monster.catalogKey);
-    catalogActions = catalogEntry.actions;
-    catalogTraits = catalogEntry.traits;
+    catalogActions = normalizeToArray(catalogEntry.actions);
+    catalogTraits = normalizeToArray(catalogEntry.traits);
   } catch {
     // Справочная запись отсутствует — продолжаем без неё
   }

@@ -2,6 +2,12 @@ import type { IMonsterCombatContext } from './loadMonsterCombatContext';
 
 const calculateAbilityMod = (score: number): number => Math.floor((score - 10) / 2);
 
+const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [];
+};
+
 const formatParticipants = (ctx: IMonsterCombatContext) => {
   if (ctx.participants.length === 0) return 'Нет других участников.';
   return ctx.participants
@@ -14,11 +20,12 @@ const formatParticipants = (ctx: IMonsterCombatContext) => {
 };
 
 const formatActions = (ctx: IMonsterCombatContext) => {
-  if (!ctx.monster.actions || ctx.monster.actions.length === 0) {
+  const actions = normalizeToArray(ctx.monster.actions);
+  if (actions.length === 0) {
     return 'Действия из справочника отсутствуют. Используй простую рукопашную атаку (1d6 + модификатор характеристики).';
   }
 
-  return ctx.monster.actions
+  return actions
     .map((a) => {
       const bonus = a.attackBonus !== undefined ? `, бонус атаки: +${a.attackBonus}` : '';
       const damage = a.damage ? `, урон: ${a.damage}` : '';
@@ -29,8 +36,9 @@ const formatActions = (ctx: IMonsterCombatContext) => {
 };
 
 const formatTraits = (ctx: IMonsterCombatContext) => {
-  if (!ctx.monster.traits || ctx.monster.traits.length === 0) return 'Нет особых черт.';
-  return ctx.monster.traits.map((t) => `- ${t.name}: ${t.description}`).join('\n');
+  const traits = normalizeToArray(ctx.monster.traits);
+  if (traits.length === 0) return 'Нет особых черт.';
+  return traits.map((t) => `- ${t.name}: ${t.description}`).join('\n');
 };
 
 export const buildMonsterPrompt = (ctx: IMonsterCombatContext) => {

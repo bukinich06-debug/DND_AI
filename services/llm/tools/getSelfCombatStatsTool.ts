@@ -2,6 +2,12 @@ import { getCatalogMonsterByKey } from '@/domain/monster/catalog';
 import { monsterInstanceRepository } from '@/data/monster';
 import type { ILlmTool, IToolContext } from './types';
 
+const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [];
+};
+
 interface IGetSelfCombatStatsArgs {
   monsterInstanceId: string;
 }
@@ -81,10 +87,10 @@ export const getSelfCombatStatsTool: ILlmTool = {
       vulnerabilities: instance.vulnerabilities,
       conditionImmunities: instance.conditionImmunities,
       conditions: instance.conditions,
-      traits: catalogEntry?.traits ?? null,
-      actions: catalogEntry?.actions ?? null,
-      reactions: catalogEntry?.reactions ?? null,
-      legendaryActions: catalogEntry?.legendaryActions ?? null,
+      traits: catalogEntry ? normalizeToArray(catalogEntry.traits) : null,
+      actions: catalogEntry ? normalizeToArray(catalogEntry.actions) : null,
+      reactions: catalogEntry ? normalizeToArray(catalogEntry.reactions) : null,
+      legendaryActions: catalogEntry ? normalizeToArray(catalogEntry.legendaryActions) : null,
     };
   },
 };
