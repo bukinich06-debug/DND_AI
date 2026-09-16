@@ -2,10 +2,10 @@
 
 import { campaignRepository } from '@/data/campaign';
 import { encounterRepository, encounterParticipantRepository } from '@/data/encounter';
-import { monsterInstanceRepository } from '@/data/monster-instance';
+import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import { rollDie } from '@/domain/dice';
+import { rollDice } from '@/services/dice/roll/rollDice';
 import { getCatalogMonsterByKey } from '@/domain/monster';
 import { abilityMod } from '@/domain/player';
 
@@ -16,6 +16,7 @@ interface IEnemyInput {
 
 interface IStartCombatInput {
   campaignId: string;
+  playerId: string;
   enemies: IEnemyInput[];
   allyNpcIds?: string[];
   locationId?: string;
@@ -40,10 +41,9 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   const activeEncounter = await encounterRepository.getActiveByCampaignId(input.campaignId);
   if (activeEncounter) throw new Error('Активная боевая сцена уже существует в этой кампании.');
 
-  const players = await playerRepository.listByCampaignId(input.campaignId);
-  if (players.length === 0) throw new Error('В кампании нет игроков.');
-
-  const player = players[0];
+  const player = await playerRepository.getById(input.playerId);
+  if (!player) throw new Error('Игрок не найден.');
+  if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
   const effectiveLocationId = input.locationId ?? player.locationId;
 
@@ -74,34 +74,24 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
 
       const instance = await monsterInstanceRepository.create({
         campaignId: input.campaignId,
-        templateId: '',
+        catalogKey: enemy.catalogKey,
         name: instanceName,
         hpCurrent: catalogEntry.hpMax,
         hpMax: catalogEntry.hpMax,
-        size: catalogEntry.size,
-        creatureType: catalogEntry.creatureType,
-        challengeRating: catalogEntry.challengeRating,
-        proficiencyBonus: catalogEntry.proficiencyBonus,
+        ac: catalogEntry.ac,
+        speed: catalogEntry.speed,
+        initiativeBonus: catalogEntry.initiativeBonus,
         str: catalogEntry.str,
         dex: catalogEntry.dex,
         con: catalogEntry.con,
         int: catalogEntry.int,
         wis: catalogEntry.wis,
         cha: catalogEntry.cha,
-        ac: catalogEntry.ac,
-        speed: catalogEntry.speed,
-        initiativeBonus: catalogEntry.initiativeBonus,
         saveProf: catalogEntry.saveProf,
         resistances: catalogEntry.resistances,
         immunities: catalogEntry.immunities,
         vulnerabilities: catalogEntry.vulnerabilities,
         conditionImmunities: catalogEntry.conditionImmunities,
-        senses: catalogEntry.senses,
-        languages: catalogEntry.languages,
-        traits: catalogEntry.traits,
-        actions: catalogEntry.actions,
-        reactions: catalogEntry.reactions,
-        legendaryActions: catalogEntry.legendaryActions,
       });
 
       monsterInstances.push(instance);
@@ -117,11 +107,16 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     kind: 'player' | 'npc' | 'monster';
   }> = [];
 
-  const playerInitiativeRoll = rollDie(20);
+  const playerInitiativeRoll = await rollDice({
+    campaignId: input.campaignId,
+    die: 'd20',
+    note: 'инициатива',
+    playerId: player.id,
+  });
   const playerInitiativeBonus = (player.initiativeBonus ?? 0) + abilityMod(player.dex);
   combatants.push({
     name: player.name,
-    initiative: playerInitiativeRoll + playerInitiativeBonus,
+    initiative: playerInitiativeRoll.value + playerInitiativeBonus,
     playerId: player.id,
     kind: 'player',
   });
@@ -129,22 +124,31 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   for (let i = 0; i < allyNpcs.length; i++) {
     const npc = allyNpcs[i];
     const statBlock = allyStatBlocks[i];
-    const npcInitiativeRoll = rollDie(20);
+    const npcInitiativeRoll = await rollDice({
+      campaignId: input.campaignId,
+      die: 'd20',
+      note: 'инициатива',
+      npcId: npc.id,
+    });
     const npcInitiativeBonus = (statBlock.initiativeBonus ?? 0) + abilityMod(statBlock.dex);
     combatants.push({
       name: npc.name,
-      initiative: npcInitiativeRoll + npcInitiativeBonus,
+      initiative: npcInitiativeRoll.value + npcInitiativeBonus,
       npcId: npc.id,
       kind: 'npc',
     });
   }
 
   for (const instance of monsterInstances) {
-    const monsterInitiativeRoll = rollDie(20);
+    const monsterInitiativeRoll = await rollDice({
+      campaignId: input.campaignId,
+      die: 'd20',
+      note: 'инициатива',
+    });
     const monsterInitiativeBonus = (instance.initiativeBonus ?? 0) + abilityMod(instance.dex);
     combatants.push({
       name: instance.name,
-      initiative: monsterInitiativeRoll + monsterInitiativeBonus,
+      initiative: monsterInitiativeRoll.value + monsterInitiativeBonus,
       monsterInstanceId: instance.id,
       kind: 'monster',
     });

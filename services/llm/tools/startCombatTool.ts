@@ -98,8 +98,10 @@ export const startCombatTool: ILlmTool = {
   },
   execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
+    if (!ctx.playerId) throw new Error('ID игрока отсутствует в контексте.');
     return startCombat({
       campaignId: ctx.campaignId,
+      playerId: ctx.playerId,
       enemies: parsed.enemies,
       allyNpcIds: parsed.allyNpcIds,
       locationId: parsed.locationId,
