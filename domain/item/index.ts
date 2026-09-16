@@ -1,5 +1,11 @@
 export type { IItemCatalogEntry, ISearchItemCatalogResult } from './catalog';
-export { catalogToCreateItem, getCatalogItemByKey, getWeaponMastery, searchItemCatalog, WeaponMastery } from './catalog';
+export {
+  catalogToCreateItem,
+  getCatalogItemByKey,
+  getWeaponMastery,
+  searchItemCatalog,
+  WeaponMastery,
+} from './catalog';
 export type {
   ICreateItem,
   IEquipItem,

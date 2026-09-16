@@ -18,6 +18,7 @@ interface IRunMasterToolLoopParams {
   system: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   ctx: IToolContext;
+  forbiddenTools?: string[];
 }
 
 interface IRunMasterToolLoopResult extends IMasterReply {
@@ -56,8 +57,11 @@ export const runMasterToolLoop = async ({
   system,
   messages,
   ctx,
+  forbiddenTools,
 }: IRunMasterToolLoopParams): Promise<IRunMasterToolLoopResult> => {
-  const openAiTools = masterTools.map(toOpenAiCompatibleTool);
+  const forbidden = new Set(forbiddenTools ?? []);
+  const allowedTools = masterTools.filter((tool) => !forbidden.has(tool.name));
+  const openAiTools = allowedTools.map(toOpenAiCompatibleTool);
   const history: ILlmMessage[] = [
     { role: 'system', content: system },
     ...messages.map((m) => ({ role: m.role, content: m.content })),

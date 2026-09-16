@@ -25,7 +25,8 @@ const parseArgs = (args: unknown, ctx: IToolContext): IGrantCatalogItemArgs => {
   let quantity: number | undefined;
 
   if (target === 'player') {
-    if (typeof raw.playerId !== 'string' || !raw.playerId.trim()) throw new Error('playerId обязателен для target=player.');
+    if (typeof raw.playerId !== 'string' || !raw.playerId.trim())
+      throw new Error('playerId обязателен для target=player.');
     playerId = raw.playerId.trim();
   } else {
     if (typeof raw.locationId !== 'string' || !raw.locationId.trim())

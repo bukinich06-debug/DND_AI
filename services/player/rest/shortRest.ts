@@ -53,8 +53,7 @@ export const shortRest = async (input: IShortRest): Promise<IPlayerRestResult> =
 
   const newClock = advanceSlots({ dayIndex: campaign.dayIndex, timeOfDay: campaign.timeOfDay }, 1);
 
-  const shortRestsToday =
-    player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday + 1 : 1;
+  const shortRestsToday = player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday + 1 : 1;
 
   await campaignRepository.update(campaign.id, {
     dayIndex: newClock.dayIndex,

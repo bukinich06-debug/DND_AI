@@ -98,7 +98,9 @@ export const Turn = () => {
             Нужна проверка: {pending.check.skillLabel} {bonusText(pending.check.bonus)}, Сл {pending.check.dc}
           </div>
           <button type="button" onClick={() => void roll()} disabled={sending}>
-            {sending ? '…' : `Бросить ${pending.check.die} (${pending.check.skillLabel} ${bonusText(pending.check.bonus)}, Сл ${pending.check.dc})`}
+            {sending
+              ? '…'
+              : `Бросить ${pending.check.die} (${pending.check.skillLabel} ${bonusText(pending.check.bonus)}, Сл ${pending.check.dc})`}
           </button>
         </div>
       )}

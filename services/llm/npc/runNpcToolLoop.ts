@@ -18,6 +18,7 @@ interface IRunNpcToolLoopParams {
   system: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   ctx: IToolContext;
+  forbiddenTools?: string[];
 }
 
 interface IRunNpcToolLoopResult extends INpcReply {
@@ -56,8 +57,11 @@ export const runNpcToolLoop = async ({
   system,
   messages,
   ctx,
+  forbiddenTools,
 }: IRunNpcToolLoopParams): Promise<IRunNpcToolLoopResult> => {
-  const openAiTools = npcTools.map(toOpenAiCompatibleTool);
+  const forbidden = new Set(forbiddenTools ?? []);
+  const allowedTools = npcTools.filter((tool) => !forbidden.has(tool.name));
+  const openAiTools = allowedTools.map(toOpenAiCompatibleTool);
   const history: ILlmMessage[] = [
     { role: 'system', content: system },
     ...messages.map((m) => ({ role: m.role, content: m.content })),

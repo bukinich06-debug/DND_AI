@@ -37,7 +37,8 @@ const parseArgs = (args: unknown): IArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы создания локации обязательны.');
   const raw = args as Record<string, unknown>;
   if (typeof raw.name !== 'string' || !raw.name.trim()) throw new Error('name обязателен.');
-  if (typeof raw.kind !== 'string' || !kinds.has(raw.kind)) throw new Error('kind обязателен и должен быть типом локации.');
+  if (typeof raw.kind !== 'string' || !kinds.has(raw.kind))
+    throw new Error('kind обязателен и должен быть типом локации.');
 
   let containerId: string | undefined;
   if (raw.containerId !== undefined) {
@@ -76,7 +77,8 @@ export const createMentionedLocationTool: ILlmTool = {
       kind: {
         type: 'string',
         enum: Object.values(LocationKind),
-        description: 'Тип: building (кузня/таверна), settlement (деревня/город), room, district, region, dungeon, wilderness, other',
+        description:
+          'Тип: building (кузня/таверна), settlement (деревня/город), room, district, region, dungeon, wilderness, other',
       },
       containerId: {
         type: 'string',

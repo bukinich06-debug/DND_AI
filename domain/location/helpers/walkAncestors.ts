@@ -19,10 +19,7 @@ export const walkAncestors = <T extends { id: string; parentId: string | null }>
   return chain;
 };
 
-export const findInChain = <T extends { kind: LocationKind }>(
-  chain: T[],
-  kinds: readonly LocationKind[]
-): T | null => {
+export const findInChain = <T extends { kind: LocationKind }>(chain: T[], kinds: readonly LocationKind[]): T | null => {
   const set = new Set<string>(kinds);
   for (const loc of chain) {
     if (set.has(loc.kind)) return loc;

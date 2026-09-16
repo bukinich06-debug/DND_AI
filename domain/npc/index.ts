@@ -3,7 +3,7 @@ export {
   ImproveRelationReason,
   RELATION_CHANGE_RULES,
   WORSEN_RELATION_RULES,
-  WorsenRelationReason
+  WorsenRelationReason,
 } from './constants/relationReasons';
 export type { RelationChangeReason } from './constants/relationReasons';
 export {
@@ -12,16 +12,12 @@ export {
   RELATION_NEUTRAL_MAX,
   RELATION_SCORE_MAX,
   RELATION_SCORE_MIN,
-  RELATION_WARM_MAX
+  RELATION_WARM_MAX,
 } from './constants/relationThresholds';
 export { applyRelationDelta, clampRelationScore } from './helpers/applyRelationDelta';
 export { relationStance } from './helpers/relationStance';
 export type { RelationStance } from './helpers/relationStance';
-export type {
-  INpcAcquaintance,
-  INpcAcquaintanceRepository,
-  ISetNpcAcquaintance,
-} from './acquaintanceTypes';
+export type { INpcAcquaintance, INpcAcquaintanceRepository, ISetNpcAcquaintance } from './acquaintanceTypes';
 export type {
   ICreateNpcKnowledge,
   INpcKnowledge,
@@ -38,13 +34,7 @@ export type {
 } from './memoryTypes';
 export type { INpcRelation, INpcRelationRepository, ISetNpcRelation } from './relationTypes';
 export type { INpcStatBlock, INpcStatBlockRepository, IUpsertNpcStatBlock } from './statBlockTypes';
-export type {
-  ICreateNpc,
-  INpc,
-  INpcRepository,
-  ISearchNpcsByNameParams,
-  IUpdateNpc,
-} from './types';
+export type { ICreateNpc, INpc, INpcRepository, ISearchNpcsByNameParams, IUpdateNpc } from './types';
 export { validateSetNpcAcquaintance } from './validation/validateNpcAcquaintance';
 export { validateCreateNpc, validateUpdateNpc } from './validation/validateNpc';
 export { validateCreateNpcKnowledge, validateUpdateNpcKnowledge } from './validation/validateNpcKnowledge';
@@ -59,4 +49,3 @@ export {
 } from './validation/validateNpcRelationChange';
 export type { INpcRelationChangeInput } from './validation/validateNpcRelationChange';
 export { validateUpsertNpcStatBlock } from './validation/validateNpcStatBlock';
-

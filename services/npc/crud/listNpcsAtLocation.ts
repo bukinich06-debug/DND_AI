@@ -14,8 +14,7 @@ export const listNpcsAtLocation = async (locationId: string): Promise<INpcAtLoca
   const here: INpcAtLocation[] = [];
   for (const link of links) {
     const npc = await npcRepository.getById(link.npcId);
-    if (npc && npc.campaignId === location.campaignId)
-      here.push({ npc, role: link.role, isPrimary: link.isPrimary });
+    if (npc && npc.campaignId === location.campaignId) here.push({ npc, role: link.role, isPrimary: link.isPrimary });
   }
   return here;
 };

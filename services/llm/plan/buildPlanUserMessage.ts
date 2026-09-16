@@ -21,9 +21,7 @@ export const buildPlanUserMessage = (messages: IChatMessage[]): string => {
 
   if (prior.length === 0) return `## Сейчас\n${now}`;
 
-  const history = prior
-    .map((m) => (m.role === 'user' ? `Игрок: ${m.content}` : `Ответ: ${m.content}`))
-    .join('\n');
+  const history = prior.map((m) => (m.role === 'user' ? `Игрок: ${m.content}` : `Ответ: ${m.content}`)).join('\n');
 
   return `## История\n${history}\n\n## Сейчас\n${now}`;
 };

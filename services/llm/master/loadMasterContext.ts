@@ -62,9 +62,7 @@ export const loadMasterContext = async ({
 
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
 
-  const npcLocationMap = new Map(
-    npcLocations.map((nl) => [nl.npcId, { locationId: nl.locationId, role: nl.role }])
-  );
+  const npcLocationMap = new Map(npcLocations.map((nl) => [nl.npcId, { locationId: nl.locationId, role: nl.role }]));
 
   const locations = await db.location.findMany({
     where: { id: { in: Array.from(new Set(npcLocations.map((nl) => nl.locationId))) } },
@@ -77,7 +75,7 @@ export const loadMasterContext = async ({
     return {
       name: npc.name,
       title: npc.title,
-      location: nloc ? locationMap.get(nloc.locationId) ?? null : null,
+      location: nloc ? (locationMap.get(nloc.locationId) ?? null) : null,
       shopSpecialtyKey: npc.shopSpecialtyKey,
     };
   });
@@ -95,8 +93,7 @@ export const loadMasterContext = async ({
       level: player.level,
       conditions: player.conditions,
       exhaustionLevel: player.exhaustionLevel,
-      shortRestsToday:
-        player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday : 0,
+      shortRestsToday: player.shortRestDayIndex === campaign.dayIndex ? player.shortRestsToday : 0,
     },
     itemsHere: itemsHere.map((item) => ({
       id: item.id,

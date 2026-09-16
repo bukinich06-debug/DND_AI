@@ -9,8 +9,7 @@ interface IArgs {
 const parseArgs = (args: unknown): IArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы знакомства обязательны.');
   const raw = args as Record<string, unknown>;
-  if (typeof raw.otherNpcId !== 'string' || !raw.otherNpcId.trim())
-    throw new Error('otherNpcId обязателен.');
+  if (typeof raw.otherNpcId !== 'string' || !raw.otherNpcId.trim()) throw new Error('otherNpcId обязателен.');
 
   let note: string | null | undefined;
   if (raw.note === undefined) note = undefined;
@@ -23,8 +22,7 @@ const parseArgs = (args: unknown): IArgs => {
 
 export const ensureNpcAcquaintanceTool: ILlmTool = {
   name: 'ensure_npc_acquaintance',
-  description:
-    'Гарантирует запись «speaker (ctx.npcId) знает otherNpc». Вызывай после search_npc, если NPC уже есть.',
+  description: 'Гарантирует запись «speaker (ctx.npcId) знает otherNpc». Вызывай после search_npc, если NPC уже есть.',
   parameters: {
     type: 'object',
     properties: {
