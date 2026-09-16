@@ -69,7 +69,7 @@ export const campaignRepository: ICampaignRepository = {
       await tx.worldEvent.deleteMany({ where: { campaignId: id } });
       await tx.item.deleteMany({ where: { campaignId: id } });
       await tx.quest.deleteMany({ where: { campaignId: id } });
-      await tx.monsterTemplate.deleteMany({ where: { campaignId: id } });
+      await tx.monsterInstance.deleteMany({ where: { campaignId: id } });
       await tx.npc.deleteMany({ where: { campaignId: id } });
       await tx.player.deleteMany({ where: { campaignId: id } });
       await tx.locationLink.deleteMany({ where: { campaignId: id } });

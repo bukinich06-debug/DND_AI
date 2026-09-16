@@ -1,0 +1,249 @@
+[
+  {
+    "key": "goblin",
+    "aliases": ["goblin", "гоблин"],
+    "name": "Гоблин",
+    "summary": "Маленькое вредное существо.",
+    "size": "Маленький",
+    "creatureType": "Гуманоид",
+    "challengeRating": "1/4",
+    "proficiencyBonus": 2,
+    "str": 8,
+    "dex": 14,
+    "con": 10,
+    "int": 10,
+    "wis": 8,
+    "cha": 8,
+    "hpMax": 7,
+    "ac": 15,
+    "speed": 30,
+    "initiativeBonus": 2,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "conditionImmunities": [],
+    "senses": ["Тёмное зрение 60 футов"],
+    "languages": ["Общий", "Гоблинский"],
+    "traits": [
+      {
+        "name": "Юркий",
+        "description": "Гоблин может совершить действие Отход или Засада бонусным действием в каждый свой ход."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Короткий меч",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 4,
+        "damage": "1d6+2",
+        "damageType": "колющий"
+      },
+      {
+        "name": "Короткий лук",
+        "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
+        "attackBonus": 4,
+        "damage": "1d6+2",
+        "damageType": "колющий"
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 50
+  },
+  {
+    "key": "wolf",
+    "aliases": ["wolf", "волк"],
+    "name": "Волк",
+    "summary": "Хищное животное, охотящееся в стае.",
+    "size": "Средний",
+    "creatureType": "Зверь",
+    "challengeRating": "1/4",
+    "proficiencyBonus": 2,
+    "str": 12,
+    "dex": 15,
+    "con": 12,
+    "int": 3,
+    "wis": 12,
+    "cha": 6,
+    "hpMax": 11,
+    "ac": 13,
+    "speed": 40,
+    "initiativeBonus": 2,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "conditionImmunities": [],
+    "senses": ["Тёмное зрение 60 футов"],
+    "languages": [],
+    "traits": [
+      {
+        "name": "Острый слух и обоняние",
+        "description": "Волк совершает с преимуществом проверки Мудрости (Внимательность), полагающиеся на слух или обоняние."
+      },
+      {
+        "name": "Тактика стаи",
+        "description": "Волк совершает с преимуществом броски атаки по существу, если в пределах 5 футов от этого существа находится дееспособный союзник волка."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Укус",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 4,
+        "damage": "2d4+2",
+        "damageType": "колющий"
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 0
+  },
+  {
+    "key": "bandit",
+    "aliases": ["bandit", "бандит", "разбойник"],
+    "name": "Бандит",
+    "summary": "Обычный вооружённый грабитель.",
+    "size": "Средний",
+    "creatureType": "Гуманоид",
+    "challengeRating": "1/8",
+    "proficiencyBonus": 2,
+    "str": 11,
+    "dex": 12,
+    "con": 12,
+    "int": 10,
+    "wis": 10,
+    "cha": 10,
+    "hpMax": 11,
+    "ac": 12,
+    "speed": 30,
+    "initiativeBonus": 1,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "conditionImmunities": [],
+    "senses": [],
+    "languages": ["Общий"],
+    "traits": null,
+    "actions": [
+      {
+        "name": "Скимитар",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 3,
+        "damage": "1d6+1",
+        "damageType": "рубящий"
+      },
+      {
+        "name": "Лёгкий арбалет",
+        "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
+        "attackBonus": 3,
+        "damage": "1d8+1",
+        "damageType": "колющий"
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 200
+  },
+  {
+    "key": "orc",
+    "aliases": ["orc", "орк"],
+    "name": "Орк",
+    "summary": "Свирепый воин племенной культуры.",
+    "size": "Средний",
+    "creatureType": "Гуманоид",
+    "challengeRating": "1/2",
+    "proficiencyBonus": 2,
+    "str": 16,
+    "dex": 12,
+    "con": 16,
+    "int": 7,
+    "wis": 11,
+    "cha": 10,
+    "hpMax": 15,
+    "ac": 13,
+    "speed": 30,
+    "initiativeBonus": 1,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "conditionImmunities": [],
+    "senses": ["Тёмное зрение 60 футов"],
+    "languages": ["Общий", "Орочий"],
+    "traits": [
+      {
+        "name": "Агрессивный",
+        "description": "Орк может бонусным действием переместиться на расстояние, равное своей скорости, в направлении враждебного существа, которое он видит."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Секира",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 5,
+        "damage": "1d12+3",
+        "damageType": "рубящий"
+      },
+      {
+        "name": "Метательное копьё",
+        "description": "Рукопашная или дальнобойная атака оружием (дистанция 30/120 футов)",
+        "attackBonus": 5,
+        "damage": "1d6+3",
+        "damageType": "колющий"
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 100
+  },
+  {
+    "key": "skeleton",
+    "aliases": ["skeleton", "скелет"],
+    "name": "Скелет",
+    "summary": "Оживлённые кости нежити.",
+    "size": "Средний",
+    "creatureType": "Нежить",
+    "challengeRating": "1/4",
+    "proficiencyBonus": 2,
+    "str": 10,
+    "dex": 14,
+    "con": 15,
+    "int": 6,
+    "wis": 8,
+    "cha": 5,
+    "hpMax": 13,
+    "ac": 13,
+    "speed": 30,
+    "initiativeBonus": 2,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": ["яд"],
+    "vulnerabilities": ["дробящий"],
+    "conditionImmunities": ["истощение", "отравление"],
+    "senses": ["Тёмное зрение 60 футов"],
+    "languages": [],
+    "traits": null,
+    "actions": [
+      {
+        "name": "Короткий меч",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 4,
+        "damage": "1d6+2",
+        "damageType": "колющий"
+      },
+      {
+        "name": "Короткий лук",
+        "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
+        "attackBonus": 4,
+        "damage": "1d6+2",
+        "damageType": "колющий"
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 0
+  }
+]

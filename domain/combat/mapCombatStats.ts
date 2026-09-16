@@ -1,4 +1,4 @@
-import type { ICombatStats, IMonsterTemplateSource, INpcStatBlockSource } from './types';
+import type { ICombatStats, IMonsterInstanceSource, INpcStatBlockSource } from './types';
 
 const mapSharedFields = (
   source: Omit<ICombatStats, 'hpCurrent' | 'name'> & { name?: string },
@@ -36,5 +36,20 @@ const mapSharedFields = (
 export const mapNpcStatBlockToCombat = (source: INpcStatBlockSource, name?: string): ICombatStats =>
   mapSharedFields({ ...source, name }, source.hpCurrent);
 
-export const mapMonsterTemplateToCombat = (source: IMonsterTemplateSource): ICombatStats =>
-  mapSharedFields(source, source.hpMax);
+export const mapMonsterInstanceToCombat = (source: IMonsterInstanceSource): ICombatStats =>
+  mapSharedFields(
+    {
+      ...source,
+      size: null,
+      creatureType: null,
+      challengeRating: null,
+      proficiencyBonus: null,
+      senses: [],
+      languages: [],
+      traits: null,
+      actions: null,
+      reactions: null,
+      legendaryActions: null,
+    },
+    source.hpCurrent
+  );

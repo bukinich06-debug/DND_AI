@@ -59,13 +59,9 @@ export interface INpcStatBlockSource {
   legendaryActions?: unknown;
 }
 
-/** Поля шаблона монстра для маппинга в бой */
-export interface IMonsterTemplateSource {
+/** Поля экземпляра монстра для маппинга в бой */
+export interface IMonsterInstanceSource {
   name: string;
-  size?: string | null;
-  creatureType?: string | null;
-  challengeRating?: string | null;
-  proficiencyBonus?: number | null;
   str: number;
   dex: number;
   con: number;
@@ -73,6 +69,7 @@ export interface IMonsterTemplateSource {
   wis: number;
   cha: number;
   hpMax: number;
+  hpCurrent: number;
   ac: number;
   speed: number;
   initiativeBonus?: number | null;
@@ -81,10 +78,4 @@ export interface IMonsterTemplateSource {
   immunities: string[];
   vulnerabilities: string[];
   conditionImmunities: string[];
-  senses: string[];
-  languages: string[];
-  traits?: unknown;
-  actions?: unknown;
-  reactions?: unknown;
-  legendaryActions?: unknown;
 }
