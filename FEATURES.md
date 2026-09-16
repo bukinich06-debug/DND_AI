@@ -210,7 +210,7 @@ Master system prompt различает:
 | Items | [`domain/item/`](domain/item/) | [`services/item/crud/`](services/item/crud/) | [`app/api/items/`](app/api/items/) |
 | NPCs (+ locations, knowledge, relations, memories, stat-block, combat-stats) | [`domain/npc/`](domain/npc/) | [`services/npc/`](services/npc/) | [`app/api/npcs/`](app/api/npcs/), [`app/api/npc-knowledge/`](app/api/npc-knowledge/), [`app/api/npc-memories/`](app/api/npc-memories/) |
 | Quests (+ quest↔npc) | [`domain/quest/`](domain/quest/) | [`services/quest/`](services/quest/) | [`app/api/quests/`](app/api/quests/) |
-| Monster templates | [`domain/monster-template/`](domain/monster-template/) | [`services/monster-template/`](services/monster-template/) | [`app/api/monster-templates/`](app/api/monster-templates/) |
+| Monster catalog + instances | [`domain/monster/`](domain/monster/) | — | — |
 | Combat helpers | [`domain/combat/`](domain/combat/) | — | — |
 
 ---
