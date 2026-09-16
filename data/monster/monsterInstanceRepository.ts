@@ -71,6 +71,20 @@ export const monsterInstanceRepository: IMonsterInstanceRepository = {
     return rows.map(mapInstance);
   },
 
+  listByEncounterId: async (encounterId) => {
+    const rows = await db.monsterInstance.findMany({
+      where: {
+        participants: {
+          some: {
+            encounterId,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return rows.map(mapInstance);
+  },
+
   update: async (id, input: IUpdateMonsterInstance) => {
     const row = await db.monsterInstance.update({
       where: { id },

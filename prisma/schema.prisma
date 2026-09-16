@@ -133,7 +133,6 @@ model Campaign {
   diceRolls        DiceRoll[]
   worldEvents      WorldEvent[]
   encounters       Encounter[]
-  monsterInstances MonsterInstance[]
 
   @@map("campaign")
 }
@@ -356,8 +355,8 @@ model MonsterInstance {
   conditionImmunities String[]
   conditions          String[] @default([])
 
-  campaign         Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  monsterInstances MonsterInstance[]
+  campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  participants EncounterParticipant[]
 
   @@map("monster_instance")
 }
@@ -562,44 +561,4 @@ model EncounterParticipant {
   monsterInstance MonsterInstance? @relation(fields: [monsterInstanceId], references: [id])
 
   @@map("encounter_participant")
-}
-
-/// Экземпляр монстра — живой монстр в бою с собственным HP и состоянием
-model MonsterInstance {
-  id                  String   @id @default(cuid())
-  campaignId          String
-  templateId          String
-  name                String
-  hpCurrent           Int
-  hpMax               Int
-  size                String?
-  creatureType        String?
-  challengeRating     String?
-  proficiencyBonus    Int?
-  str                 Int
-  dex                 Int
-  con                 Int
-  int                 Int
-  wis                 Int
-  cha                 Int
-  ac                  Int
-  speed               Int
-  initiativeBonus     Int?
-  saveProf            String[]
-  resistances         String[]
-  immunities          String[]
-  vulnerabilities     String[]
-  conditionImmunities String[]
-  senses              String[]
-  languages           String[]
-  traits              Json?
-  actions             Json?
-  reactions           Json?
-  legendaryActions    Json?
-
-  campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  template     MonsterTemplate        @relation(fields: [templateId], references: [id])
-  participants EncounterParticipant[]
-
-  @@map("monster_instance")
 }

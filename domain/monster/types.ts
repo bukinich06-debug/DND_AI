@@ -32,6 +32,7 @@ export interface IMonsterInstanceRepository {
   create: (input: ICreateMonsterInstance) => Promise<IMonsterInstance>;
   getById: (id: string) => Promise<IMonsterInstance | null>;
   listByCampaignId: (campaignId: string) => Promise<IMonsterInstance[]>;
+  listByEncounterId: (encounterId: string) => Promise<IMonsterInstance[]>;
   update: (id: string, input: IUpdateMonsterInstance) => Promise<IMonsterInstance>;
   delete: (id: string) => Promise<void>;
 }
