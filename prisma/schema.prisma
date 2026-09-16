@@ -129,7 +129,7 @@ model Campaign {
   npcs             Npc[]
   items            Item[]
   quests           Quest[]
-  monsterTemplates MonsterTemplate[]
+  monsterInstances MonsterInstance[]
   diceRolls        DiceRoll[]
   worldEvents      WorldEvent[]
   encounters       Encounter[]
@@ -332,43 +332,34 @@ model NpcStatBlock {
   @@map("npc_stat_block")
 }
 
-/// Шаблон монстра — переиспользуемый статблок без нарратива NPC
-model MonsterTemplate {
+/// Экземпляр монстра — живой боец, созданный из справочника
+model MonsterInstance {
   id                  String   @id @default(cuid())
   campaignId          String
+  catalogKey          String
   name                String
-  summary             String?
-  size                String?
-  creatureType        String?
-  challengeRating     String?
-  proficiencyBonus    Int?
+  hpMax               Int
+  hpCurrent           Int
+  ac                  Int
+  speed               Int
+  initiativeBonus     Int?
   str                 Int
   dex                 Int
   con                 Int
   int                 Int
   wis                 Int
   cha                 Int
-  hpMax               Int
-  ac                  Int
-  speed               Int
-  initiativeBonus     Int?
   saveProf            String[]
   resistances         String[]
   immunities          String[]
   vulnerabilities     String[]
   conditionImmunities String[]
-  senses              String[]
-  languages           String[]
-  traits              Json?
-  actions             Json?
-  reactions           Json?
-  legendaryActions    Json?
-  lootCoinsCp         Int      @default(0)
+  conditions          String[] @default([])
 
   campaign         Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   monsterInstances MonsterInstance[]
 
-  @@map("monster_template")
+  @@map("monster_instance")
 }
 
 /// Связь NPC с локациями (где живёт, работает, бывает)
