@@ -25,7 +25,6 @@ export interface IChatWithNpcPostPurchaseResult {
 
 const parseMessages = (messages: unknown): IChatMessage[] => {
   if (!Array.isArray(messages)) throw new Error('messages должен быть массивом.');
-  if (messages.length === 0) throw new Error('messages не должен быть пустым.');
 
   return messages.map((item, index) => {
     if (!item || typeof item !== 'object') throw new Error(`messages[${index}] некорректен.`);

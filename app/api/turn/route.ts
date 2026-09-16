@@ -6,7 +6,7 @@ import { runPlayerTurn } from '@/services/llm/turn/runPlayerTurn';
 interface IBody {
   campaignId: string;
   playerId: string;
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   resume?: unknown;
   check?: unknown;
   rollId?: unknown;
@@ -59,13 +59,16 @@ const parseBody = (body: IBody) => {
     rollId = body.rollId.trim();
   }
 
+  const messages = body.messages ?? [];
+  if (!postPurchase && messages.length === 0) throw new Error('messages обязательны для обычных ходов.');
+
   if (resume && (!check || !rollId)) throw new Error('Для продолжения нужны resume, check и rollId.');
   if (postPurchase && resume) throw new Error('postPurchase не может использоваться вместе с resume.');
 
   return {
     campaignId: body.campaignId.trim(),
     playerId: body.playerId.trim(),
-    messages: body.messages,
+    messages,
     resume,
     check,
     rollId,

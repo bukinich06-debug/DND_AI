@@ -38,6 +38,8 @@ curl -X POST http://localhost:3000/api/shop/npc_123/buy \
 ```
 
 **Шаг 2: Нарратив покупки**
+
+*Вариант А: С историей чата (если магазин открыт через диалог)*
 ```bash
 curl -X POST http://localhost:3000/api/turn \
   -H "Content-Type: application/json" \
@@ -48,6 +50,22 @@ curl -X POST http://localhost:3000/api/turn \
       { "role": "user", "content": "Я хочу купить длинный меч." },
       { "role": "assistant", "content": "Торговец показывает вам несколько клинков..." }
     ],
+    "postPurchase": {
+      "npcId": "npc_123",
+      "itemName": "Длинный меч",
+      "quantity": 1,
+      "totalPriceCp": 1500
+    }
+  }'
+```
+
+*Вариант Б: Без истории (модальная покупка)*
+```bash
+curl -X POST http://localhost:3000/api/turn \
+  -H "Content-Type: application/json" \
+  -d '{
+    "campaignId": "campaign_123",
+    "playerId": "player_456",
     "postPurchase": {
       "npcId": "npc_123",
       "itemName": "Длинный меч",
@@ -339,10 +357,12 @@ curl -X POST http://localhost:3000/api/turn \
 
 ## Интеграция в клиент
 
-```typescript
-// Псевдокод для клиента
+### Вариант 1: Магазин через чат
 
-class ShopService {
+```typescript
+// Псевдокод для магазина, открытого через диалог
+
+class ChatShopService {
   async buyItem(npcId: string, itemId: string, quantity: number) {
     // 1. Механическая покупка
     const buyResponse = await api.post(`/api/shop/${npcId}/buy`, {
@@ -361,7 +381,7 @@ class ShopService {
     this.updateCoins(playerCoinsCp);
     this.updateInventory(item);
 
-    // 3. Получить нарратив
+    // 3. Получить нарратив (с историей чата)
     const narrativeResponse = await api.post('/api/turn', {
       campaignId: this.campaignId,
       playerId: this.playerId,
@@ -385,6 +405,54 @@ class ShopService {
 
     // 5. Добавить в историю чата
     this.chatHistory.push(...narrativeResponse.replies);
+  }
+}
+```
+
+### Вариант 2: Модальный магазин (без чата)
+
+```typescript
+// Псевдокод для модального магазина (без истории диалога)
+
+class ModalShopService {
+  async buyItem(npcId: string, itemId: string, quantity: number) {
+    // 1. Механическая покупка
+    const buyResponse = await api.post(`/api/shop/${npcId}/buy`, {
+      playerId: this.playerId,
+      itemId,
+      quantity,
+    });
+
+    if (!buyResponse.ok) {
+      throw new Error(buyResponse.error);
+    }
+
+    const { item, playerCoinsCp, npcCoinsCp } = buyResponse;
+
+    // 2. Обновить UI (монеты, инвентарь)
+    this.updateCoins(playerCoinsCp);
+    this.updateInventory(item);
+
+    // 3. Получить нарратив (БЕЗ истории — messages опущено)
+    const narrativeResponse = await api.post('/api/turn', {
+      campaignId: this.campaignId,
+      playerId: this.playerId,
+      postPurchase: {
+        npcId,
+        itemName: item.name,
+        quantity: item.quantity,
+        totalPriceCp: item.priceCp * item.quantity,
+      },
+    });
+
+    // 4. Показать реакцию торговца и описание мастера в попапе/тосте
+    for (const reply of narrativeResponse.replies) {
+      if (reply.agent === 'npc') {
+        this.showNpcToast(reply.npcName, reply.say, reply.do);
+      } else if (reply.agent === 'master' && reply.say.trim()) {
+        this.showMasterToast(reply.say);
+      }
+    }
   }
 }
 ```

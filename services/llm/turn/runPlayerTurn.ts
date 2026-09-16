@@ -24,9 +24,9 @@ const lastUserMessage = (messages: IChatMessage[]) => {
   throw new Error('Нужна хотя бы одна реплика игрока.');
 };
 
-const parseMessages = (messages: unknown): IChatMessage[] => {
+const parseMessages = (messages: unknown, allowEmpty = false): IChatMessage[] => {
   if (!Array.isArray(messages)) throw new Error('messages должен быть массивом.');
-  if (messages.length === 0) throw new Error('messages не должен быть пустым.');
+  if (!allowEmpty && messages.length === 0) throw new Error('messages не должен быть пустым.');
 
   return messages.map((item, index) => {
     if (!item || typeof item !== 'object') throw new Error(`messages[${index}] некорректен.`);
@@ -163,9 +163,10 @@ const aggregateUi = (
 const runPostPurchase = async (
   campaignId: string,
   playerId: string,
-  messages: IChatMessage[],
+  rawMessages: unknown,
   purchase: IPostPurchase
 ): Promise<ITurnResult> => {
+  const messages = parseMessages(rawMessages, true);
   const npc = await getNpc(purchase.npcId);
   if (npc.campaignId !== campaignId) throw new Error('NPC не принадлежит этой кампании.');
 
@@ -212,9 +213,9 @@ export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnR
   if (!campaignId) throw new Error('campaignId обязателен.');
   if (!playerId) throw new Error('playerId обязателен.');
 
-  const messages = parseMessages(input.messages);
+  if (input.postPurchase) return runPostPurchase(campaignId, playerId, input.messages, input.postPurchase);
 
-  if (input.postPurchase) return runPostPurchase(campaignId, playerId, messages, input.postPurchase);
+  const messages = parseMessages(input.messages);
 
   if (input.resume) {
     const outcome = await loadOutcome(campaignId, playerId, input.rollId ?? '', input.check, input.resume);
