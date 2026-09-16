@@ -51,7 +51,8 @@ const parseMessages = (messages: unknown): IChatMessage[] => {
 };
 
 const formatNpcAfterCheck = (outcome: ICheckOutcome) => {
-  if (!outcome.knowledgeId) return 'Не проси новую проверку. Не возвращай поле check. Не вызывай get_coins и transfer_coins — сейчас не платёж.';
+  if (!outcome.knowledgeId)
+    return 'Не проси новую проверку. Не возвращай поле check. Не вызывай get_coins и transfer_coins — сейчас не платёж.';
   if (outcome.passed)
     return `Секрет knowledgeId=${outcome.knowledgeId} открыт: в снимке «Секреты под проверкой» у этой записи есть content. Скажи эти факты в say (можно своими словами, смысл тот же). Не отказывай, не требуй денег за секрет, не обрывай разговор. Не вызывай get_coins, transfer_coins, list_npc_knowledge. Не возвращай поле check.`;
   return `Секрет knowledgeId=${outcome.knowledgeId} не открыт. Не называй content, даже намёком. Можно отказать. Не вызывай get_coins. Не возвращай поле check.`;

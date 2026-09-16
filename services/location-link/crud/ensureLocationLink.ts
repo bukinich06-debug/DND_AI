@@ -32,8 +32,7 @@ export const ensureLocationLink = async (input: IEnsureLocationLinkInput) => {
 
   const links = await locationLinkRepository.listByCampaignId(input.campaignId);
   const existing = links.find(
-    (link) =>
-      (link.fromId === fromId && link.toId === toId) || (link.fromId === toId && link.toId === fromId)
+    (link) => (link.fromId === fromId && link.toId === toId) || (link.fromId === toId && link.toId === fromId)
   );
   if (existing) return existing;
 

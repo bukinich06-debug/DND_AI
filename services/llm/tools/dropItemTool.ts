@@ -16,8 +16,7 @@ const parseArgs = (args: unknown): IArgs => {
 
 export const dropItemTool: ILlmTool = {
   name: 'drop_item',
-  description:
-    'Бросает предмет игрока на пол текущей локации. Сначала search_player_items. Снимает с экипировки.',
+  description: 'Бросает предмет игрока на пол текущей локации. Сначала search_player_items. Снимает с экипировки.',
   parameters: {
     type: 'object',
     properties: {

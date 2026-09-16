@@ -9,9 +9,7 @@ export interface INpcAcquaintanceDetailed {
   title: string | null;
 }
 
-export const listNpcAcquaintancesDetailed = async (
-  npcId: string
-): Promise<INpcAcquaintanceDetailed[]> => {
+export const listNpcAcquaintancesDetailed = async (npcId: string): Promise<INpcAcquaintanceDetailed[]> => {
   if (!npcId.trim()) throw new Error('npcId обязателен.');
   const npc = await npcRepository.getById(npcId);
   if (!npc) throw new Error('NPC не найден.');

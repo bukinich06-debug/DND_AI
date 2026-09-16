@@ -30,8 +30,7 @@ export const goToLocation = async (input: IMovePlayer): Promise<IPlayerLocation>
   const fromSettlement = settlementOf(player.locationId, byId);
   const toSettlement = settlementOf(destination.id, byId);
 
-  if (!fromSettlement || !toSettlement || fromSettlement.id === toSettlement.id)
-    return movePlayer(input);
+  if (!fromSettlement || !toSettlement || fromSettlement.id === toSettlement.id) return movePlayer(input);
 
   const links = await locationLinkRepository.listByCampaignId(input.campaignId);
   const edges = links.map((link) => ({ fromId: link.fromId, toId: link.toId, days: link.days }));

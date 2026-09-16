@@ -24,10 +24,7 @@ export const equipItem = async (input: IEquipItem): Promise<IEquipItemResult> =>
   });
 
   const inventory = await itemRepository.listByPlayerId(item.playerId);
-  const occupants = occupantsToUnequip(
-    { id: item.id, equipSlot: input.slot, properties: item.properties },
-    inventory
-  );
+  const occupants = occupantsToUnequip({ id: item.id, equipSlot: input.slot, properties: item.properties }, inventory);
 
   const unequipped = [];
   for (const occupant of occupants) {

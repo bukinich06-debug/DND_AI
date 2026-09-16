@@ -20,9 +20,7 @@ const compact = (loc: ILocation) => ({
 export const loadLocationMentionContext = async ({ campaignId, playerId, npcId }: ILoadParams) => {
   const { startId, locations, byId, anchor } = await loadMentionAnchor({ campaignId, playerId, npcId });
   const chain = startId ? walkAncestors(startId, byId).map(compact) : [];
-  const here = anchor.settlementId
-    ? locations.filter((loc) => loc.parentId === anchor.settlementId).map(compact)
-    : [];
+  const here = anchor.settlementId ? locations.filter((loc) => loc.parentId === anchor.settlementId).map(compact) : [];
   const neighbors = anchor.settlementId
     ? locations
         .filter(
