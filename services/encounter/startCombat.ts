@@ -12,6 +12,7 @@ import { abilityMod } from '@/domain/player';
 interface IEnemyInput {
   catalogKey: string;
   count: number;
+  feetFromPlayer?: number;
 }
 
 interface IStartCombatInput {
@@ -63,11 +64,12 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     }
   }
 
-  const monsterInstances = [];
+  const monsterInstances: Array<{ instance: any; feetFromPlayer: number }> = [];
   for (const enemy of input.enemies) {
     if (enemy.count < 1) throw new Error(`Количество врагов должно быть >= 1 для ключа ${enemy.catalogKey}.`);
 
     const catalogEntry = getCatalogMonsterByKey(enemy.catalogKey);
+    const feetFromPlayer = enemy.feetFromPlayer ?? 30;
 
     for (let i = 0; i < enemy.count; i++) {
       const instanceName = enemy.count > 1 ? `${catalogEntry.name} ${i + 1}` : catalogEntry.name;
@@ -94,13 +96,14 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
         conditionImmunities: catalogEntry.conditionImmunities,
       });
 
-      monsterInstances.push(instance);
+      monsterInstances.push({ instance, feetFromPlayer });
     }
   }
 
   const combatants: Array<{
     name: string;
     initiative: number;
+    feetFromPlayer: number;
     playerId?: string;
     npcId?: string;
     monsterInstanceId?: string;
@@ -117,6 +120,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   combatants.push({
     name: player.name,
     initiative: playerInitiativeRoll.value + playerInitiativeBonus,
+    feetFromPlayer: 0,
     playerId: player.id,
     kind: 'player',
   });
@@ -134,12 +138,13 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     combatants.push({
       name: npc.name,
       initiative: npcInitiativeRoll.value + npcInitiativeBonus,
+      feetFromPlayer: 5,
       npcId: npc.id,
       kind: 'npc',
     });
   }
 
-  for (const instance of monsterInstances) {
+  for (const { instance, feetFromPlayer } of monsterInstances) {
     const monsterInitiativeRoll = await rollDice({
       campaignId: input.campaignId,
       die: 'd20',
@@ -149,6 +154,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     combatants.push({
       name: instance.name,
       initiative: monsterInitiativeRoll.value + monsterInitiativeBonus,
+      feetFromPlayer,
       monsterInstanceId: instance.id,
       kind: 'monster',
     });
@@ -167,6 +173,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
       encounterId: encounter.id,
       initiative: combatant.initiative,
       order: i,
+      feetFromPlayer: combatant.feetFromPlayer,
       playerId: combatant.playerId ?? null,
       npcId: combatant.npcId ?? null,
       monsterInstanceId: combatant.monsterInstanceId ?? null,
