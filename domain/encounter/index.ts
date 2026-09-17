@@ -7,4 +7,7 @@ export type {
   ICreateEncounterParticipant,
   IUpdateEncounterParticipant,
   IEncounterParticipantRepository,
+  IEncounterLog,
+  ICreateEncounterLog,
+  IEncounterLogRepository,
 } from './types';
