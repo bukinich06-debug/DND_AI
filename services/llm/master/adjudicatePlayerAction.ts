@@ -68,9 +68,7 @@ export const adjudicatePlayerAction = async (
   });
 
   if (reply.verdict === 'defer_combat') {
-    const hasSuccessfulStartCombat = reply.toolCalls.some(
-      (call) => call.name === 'start_combat' && call.ok
-    );
+    const hasSuccessfulStartCombat = reply.toolCalls.some((call) => call.name === 'start_combat' && call.ok);
     if (!hasSuccessfulStartCombat)
       return {
         verdict: 'partial',
