@@ -25,7 +25,7 @@ const parseArgs = (args: unknown): IListCombatTargetsArgs => {
 export const listCombatTargetsTool: ILlmTool = {
   name: 'list_combat_targets',
   description:
-    'Возвращает список всех участников активной боевой сцены. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Передай encounterId текущего боя. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников.',
+    'Возвращает список всех участников активной боевой сцены с дистанцией до игрока (feetFromPlayer) и AC. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Передай encounterId текущего боя. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников.',
   parameters: {
     type: 'object',
     properties: {
@@ -52,6 +52,7 @@ export const listCombatTargetsTool: ILlmTool = {
         let name = 'Неизвестный';
         let kind: 'player' | 'npc' | 'monster' = 'monster';
         let hp: number | null = null;
+        let ac: number | null = null;
 
         if (p.playerId) {
           const player = await playerRepository.getById(p.playerId);
@@ -59,6 +60,7 @@ export const listCombatTargetsTool: ILlmTool = {
             name = player.name;
             kind = 'player';
             hp = player.hpCurrent;
+            ac = player.ac;
           }
         } else if (p.npcId) {
           const npc = await npcRepository.getById(p.npcId);
@@ -67,6 +69,7 @@ export const listCombatTargetsTool: ILlmTool = {
             kind = 'npc';
             const statBlock = await npcStatBlockRepository.getByNpcId(p.npcId);
             hp = statBlock?.hpCurrent ?? null;
+            ac = statBlock?.ac ?? null;
           }
         } else if (p.monsterInstanceId) {
           const monster = await monsterInstanceRepository.getById(p.monsterInstanceId);
@@ -74,6 +77,7 @@ export const listCombatTargetsTool: ILlmTool = {
             name = monster.name;
             kind = 'monster';
             hp = monster.hpCurrent;
+            ac = monster.ac;
           }
         }
 
@@ -85,6 +89,8 @@ export const listCombatTargetsTool: ILlmTool = {
           order: p.order,
           isOut: p.isOut,
           hp,
+          ac,
+          feetFromPlayer: p.feetFromPlayer,
           playerId: p.playerId,
           npcId: p.npcId,
           monsterInstanceId: p.monsterInstanceId,

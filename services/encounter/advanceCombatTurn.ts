@@ -123,6 +123,32 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       newLogEntries.push(doEntry);
     }
 
+    const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
+
+    for (const move of moveResults) {
+      if (typeof move.result === 'object' && move.result !== null) {
+        const res = move.result as {
+          movedFeet?: number;
+          feetFromPlayerBefore?: number;
+          feetFromPlayerAfter?: number;
+          monsterName?: string;
+        };
+
+        if (res.movedFeet && res.movedFeet > 0) {
+          const moveEntry = {
+            actorName,
+            message: `${res.monsterName || actorName} приближается на ${res.movedFeet} фт (осталось ${res.feetFromPlayerAfter} фт до игрока)`,
+            meta: move.result,
+          };
+          await encounterLogRepository.create({
+            encounterId: encounter.id,
+            ...moveEntry,
+          });
+          newLogEntries.push(moveEntry);
+        }
+      }
+    }
+
     const attackResults = monsterResult.toolCalls.filter((tc) => tc.name === 'resolve_monster_attack' && tc.result);
 
     for (const attack of attackResults) {
