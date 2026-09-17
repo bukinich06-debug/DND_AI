@@ -551,6 +551,7 @@ model EncounterParticipant {
   initiative        Int
   order             Int
   isOut             Boolean @default(false)
+  feetFromPlayer    Int     @default(30)
   playerId          String?
   npcId             String?
   monsterInstanceId String?

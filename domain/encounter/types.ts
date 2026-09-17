@@ -30,13 +30,15 @@ export interface IEncounterParticipant {
   initiative: number;
   order: number;
   isOut: boolean;
+  feetFromPlayer: number;
   playerId: string | null;
   npcId: string | null;
   monsterInstanceId: string | null;
 }
 
-export type ICreateEncounterParticipant = Omit<IEncounterParticipant, 'id' | 'isOut'> & {
+export type ICreateEncounterParticipant = Omit<IEncounterParticipant, 'id' | 'isOut' | 'feetFromPlayer'> & {
   isOut?: boolean;
+  feetFromPlayer?: number;
 };
 
 export type IUpdateEncounterParticipant = Partial<Omit<ICreateEncounterParticipant, 'encounterId'>>;

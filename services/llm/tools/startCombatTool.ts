@@ -4,6 +4,7 @@ import type { ILlmTool, IToolContext } from './types';
 interface IEnemyInput {
   catalogKey: string;
   count: number;
+  feetFromPlayer?: number;
 }
 
 interface IArgs {
@@ -28,9 +29,17 @@ const parseArgs = (args: unknown): IArgs => {
       throw new Error(`Враг ${index}: catalogKey обязателен.`);
     if (typeof e.count !== 'number' || e.count < 1) throw new Error(`Враг ${index}: count должен быть >= 1.`);
 
+    let feetFromPlayer: number | undefined;
+    if (e.feetFromPlayer !== undefined) {
+      if (typeof e.feetFromPlayer !== 'number' || e.feetFromPlayer < 0)
+        throw new Error(`Враг ${index}: feetFromPlayer должен быть >= 0.`);
+      feetFromPlayer = Math.floor(e.feetFromPlayer);
+    }
+
     return {
       catalogKey: e.catalogKey.trim(),
       count: Math.floor(e.count),
+      feetFromPlayer,
     };
   });
 
@@ -56,14 +65,14 @@ const parseArgs = (args: unknown): IArgs => {
 export const startCombatTool: ILlmTool = {
   name: 'start_combat',
   description:
-    'Начинает боевую сцену с указанными врагами из справочника монстров. Автоматически бросает инициативу для всех участников (игрока, союзных НПС и врагов), создаёт экземпляры монстров, сортирует по инициативе. Используй это, когда мастер описывает начало боя.',
+    'Начинает боевую сцену с указанными врагами из справочника монстров. Автоматически бросает инициативу для всех участников (игрока, союзных НПС и врагов), создаёт экземпляры монстров, сортирует по инициативе. ВАЖНО: мастер обязан оценить начальную дистанцию до каждого типа врагов в футах (feetFromPlayer) на основе описания ситуации. Если дистанция не указана явно, используй разумную оценку: ближний бой (5-15 ft), средняя дистанция (30-60 ft), дальняя (100+ ft).',
   parameters: {
     type: 'object',
     properties: {
       enemies: {
         type: 'array',
         description:
-          'Массив врагов из справочника. Каждый элемент: { catalogKey: "ключ_монстра", count: число_экземпляров }.',
+          'Массив врагов из справочника. Каждый элемент: { catalogKey: "ключ_монстра", count: число_экземпляров, feetFromPlayer?: дистанция_в_футах }. Дистанция обязательна для оценки мастером на основе описания сцены боя.',
         items: {
           type: 'object',
           properties: {
@@ -75,6 +84,11 @@ export const startCombatTool: ILlmTool = {
             count: {
               type: 'number',
               description: 'Количество экземпляров этого монстра (>= 1).',
+            },
+            feetFromPlayer: {
+              type: 'number',
+              description:
+                'Расстояние от игрока до этого типа врагов в футах (>= 0). Мастер должен оценить дистанцию на основе описания начала боя: ближний бой 5-15 ft, средняя дистанция 30-60 ft, дальняя 100+ ft. Если не указано, используется дефолт 30 ft.',
             },
           },
           required: ['catalogKey', 'count'],
