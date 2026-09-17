@@ -802,23 +802,6 @@ export const paths = {
     },
   },
 
-  '/api/monster-templates': listCreateByCampaign('MonsterTemplates', 'MonsterTemplate', 'CreateMonsterTemplate'),
-  '/api/monster-templates/{id}': crudById('MonsterTemplates', 'MonsterTemplate'),
-  '/api/monster-templates/{id}/combat-stats': {
-    get: {
-      tags: ['MonsterTemplates'],
-      summary: 'Боевые характеристики шаблона монстра',
-      parameters: [idParam],
-      responses: {
-        '200': {
-          description: 'OK',
-          ...json(ref('CombatStats')),
-        },
-        ...errorResponses,
-      },
-    },
-  },
-
   '/api/dice-rolls': {
     get: {
       tags: ['DiceRolls'],

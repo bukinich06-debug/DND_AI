@@ -1,9 +1,5 @@
 import type { NpcAcquaintance } from '@/generated/client';
-import type {
-  INpcAcquaintance,
-  INpcAcquaintanceRepository,
-  ISetNpcAcquaintance,
-} from '@/domain/npc';
+import type { INpcAcquaintance, INpcAcquaintanceRepository, ISetNpcAcquaintance } from '@/domain/npc';
 import { db } from '@/data/shared';
 
 const mapAcquaintance = (row: NpcAcquaintance): INpcAcquaintance => ({

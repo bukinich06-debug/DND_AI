@@ -10,7 +10,14 @@ interface ICatalogToCreate {
   quantity?: number;
 }
 
-export const catalogToCreateItem = ({ entry, campaignId, playerId, npcId, locationId, quantity }: ICatalogToCreate): ICreateItem => ({
+export const catalogToCreateItem = ({
+  entry,
+  campaignId,
+  playerId,
+  npcId,
+  locationId,
+  quantity,
+}: ICatalogToCreate): ICreateItem => ({
   campaignId,
   name: entry.name,
   kind: entry.kind,

@@ -53,6 +53,13 @@ export interface IDoneTurn {
 
 export type ITurnResult = INeedCheckTurn | IDoneTurn;
 
+export interface IPostPurchase {
+  npcId: string;
+  itemName: string;
+  quantity: number;
+  totalPriceCp: number;
+}
+
 export interface IRunPlayerTurnParams {
   campaignId: string;
   playerId: string;
@@ -60,6 +67,7 @@ export interface IRunPlayerTurnParams {
   resume?: ITurnResume;
   check?: { skill: string; dc: number; knowledgeId?: string | null };
   rollId?: string;
+  postPurchase?: IPostPurchase;
 }
 
 export type { ICheckOutcome };

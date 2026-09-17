@@ -9,7 +9,8 @@ export const validateApplyPlayerHp = (input: IApplyPlayerHp) => {
 export const validateShortRest = (input: IShortRest) => {
   if (!input.campaignId.trim()) throw new Error('Кампания обязательна.');
   if (!input.playerId.trim()) throw new Error('Игрок обязателен.');
-  if (!Number.isInteger(input.hitDice) || input.hitDice < 1) throw new Error('Нужно потратить хотя бы одну кость хитов.');
+  if (!Number.isInteger(input.hitDice) || input.hitDice < 1)
+    throw new Error('Нужно потратить хотя бы одну кость хитов.');
 };
 
 export const validateLongRest = (input: ILongRest) => {

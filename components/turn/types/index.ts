@@ -18,8 +18,7 @@ export interface IPendingCheck {
 }
 
 export type ITurnResume =
-  | { agent: 'npc'; npcId: string; remainingSteps: unknown[] }
-  | { agent: 'master'; remainingSteps: unknown[] };
+  { agent: 'npc'; npcId: string; remainingSteps: unknown[] } | { agent: 'master'; remainingSteps: unknown[] };
 
 export type ITurnReply =
   | {

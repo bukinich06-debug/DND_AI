@@ -8,7 +8,7 @@ export const buildMasterPrompt = (ctx: IMasterContext) => {
     const shopTag = npc.shopSpecialtyKey ? ' [Торговец]' : '';
     return `- ${npc.name}${title}${loc}${shopTag}`;
   });
-  
+
   const snapshot = {
     player: ctx.player,
     location: ctx.world.location,
@@ -30,7 +30,7 @@ export const buildMasterPrompt = (ctx: IMasterContext) => {
       timeOfDayLabel: TIME_OF_DAY_LABEL[ctx.clock.timeOfDay],
     },
   };
-  
+
   const npcSection = npcLines.length > 0 ? `\n\nNPC кампании:\n${npcLines.join('\n')}` : '';
 
   return `Ты мастер-рефери D&D. Игрок: ${ctx.world.player.name}. Ты не NPC и не ведёшь бой. Осмотр места — твой ход.

@@ -16,6 +16,7 @@ import { searchItemCatalogTool } from '@/services/llm/tools/searchItemCatalogToo
 import { searchLocationItemsTool } from '@/services/llm/tools/searchLocationItemsTool';
 import { searchPlayerItemsTool } from '@/services/llm/tools/searchPlayerItemsTool';
 import { shortRestTool } from '@/services/llm/tools/shortRestTool';
+import { startCombatTool } from '@/services/llm/tools/startCombatTool';
 import { startTravelTool } from '@/services/llm/tools/startTravelTool';
 import { takeItemTool } from '@/services/llm/tools/takeItemTool';
 import type { ILlmTool } from '@/services/llm/tools/types';
@@ -43,6 +44,7 @@ export const masterTools: ILlmTool[] = [
   advanceTravelTool,
   advanceTimeTool,
   scheduleMeetingTool,
+  startCombatTool,
 ];
 
 export const masterToolByName = new Map(masterTools.map((tool) => [tool.name, tool]));

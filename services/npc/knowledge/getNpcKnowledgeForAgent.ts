@@ -4,11 +4,7 @@ import { npcKnowledgeRepository, npcRepository } from '@/data/npc';
 import { KnowledgeReveal } from '@/domain/shared';
 import { toAgentKnowledge, type IPassedCheck } from './helpers/toAgentKnowledge';
 
-export const getNpcKnowledgeForAgent = async (
-  knowledgeId: string,
-  campaignId?: string,
-  passedCheck?: IPassedCheck
-) => {
+export const getNpcKnowledgeForAgent = async (knowledgeId: string, campaignId?: string, passedCheck?: IPassedCheck) => {
   const knowledge = await npcKnowledgeRepository.getById(knowledgeId);
   if (!knowledge) throw new Error('Знание NPC не найдено.');
 

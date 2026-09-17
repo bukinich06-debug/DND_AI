@@ -12,8 +12,10 @@ import { getNpc } from '@/services/npc/crud/getNpc';
 import { movePlayer } from '@/services/player/location/movePlayer';
 import { tryFireDueMeeting } from '@/services/world-event/tryFireDueMeeting';
 import { resolveRequestedCheck } from './resolveRequestedCheck';
-import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume } from './types';
+import type { IChatMessage, IRunPlayerTurnParams, ITurnReply, ITurnResult, ITurnResume, IPostPurchase } from './types';
 import { ensureShopStock } from '@/services/shop/ensureShopStock';
+import { chatWithNpcPostPurchase } from '@/services/llm/npc/chatWithNpcPostPurchase';
+import { adjudicatePostPurchase } from '@/services/llm/master/adjudicatePostPurchase';
 
 const lastUserMessage = (messages: IChatMessage[]) => {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -22,9 +24,9 @@ const lastUserMessage = (messages: IChatMessage[]) => {
   throw new Error('Нужна хотя бы одна реплика игрока.');
 };
 
-const parseMessages = (messages: unknown): IChatMessage[] => {
+const parseMessages = (messages: unknown, allowEmpty = false): IChatMessage[] => {
   if (!Array.isArray(messages)) throw new Error('messages должен быть массивом.');
-  if (messages.length === 0) throw new Error('messages не должен быть пустым.');
+  if (!allowEmpty && messages.length === 0) throw new Error('messages не должен быть пустым.');
 
   return messages.map((item, index) => {
     if (!item || typeof item !== 'object') throw new Error(`messages[${index}] некорректен.`);
@@ -141,7 +143,9 @@ const resumeStep = async (campaignId: string, resume: ITurnResume): Promise<IPla
   return { agent: 'npc', npcId: npc.id, npcName: npc.name };
 };
 
-const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcName: string; specialtyKey: string } } | undefined => {
+const aggregateUi = (
+  replies: ITurnReply[]
+): { openShop?: { npcId: string; npcName: string; specialtyKey: string } } | undefined => {
   for (const reply of replies) {
     if (reply.agent === 'npc' && reply.openShop) {
       return {
@@ -156,11 +160,60 @@ const aggregateUi = (replies: ITurnReply[]): { openShop?: { npcId: string; npcNa
   return undefined;
 };
 
+const runPostPurchase = async (
+  campaignId: string,
+  playerId: string,
+  rawMessages: unknown,
+  purchase: IPostPurchase
+): Promise<ITurnResult> => {
+  const messages = parseMessages(rawMessages, true);
+  const npc = await getNpc(purchase.npcId);
+  if (npc.campaignId !== campaignId) throw new Error('NPC не принадлежит этой кампании.');
+
+  const npcResult = await chatWithNpcPostPurchase({
+    campaignId,
+    playerId,
+    npcId: purchase.npcId,
+    messages,
+    purchase,
+  });
+
+  const replies: ITurnReply[] = [
+    {
+      agent: 'npc',
+      npcId: purchase.npcId,
+      npcName: npc.name,
+      say: npcResult.say,
+      do: npcResult.do,
+    },
+  ];
+
+  const masterResult = await adjudicatePostPurchase({
+    campaignId,
+    playerId,
+    messages,
+    purchase,
+  });
+
+  if (masterResult.say.trim()) {
+    replies.push({
+      agent: 'master',
+      verdict: masterResult.verdict,
+      say: masterResult.say,
+      toolCalls: masterResult.toolCalls,
+    });
+  }
+
+  return { status: 'done', replies };
+};
+
 export const runPlayerTurn = async (input: IRunPlayerTurnParams): Promise<ITurnResult> => {
   const campaignId = input.campaignId.trim();
   const playerId = input.playerId.trim();
   if (!campaignId) throw new Error('campaignId обязателен.');
   if (!playerId) throw new Error('playerId обязателен.');
+
+  if (input.postPurchase) return runPostPurchase(campaignId, playerId, input.messages, input.postPurchase);
 
   const messages = parseMessages(input.messages);
 

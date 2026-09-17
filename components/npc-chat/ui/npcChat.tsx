@@ -84,13 +84,10 @@ const HookCard = ({ hook }: { hook: IHookRunLog }) => (
     }}
   >
     <div style={{ fontWeight: 600, marginBottom: 6 }}>
-      {hook.name}{' '}
-      <span style={{ color: statusColor(hook.status) }}>{hook.status}</span>
+      {hook.name} <span style={{ color: statusColor(hook.status) }}>{hook.status}</span>
     </div>
     <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 8 }}>turn {hook.turnId.slice(0, 8)}…</div>
-    {hook.error && (
-      <div style={{ marginBottom: 8, color: '#b91c1c', whiteSpace: 'pre-wrap' }}>{hook.error}</div>
-    )}
+    {hook.error && <div style={{ marginBottom: 8, color: '#b91c1c', whiteSpace: 'pre-wrap' }}>{hook.error}</div>}
     {hook.toolCalls.length === 0 && hook.status === 'running' && (
       <p style={{ margin: 0, color: '#888' }}>Выполняется…</p>
     )}
