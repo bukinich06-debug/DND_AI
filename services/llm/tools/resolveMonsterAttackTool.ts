@@ -97,6 +97,30 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const participant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!participant) throw new Error('Участник боя не найден.');
 
+    const targetDistance = participant.feetFromPlayer;
+
+    if (targetDistance > 5) {
+      let targetName = 'Неизвестный';
+      if (participant.playerId) {
+        const player = await playerRepository.getById(participant.playerId);
+        if (player) targetName = player.name;
+      } else if (participant.npcId) {
+        const npc = await npcRepository.getById(participant.npcId);
+        if (npc) targetName = npc.name;
+      } else if (participant.monsterInstanceId) {
+        const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
+        if (monster) targetName = monster.name;
+      }
+
+      return {
+        hit: false,
+        errorCode: 'OUT_OF_REACH',
+        targetName,
+        targetDistance,
+        message: `${targetName} находится слишком далеко для рукопашной атаки (${targetDistance} футов, требуется ≤5 футов)`,
+      };
+    }
+
     let targetAc = 10;
     let targetHp = 0;
     let targetMaxHp = 0;
