@@ -1,9 +1,10 @@
 'use server';
 
-import { encounterRepository, encounterParticipantRepository } from '@/data/encounter';
+import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { monsterInstanceRepository } from '@/data/monster';
+import type { IEncounterLog } from '@/domain/encounter';
 
 interface IGetActiveEncounterInput {
   campaignId: string;
@@ -34,6 +35,7 @@ interface IGetActiveEncounterResult {
     currentParticipantId: string | null;
     isPlayerTurn: boolean;
     participants: IParticipantInfo[];
+    log: IEncounterLog[];
   } | null;
 }
 
@@ -111,6 +113,8 @@ export const getActiveEncounter = async (
   const isPlayerTurn =
     currentParticipant != null && input.playerId != null && currentParticipant.playerId === input.playerId;
 
+  const log = await encounterLogRepository.listByEncounterId(encounter.id);
+
   return {
     hasActiveEncounter: true,
     encounter: {
@@ -121,6 +125,7 @@ export const getActiveEncounter = async (
       currentParticipantId: currentParticipant?.id ?? null,
       isPlayerTurn,
       participants: participantInfos,
+      log,
     },
   };
 };
