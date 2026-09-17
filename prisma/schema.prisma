@@ -539,6 +539,7 @@ model Encounter {
   campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   location     Location?              @relation(fields: [locationId], references: [id])
   participants EncounterParticipant[]
+  logs         EncounterLog[]
 
   @@index([campaignId, status])
   @@map("encounter")
@@ -562,4 +563,19 @@ model EncounterParticipant {
   monsterInstance MonsterInstance? @relation(fields: [monsterInstanceId], references: [id])
 
   @@map("encounter_participant")
+}
+
+/// Запись в лог боевой сцены
+model EncounterLog {
+  id          String   @id @default(cuid())
+  encounterId String
+  actorName   String?
+  message     String
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  encounter Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId, createdAt])
+  @@map("encounter_log")
 }

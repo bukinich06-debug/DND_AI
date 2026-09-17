@@ -196,6 +196,23 @@ Master system prompt различает:
 | services | [`services/llm/master/adjudicatePlayerAction.ts`](services/llm/master/adjudicatePlayerAction.ts) |
 | API | [`app/api/master/`](app/api/master/) — `POST { campaignId, playerId, messages }` → `{ verdict, say, check, toolCalls }` |
 
+### Encounter / Combat
+
+Боевые сцены (encounter): инициатива, порядок хода, лог действий. Монстры выполняют свои ходы через LLM-агента с доступом к combat tools.
+
+**API:**
+- GET `/api/encounter/active?campaignId=...&playerId=...` — получить активную боевую сцену с участниками и логом
+- POST `/api/encounter/advance` `{ campaignId, playerId? }` — продвинуть ход боя (отыгрывает текущего монстра/NPC, не работает на ходе игрока)
+
+**Monster combat agent:** При ходе монстра вызывается `runMonsterCombatTurn`, который использует LLM с доступом к combat tools (`list_combat_targets`, `get_self_combat_stats`, `roll_dice`, `resolve_monster_attack`). Результаты (say/do/toolCalls) записываются в лог.
+
+| Слой | Путь |
+|------|------|
+| domain | [`domain/encounter/`](domain/encounter/) (types: `IEncounter`, `IEncounterParticipant`, `IEncounterLog`) |
+| data | [`data/encounter/`](data/encounter/) (repositories: `encounterRepository`, `encounterParticipantRepository`, `encounterLogRepository`) |
+| services | [`services/encounter/`](services/encounter/) (`startCombat`, `getActiveEncounter`, `advanceCombatTurn`); [`services/llm/monster/`](services/llm/monster/) (`runMonsterCombatTurn`, `loadMonsterCombatContext`) |
+| API | [`app/api/encounter/active/`](app/api/encounter/active/), [`app/api/encounter/advance/`](app/api/encounter/advance/) |
+
 ---
 
 ## CRUD-сущности

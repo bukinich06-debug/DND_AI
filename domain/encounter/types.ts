@@ -50,3 +50,22 @@ export interface IEncounterParticipantRepository {
   update: (id: string, input: IUpdateEncounterParticipant) => Promise<IEncounterParticipant>;
   delete: (id: string) => Promise<void>;
 }
+
+export interface IEncounterLog {
+  id: string;
+  encounterId: string;
+  actorName: string | null;
+  message: string;
+  meta: unknown;
+  createdAt: Date;
+}
+
+export type ICreateEncounterLog = Omit<IEncounterLog, 'id' | 'createdAt' | 'meta'> & {
+  meta?: unknown;
+  createdAt?: Date;
+};
+
+export interface IEncounterLogRepository {
+  create: (input: ICreateEncounterLog) => Promise<IEncounterLog>;
+  listByEncounterId: (encounterId: string) => Promise<IEncounterLog[]>;
+}
