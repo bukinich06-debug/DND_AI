@@ -67,6 +67,17 @@ export const adjudicatePlayerAction = async (
     },
   });
 
+  if (reply.verdict === 'defer_combat') {
+    const hasSuccessfulStartCombat = reply.toolCalls.some((call) => call.name === 'start_combat' && call.ok);
+    if (!hasSuccessfulStartCombat)
+      return {
+        verdict: 'partial',
+        say: 'Начало боя требует вызова start_combat с указанием врагов из справочника монстров.',
+        check: null,
+        toolCalls: reply.toolCalls,
+      };
+  }
+
   if (outcome && reply.check)
     return {
       verdict: reply.verdict === 'check' ? 'partial' : reply.verdict,
