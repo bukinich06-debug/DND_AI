@@ -12,6 +12,7 @@ interface IResolveMonsterAttackArgs {
   attackName?: string | null;
   attackBonus?: number | null;
   damageFormula?: string | null;
+  isRanged?: boolean | null;
 }
 
 const parseArgs = (args: unknown): IResolveMonsterAttackArgs => {
@@ -29,6 +30,7 @@ const parseArgs = (args: unknown): IResolveMonsterAttackArgs => {
     attackName: (raw.attackName as string | null | undefined) ?? null,
     attackBonus: (raw.attackBonus as number | null | undefined) ?? null,
     damageFormula: (raw.damageFormula as string | null | undefined) ?? null,
+    isRanged: (raw.isRanged as boolean | null | undefined) ?? null,
   };
 };
 
@@ -60,7 +62,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели. Если attackName не указан, используется простая рукопашная атака (d20 + STR/DEX mod vs AC, урон 1d6 + mod). Можешь передать attackBonus и damageFormula, если хочешь использовать конкретное значение из actions.',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко. Если attackName не указан, используется простая рукопашная атака (d20 + STR/DEX mod vs AC, урон 1d6 + mod). Можешь передать attackBonus, damageFormula и isRanged для конкретной атаки из actions.',
   parameters: {
     type: 'object',
     properties: {
@@ -84,6 +86,10 @@ export const resolveMonsterAttackTool: ILlmTool = {
         type: 'string',
         description: 'Формула урона (например, "1d6+2"). Если не указана, используется 1d6 + mod',
       },
+      isRanged: {
+        type: 'boolean',
+        description: 'Является ли атака дальнобойной (лук, арбалет). Если true, проверяется дистанция по описанию атаки',
+      },
     },
     required: ['attackerMonsterInstanceId', 'targetParticipantId'],
     additionalProperties: false,
@@ -94,59 +100,91 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const attacker = await monsterInstanceRepository.getById(parsed.attackerMonsterInstanceId);
     if (!attacker) throw new Error('Атакующий монстр не найден.');
 
-    const participant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
-    if (!participant) throw new Error('Участник боя не найден.');
+    const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
+    if (!targetParticipant) throw new Error('Участник боя не найден.');
 
-    const targetDistance = participant.feetFromPlayer;
+    const attackerParticipants = await encounterParticipantRepository.listByEncounterId(
+      targetParticipant.encounterId
+    );
+    const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
+    if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
 
-    if (targetDistance > 5) {
-      let targetName = 'Неизвестный';
-      if (participant.playerId) {
-        const player = await playerRepository.getById(participant.playerId);
-        if (player) targetName = player.name;
-      } else if (participant.npcId) {
-        const npc = await npcRepository.getById(participant.npcId);
-        if (npc) targetName = npc.name;
-      } else if (participant.monsterInstanceId) {
-        const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
-        if (monster) targetName = monster.name;
-      }
+    const isRangedAttack =
+      parsed.isRanged === true ||
+      (parsed.attackName &&
+        (parsed.attackName.toLowerCase().includes('лук') ||
+          parsed.attackName.toLowerCase().includes('арбалет') ||
+          parsed.attackName.toLowerCase().includes('метательн') ||
+          parsed.attackName.toLowerCase().includes('дальнобойн')));
 
+    let distance = 0;
+    let targetName = 'Неизвестный';
+
+    if (targetParticipant.playerId) {
+      const player = await playerRepository.getById(targetParticipant.playerId);
+      if (player) targetName = player.name;
+      distance = attackerParticipant.feetFromPlayer;
+    } else if (targetParticipant.npcId) {
+      const npc = await npcRepository.getById(targetParticipant.npcId);
+      if (npc) targetName = npc.name;
+      distance = Math.abs(attackerParticipant.feetFromPlayer - targetParticipant.feetFromPlayer);
+    } else if (targetParticipant.monsterInstanceId) {
+      const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
+      if (monster) targetName = monster.name;
+      distance = Math.abs(attackerParticipant.feetFromPlayer - targetParticipant.feetFromPlayer);
+    }
+
+    if (!isRangedAttack && distance > 5) {
       return {
         hit: false,
         errorCode: 'OUT_OF_REACH',
         targetName,
-        targetDistance,
-        message: `${targetName} находится слишком далеко для рукопашной атаки (${targetDistance} футов, требуется ≤5 футов)`,
+        distance,
+        message: `${targetName} находится слишком далеко для рукопашной атаки (${distance} футов, требуется ≤5 футов)`,
       };
+    }
+
+    if (isRangedAttack) {
+      const rangeMatch = parsed.attackName?.match(/(\d+)\/(\d+)\s*фут/);
+      let normalRange = 80;
+      if (rangeMatch) normalRange = parseInt(rangeMatch[1], 10);
+
+      if (distance > normalRange) {
+        return {
+          hit: false,
+          errorCode: 'OUT_OF_REACH',
+          targetName,
+          distance,
+          message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
+        };
+      }
     }
 
     let targetAc = 10;
     let targetHp = 0;
     let targetMaxHp = 0;
-    let targetName = 'Неизвестный';
     let targetKind: 'player' | 'npc' | 'monster' = 'monster';
 
-    if (participant.playerId) {
-      const player = await playerRepository.getById(participant.playerId);
+    if (targetParticipant.playerId) {
+      const player = await playerRepository.getById(targetParticipant.playerId);
       if (!player) throw new Error('Игрок не найден.');
       targetAc = player.ac;
       targetHp = player.hpCurrent;
       targetMaxHp = player.hpMax;
       targetName = player.name;
       targetKind = 'player';
-    } else if (participant.npcId) {
-      const npc = await npcRepository.getById(participant.npcId);
+    } else if (targetParticipant.npcId) {
+      const npc = await npcRepository.getById(targetParticipant.npcId);
       if (!npc) throw new Error('NPC не найден.');
-      const statBlock = await npcStatBlockRepository.getByNpcId(participant.npcId);
+      const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
       if (!statBlock) throw new Error('NPC статблок не найден.');
       targetAc = statBlock.ac;
       targetHp = statBlock.hpCurrent;
       targetMaxHp = statBlock.hpMax;
       targetName = npc.name;
       targetKind = 'npc';
-    } else if (participant.monsterInstanceId) {
-      const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
+    } else if (targetParticipant.monsterInstanceId) {
+      const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
       if (!monster) throw new Error('Монстр-цель не найден.');
       targetAc = monster.ac;
       targetHp = monster.hpCurrent;
@@ -196,13 +234,13 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       const newHp = Math.max(0, targetHp - damageTotal);
 
-      if (targetKind === 'player' && participant.playerId) {
-        await playerRepository.update(participant.playerId, { hpCurrent: newHp });
-      } else if (targetKind === 'npc' && participant.npcId) {
-        const statBlock = await npcStatBlockRepository.getByNpcId(participant.npcId);
+      if (targetKind === 'player' && targetParticipant.playerId) {
+        await playerRepository.update(targetParticipant.playerId, { hpCurrent: newHp });
+      } else if (targetKind === 'npc' && targetParticipant.npcId) {
+        const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
         if (statBlock) {
           await npcStatBlockRepository.upsert({
-            npcId: participant.npcId,
+            npcId: targetParticipant.npcId,
             size: statBlock.size,
             creatureType: statBlock.creatureType,
             challengeRating: statBlock.challengeRating,
@@ -231,12 +269,12 @@ export const resolveMonsterAttackTool: ILlmTool = {
             legendaryActions: statBlock.legendaryActions,
           });
         }
-      } else if (targetKind === 'monster' && participant.monsterInstanceId) {
-        await monsterInstanceRepository.update(participant.monsterInstanceId, { hpCurrent: newHp });
+      } else if (targetKind === 'monster' && targetParticipant.monsterInstanceId) {
+        await monsterInstanceRepository.update(targetParticipant.monsterInstanceId, { hpCurrent: newHp });
       }
 
-      if (newHp <= 0 && !participant.isOut) {
-        await encounterParticipantRepository.update(participant.id, { isOut: true });
+      if (newHp <= 0 && !targetParticipant.isOut) {
+        await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
       }
 
       return {

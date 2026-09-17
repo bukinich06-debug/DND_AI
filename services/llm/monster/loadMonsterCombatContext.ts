@@ -48,6 +48,7 @@ export interface IMonsterCombatContext {
     order: number;
     isOut: boolean;
     hp: number | null;
+    feetFromPlayer: number;
     playerId: string | null;
     npcId: string | null;
     monsterInstanceId: string | null;
@@ -121,6 +122,7 @@ export const loadMonsterCombatContext = async ({
         order: p.order,
         isOut: p.isOut,
         hp,
+        feetFromPlayer: p.feetFromPlayer,
         playerId: p.playerId,
         npcId: p.npcId,
         monsterInstanceId: p.monsterInstanceId,
