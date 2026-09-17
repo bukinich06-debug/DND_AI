@@ -1,6 +1,8 @@
 'use server';
 
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { monsterInstanceRepository } from '@/data/monster';
+import { npcRepository } from '@/data/npc';
 import { runMonsterCombatTurn } from '@/services/llm/monster/runMonsterCombatTurn';
 import { getActiveEncounter } from './getActiveEncounter';
 
@@ -94,7 +96,8 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       monsterInstanceId: currentParticipant.monsterInstanceId,
     });
 
-    const actorName = 'Монстр';
+    const monsterInstance = await monsterInstanceRepository.getById(currentParticipant.monsterInstanceId);
+    const actorName = monsterInstance?.name ?? 'Монстр';
 
     if (monsterResult.say) {
       const sayEntry = {
@@ -124,11 +127,51 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
 
     for (const attack of attackResults) {
       if (typeof attack.result === 'object' && attack.result !== null) {
-        const res = attack.result as { hit?: boolean; damage?: number; targetName?: string };
-        if (res.hit && res.damage !== undefined) {
+        const res = attack.result as {
+          hit?: boolean;
+          damageTotal?: number;
+          targetName?: string;
+          attackRoll?: number;
+          attackBonus?: number;
+          attackTotal?: number;
+          targetAc?: number;
+          damageRolls?: number[];
+          damageBonus?: number;
+          targetPreviousHp?: number;
+          targetNewHp?: number;
+          errorCode?: string;
+        };
+
+        if (res.errorCode === 'OUT_OF_REACH') {
           const attackEntry = {
             actorName,
-            message: `Атака попала в ${res.targetName || 'цель'}, урон: ${res.damage}`,
+            message: `Атака невозможна: ${res.targetName || 'цель'} слишком далеко`,
+            meta: attack.result,
+          };
+          await encounterLogRepository.create({
+            encounterId: encounter.id,
+            ...attackEntry,
+          });
+          newLogEntries.push(attackEntry);
+        } else if (res.hit && res.damageTotal !== undefined) {
+          const attackDetails =
+            res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+              ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
+              : '';
+
+          const damageDetails =
+            res.damageRolls && res.damageBonus !== undefined
+              ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
+              : `${res.damageTotal}`;
+
+          const hpDetails =
+            res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
+              ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
+              : '';
+
+          const attackEntry = {
+            actorName,
+            message: `Попадание по ${res.targetName || 'цель'}: ${attackDetails}урон ${damageDetails}${hpDetails}`,
             meta: attack.result,
           };
           await encounterLogRepository.create({
@@ -137,9 +180,14 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
           });
           newLogEntries.push(attackEntry);
         } else if (res.hit === false) {
+          const attackDetails =
+            res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+              ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
+              : '';
+
           const attackEntry = {
             actorName,
-            message: `Атака по ${res.targetName || 'цели'} промахнулась`,
+            message: `Атака по ${res.targetName || 'цели'} промахнулась${attackDetails}`,
             meta: attack.result,
           };
           await encounterLogRepository.create({
@@ -151,8 +199,11 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       }
     }
   } else if (currentParticipant.npcId) {
+    const npc = await npcRepository.getById(currentParticipant.npcId);
+    const npcName = npc?.name ?? 'NPC';
+
     const skipEntry = {
-      actorName: 'NPC',
+      actorName: npcName,
       message: 'Ход NPC пропущен (не реализован).',
     };
     await encounterLogRepository.create({
