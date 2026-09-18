@@ -38,6 +38,7 @@ export interface ICombatAgentContext {
     id: string;
     round: number;
     currentTurnIndex: number;
+    status: string;
   };
   participants: Array<{
     id: string;
@@ -161,6 +162,7 @@ export const loadCombatAgentContext = async ({
       id: encounter.id,
       round: encounter.round,
       currentTurnIndex: encounter.currentTurnIndex,
+      status: encounter.status,
     },
     participants,
   };

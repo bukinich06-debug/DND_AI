@@ -1,4 +1,4 @@
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import type { ILlmTool, IToolContext } from './types';
 
@@ -47,11 +47,33 @@ export const movePlayerInCombatTool: ILlmTool = {
     required: ['playerId', 'targetParticipantId'],
     additionalProperties: false,
   },
-  execute: async (args: unknown, _ctx: IToolContext) => {
+  execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
+
+    if (!ctx.playerId) throw new Error('playerId отсутствует в контексте.');
+    if (parsed.playerId !== ctx.playerId)
+      throw new Error('FORBIDDEN: Нельзя двигать другого игрока.');
 
     const player = await playerRepository.getById(parsed.playerId);
     if (!player) throw new Error('Игрок не найден.');
+
+    if (player.dead) throw new Error('PLAYER_DEAD: Игрок мёртв и не может двигаться.');
+
+    const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
+    const hasBlockingCondition = player.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
+    if (hasBlockingCondition)
+      throw new Error('PLAYER_INCAPACITATED: Игрок не может двигаться из-за состояния.');
+
+    const movementBlockingConditions = ['grappled', 'restrained'];
+    const hasMovementBlock = player.conditions.some((c) => movementBlockingConditions.includes(c.toLowerCase()));
+    if (hasMovementBlock)
+      throw new Error('PLAYER_MOVEMENT_BLOCKED: Игрок не может двигаться (grappled/restrained).');
+
+    if (player.exhaustionLevel >= 6)
+      throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
+
+    if (player.exhaustionLevel >= 5)
+      throw new Error('PLAYER_EXHAUSTED: Скорость игрока = 0 из-за истощения (exhaustion 5+).');
 
     const target = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!target) throw new Error('Участник боя не найден.');
@@ -68,6 +90,15 @@ export const movePlayerInCombatTool: ILlmTool = {
     await encounterParticipantRepository.update(target.id, {
       feetFromPlayer: newDistance,
     });
+
+    if (ctx.encounterId) {
+      await encounterLogRepository.create({
+        encounterId: ctx.encounterId,
+        actorName: player.name,
+        message: `перемещается на ${actualMove} футов (дистанция до цели: ${current} → ${newDistance} фт)`,
+        meta: { movedFeet: actualMove, feetFromPlayerBefore: current, feetFromPlayerAfter: newDistance, speed },
+      });
+    }
 
     return {
       movedFeet: actualMove,
