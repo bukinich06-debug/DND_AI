@@ -4,6 +4,7 @@ export interface IToolContext {
   playerId?: string;
   locationId?: string;
   playerHereId?: string;
+  encounterId?: string;
   passedCheck?: {
     skill: string;
     knowledgeId: string | null;

@@ -1,5 +1,6 @@
 import { DiceKind } from '@/domain/shared';
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { itemRepository } from '@/data/item';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
@@ -9,11 +10,7 @@ import type { ILlmTool, IToolContext } from './types';
 interface IResolvePlayerAttackArgs {
   attackerPlayerId: string;
   targetParticipantId: string;
-  weaponName?: string | null;
-  attackBonus?: number | null;
-  damageFormula?: string | null;
-  isRanged?: boolean | null;
-  rangeNormal?: number | null;
+  weaponItemId?: string | null;
 }
 
 const parseArgs = (args: unknown): IResolvePlayerAttackArgs => {
@@ -28,11 +25,7 @@ const parseArgs = (args: unknown): IResolvePlayerAttackArgs => {
   return {
     attackerPlayerId: raw.attackerPlayerId.trim(),
     targetParticipantId: raw.targetParticipantId.trim(),
-    weaponName: (raw.weaponName as string | null | undefined) ?? null,
-    attackBonus: (raw.attackBonus as number | null | undefined) ?? null,
-    damageFormula: (raw.damageFormula as string | null | undefined) ?? null,
-    isRanged: (raw.isRanged as boolean | null | undefined) ?? null,
-    rangeNormal: (raw.rangeNormal as number | null | undefined) ?? null,
+    weaponItemId: (raw.weaponItemId as string | null | undefined) ?? null,
   };
 };
 
@@ -64,7 +57,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolvePlayerAttackTool: ILlmTool = {
   name: 'resolve_player_attack',
   description:
-    'Разрешает атаку игрока против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко. Если weaponName не указан, используется простая рукопашная атака без оружия (d20 + STR mod vs AC, урон 1 + STR mod). Можешь передать attackBonus, damageFormula, isRanged и rangeNormal для конкретной атаки оружием.',
+    'Разрешает атаку игрока против цели. Автоматически проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко, "UNKNOWN_WEAPON" если оружие не найдено или не принадлежит игроку. Если weaponItemId не указан, используется безоружная атака (d20 + STR mod vs AC, урон 1 + STR mod). Все параметры оружия (урон, дистанция, бонус) берутся из БД, не передавай их вручную.',
   parameters: {
     type: 'object',
     properties: {
@@ -76,25 +69,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
         type: 'string',
         description: 'ID участника боя — цели атаки',
       },
-      weaponName: {
+      weaponItemId: {
         type: 'string',
-        description: 'Название оружия (например, "Короткий меч", "Длинный лук")',
-      },
-      attackBonus: {
-        type: 'number',
-        description: 'Бонус к броску атаки. Если не указан, используется STR или DEX mod + proficiency',
-      },
-      damageFormula: {
-        type: 'string',
-        description: 'Формула урона (например, "1d8+3"). Если не указана, используется 1+STR mod',
-      },
-      isRanged: {
-        type: 'boolean',
-        description: 'Является ли атака дальнобойной (лук, арбалет). Если true, проверяется rangeNormal',
-      },
-      rangeNormal: {
-        type: 'number',
-        description: 'Нормальная дистанция дальнобойного оружия в футах (например, 80 для короткого лука)',
+        description: 'ID предмета-оружия из инвентаря игрока (из списка экипированного оружия). Если не указан, используется безоружная атака.',
       },
     },
     required: ['attackerPlayerId', 'targetParticipantId'],
@@ -103,13 +80,89 @@ export const resolvePlayerAttackTool: ILlmTool = {
   execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
 
+    if (!ctx.playerId) throw new Error('playerId отсутствует в контексте.');
+    if (parsed.attackerPlayerId !== ctx.playerId)
+      throw new Error('FORBIDDEN: Нельзя атаковать от имени другого игрока.');
+
     const attacker = await playerRepository.getById(parsed.attackerPlayerId);
     if (!attacker) throw new Error('Атакующий игрок не найден.');
+
+    if (attacker.dead) throw new Error('PLAYER_DEAD: Игрок мёртв и не может действовать.');
+
+    const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
+    const hasBlockingCondition = attacker.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
+    if (hasBlockingCondition)
+      throw new Error('PLAYER_INCAPACITATED: Игрок не может атаковать из-за состояния (unconscious/paralyzed/stunned/incapacitated/petrified).');
+
+    if (attacker.exhaustionLevel >= 6)
+      throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
 
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
 
-    const isRangedAttack = parsed.isRanged === true;
+    if (targetParticipant.playerId === parsed.attackerPlayerId)
+      throw new Error('INVALID_TARGET: Нельзя атаковать самого себя.');
+
+    if (targetParticipant.isOut)
+      throw new Error('INVALID_TARGET: Цель уже выбыла из боя.');
+
+    let weaponName = 'Безоружная атака';
+    let isRangedAttack = false;
+    let normalRange: number | null = null;
+    let damageFormula = `1${calculateAbilityMod(attacker.str) >= 0 ? '+' : ''}${calculateAbilityMod(attacker.str)}`;
+    let attackBonus = calculateAbilityMod(attacker.str) + attacker.proficiencyBonus;
+
+    if (parsed.weaponItemId) {
+      const item = await itemRepository.getById(parsed.weaponItemId);
+
+      if (!item) {
+        return {
+          hit: false,
+          errorCode: 'UNKNOWN_WEAPON',
+          message: 'Оружие не найдено в базе данных.',
+        };
+      }
+
+      if (item.playerId !== parsed.attackerPlayerId) {
+        return {
+          hit: false,
+          errorCode: 'UNKNOWN_WEAPON',
+          message: 'Оружие не принадлежит этому игроку.',
+        };
+      }
+
+      if (!item.equipSlot || (item.equipSlot !== 'mainHand' && item.equipSlot !== 'offHand')) {
+        return {
+          hit: false,
+          errorCode: 'WEAPON_NOT_EQUIPPED',
+          message: 'Оружие не экипировано (должно быть в mainHand или offHand).',
+        };
+      }
+
+      weaponName = item.name;
+
+      const props = item.properties ?? [];
+      const damageProp = props.find((p) => p.type === 'damage');
+      const rangeProp = props.find((p) => p.type === 'range');
+
+      if (rangeProp && rangeProp.type === 'range') {
+        isRangedAttack = true;
+        normalRange = rangeProp.normal;
+        attackBonus = calculateAbilityMod(attacker.dex) + attacker.proficiencyBonus;
+      } else {
+        const strMod = calculateAbilityMod(attacker.str);
+        const dexMod = calculateAbilityMod(attacker.dex);
+        attackBonus = Math.max(strMod, dexMod) + attacker.proficiencyBonus;
+      }
+
+      if (damageProp && damageProp.type === 'damage') {
+        const abilityMod = isRangedAttack
+          ? calculateAbilityMod(attacker.dex)
+          : Math.max(calculateAbilityMod(attacker.str), calculateAbilityMod(attacker.dex));
+        damageFormula = `${damageProp.dice}${abilityMod >= 0 ? '+' : ''}${abilityMod}`;
+      }
+    }
+
     const distance = targetParticipant.feetFromPlayer;
 
     let targetName = 'Неизвестный';
@@ -135,18 +188,14 @@ export const resolvePlayerAttackTool: ILlmTool = {
       };
     }
 
-    if (isRangedAttack) {
-      const normalRange = parsed.rangeNormal ?? 80;
-
-      if (distance > normalRange) {
-        return {
-          hit: false,
-          errorCode: 'OUT_OF_REACH',
-          targetName,
-          distance,
-          message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
-        };
-      }
+    if (isRangedAttack && normalRange !== null && distance > normalRange) {
+      return {
+        hit: false,
+        errorCode: 'OUT_OF_REACH',
+        targetName,
+        distance,
+        message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
+      };
     }
 
     let targetAc = 10;
@@ -184,17 +233,10 @@ export const resolvePlayerAttackTool: ILlmTool = {
       throw new Error('Участник боя не имеет привязанной сущности.');
     }
 
-    const strMod = calculateAbilityMod(attacker.str);
-    const dexMod = calculateAbilityMod(attacker.dex);
-    const attackMod = isRangedAttack ? dexMod : Math.max(strMod, dexMod);
-
-    const attackBonus = parsed.attackBonus ?? attackMod + attacker.proficiencyBonus;
-    const damageFormula = parsed.damageFormula ?? `1${strMod >= 0 ? '+' : ''}${strMod}`;
-
     const attackRoll = await rollDice({
       campaignId: ctx.campaignId,
       die: DiceKind.d20,
-      note: `Атака игрока ${attacker.name} по ${targetName}${parsed.weaponName ? ` (${parsed.weaponName})` : ''}`,
+      note: `Атака игрока ${attacker.name} по ${targetName} (${weaponName})`,
       npcId: null,
       playerId: attacker.id,
     });
@@ -267,6 +309,25 @@ export const resolvePlayerAttackTool: ILlmTool = {
         await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
       }
 
+      if (ctx.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: attacker.name,
+          message: `атакует ${targetName} (${weaponName}): попадание! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}`,
+          meta: {
+            attackRoll: attackRoll.value,
+            attackBonus,
+            attackTotal,
+            targetAc,
+            damageFormula,
+            damageRolls,
+            damageTotal,
+            targetPreviousHp: targetHp,
+            targetNewHp: newHp,
+          },
+        });
+      }
+
       return {
         hit: true,
         attackRoll: attackRoll.value,
@@ -282,8 +343,22 @@ export const resolvePlayerAttackTool: ILlmTool = {
         targetNewHp: newHp,
         targetMaxHp,
         targetIsOut: newHp <= 0,
-        weaponName: parsed.weaponName,
+        weaponName,
       };
+    }
+
+    if (ctx.encounterId) {
+      await encounterLogRepository.create({
+        encounterId: ctx.encounterId,
+        actorName: attacker.name,
+        message: `атакует ${targetName} (${weaponName}): промах (${attackTotal} vs AC ${targetAc})`,
+        meta: {
+          attackRoll: attackRoll.value,
+          attackBonus,
+          attackTotal,
+          targetAc,
+        },
+      });
     }
 
     return {
@@ -293,7 +368,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
       attackTotal,
       targetAc,
       targetName,
-      weaponName: parsed.weaponName,
+      weaponName,
     };
   },
 };

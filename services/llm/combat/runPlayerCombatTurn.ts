@@ -31,12 +31,23 @@ export const runPlayerCombatTurn = async (
     playerId: input.playerId,
   });
 
+  if (ctx.encounter.status !== 'active') throw new Error('Боевая сцена не активна.');
+
+  const currentParticipant = ctx.participants
+    .filter((p) => !p.isOut)
+    .sort((a, b) => a.order - b.order)[ctx.encounter.currentTurnIndex];
+
+  if (!currentParticipant || currentParticipant.playerId !== input.playerId)
+    throw new Error('NOT_PLAYER_TURN: Сейчас не ход этого игрока.');
+
   const system = buildCombatPrompt(ctx, input.playerAction);
 
   const reply = await runCombatToolLoop({
     system,
     ctx: {
       campaignId: input.campaignId,
+      playerId: input.playerId,
+      encounterId: input.encounterId,
     },
   });
 
