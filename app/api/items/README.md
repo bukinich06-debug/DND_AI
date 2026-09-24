@@ -16,7 +16,7 @@ OpenAPI: `/api-docs`.
 
 `ItemRarity`: `common` | `uncommon` | `rare` | `veryRare` | `legendary` | `artifact`
 
-`EquipSlot`: `armor` | `mainHand` | `offHand`
+`EquipSlot`: `armor` | `mainHand` | `offHand` | `ranged`
 
 Владелец ровно один: `playerId` **или** `npcId` **или** `locationId` (остальные `null`). Без владельца можно.
 
@@ -24,7 +24,7 @@ OpenAPI: `/api-docs`.
 
 Щит — это `kind: shield`, слот руки (`mainHand` / `offHand`), не `armor`.
 
-`ItemPropType`: `damage` | `range` | `ac` | `heal` | `twoHanded` | `stealthDisadvantage` | `mastery` | `note`
+`ItemPropType`: `damage` | `range` | `ac` | `heal` | `twoHanded` | `stealthDisadvantage` | `mastery` | `ranged` | `finesse` | `note`
 
 `WeaponMastery`: `cleave` | `graze` | `nick` | `push` | `sap` | `slow` | `topple` | `vex`
 
@@ -59,6 +59,8 @@ IItemProp =
   | { type: 'twoHanded'; text: string }
   | { type: 'stealthDisadvantage'; text: string }
   | { type: 'mastery'; text: string; mastery: WeaponMastery }
+  | { type: 'ranged'; text: string }
+  | { type: 'finesse'; text: string }
   | { type: 'note'; text: string }
 
 EquipItemResult {
@@ -188,8 +190,9 @@ DELETE /api/items/{id}
 Правила слота:
 
 - `armor` — только `kind: armor`; один доспех
-- `mainHand` / `offHand` — только `weapon` или `shield`
-- `{ type: 'twoHanded', … }` в `properties` — только `mainHand`, обе руки
+- `mainHand` / `offHand` — только `weapon` или `shield`; дальнобойное оружие (с `{ type: 'ranged', … }`) нельзя
+- `ranged` — только дальнобойное `weapon` с `{ type: 'ranged', … }` (лук, арбалет, праща, духовая трубка); один предмет
+- `{ type: 'twoHanded', … }` в `properties` — только `mainHand` (ближнее двуручное занимает обе руки); дальнобойное двуручное в `ranged` не конфликтует с руками
 
 ### `POST /api/items/equip`
 

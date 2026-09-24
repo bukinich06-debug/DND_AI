@@ -48,6 +48,7 @@ export const EquipSlot = {
   armor: 'armor',
   mainHand: 'mainHand',
   offHand: 'offHand',
+  ranged: 'ranged',
 } as const;
 
 export type EquipSlot = (typeof EquipSlot)[keyof typeof EquipSlot];

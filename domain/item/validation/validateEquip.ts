@@ -1,6 +1,6 @@
 import { EquipSlot, ItemKind } from '@/domain/shared';
 import type { IItem, IItemProp } from '../types';
-import { isTwoHanded } from './validateProperties';
+import { isTwoHanded, isRangedWeapon } from './validateProperties';
 
 const slots = new Set<string>(Object.values(EquipSlot));
 const handKinds = new Set<string>([ItemKind.weapon, ItemKind.shield]);
@@ -21,10 +21,20 @@ export const assertEquipOnItem = (item: {
 
   if (slot === EquipSlot.armor && item.kind !== ItemKind.armor)
     throw new Error('В слот доспеха можно надеть только доспех.');
-  if ((slot === EquipSlot.mainHand || slot === EquipSlot.offHand) && !handKinds.has(item.kind))
-    throw new Error('В руки можно взять только оружие или щит.');
 
-  if (isTwoHanded(item.properties) && slot !== EquipSlot.mainHand)
+  if (slot === EquipSlot.ranged) {
+    if (item.kind !== ItemKind.weapon) throw new Error('В слот дальнего боя можно надеть только оружие.');
+    if (!isRangedWeapon(item.properties))
+      throw new Error('В слот дальнего боя можно надеть только дальнобойное оружие (лук, арбалет, праща, духовая трубка).');
+  }
+
+  if ((slot === EquipSlot.mainHand || slot === EquipSlot.offHand)) {
+    if (!handKinds.has(item.kind)) throw new Error('В руки можно взять только оружие или щит.');
+    if (isRangedWeapon(item.properties))
+      throw new Error('Дальнобойное оружие (лук, арбалет, праща, духовая трубка) надевается в слот дальнего боя, а не в руки.');
+  }
+
+  if (isTwoHanded(item.properties) && slot === EquipSlot.mainHand && !isRangedWeapon(item.properties))
     throw new Error('Двуручное оружие можно держать только в основной руке.');
 };
 
@@ -36,24 +46,29 @@ export const occupantsToUnequip = (
   if (slot == null) return [];
 
   const twoHanded = isTwoHanded(item.properties);
+  const ranged = isRangedWeapon(item.properties);
   const occupants: IItem[] = [];
 
   for (const other of others) {
     if (item.id && other.id === item.id) continue;
     if (other.equipSlot == null) continue;
+
     if (slot === other.equipSlot) {
       occupants.push(other);
       continue;
     }
 
+    if (slot === EquipSlot.ranged) continue;
+
     const otherHands = other.equipSlot === EquipSlot.mainHand || other.equipSlot === EquipSlot.offHand;
-    if (twoHanded && slot === EquipSlot.mainHand && otherHands) {
+    if (twoHanded && !ranged && slot === EquipSlot.mainHand && otherHands) {
       occupants.push(other);
       continue;
     }
 
     const thisHands = slot === EquipSlot.mainHand || slot === EquipSlot.offHand;
-    if (isTwoHanded(other.properties) && other.equipSlot === EquipSlot.mainHand && thisHands) occupants.push(other);
+    if (isTwoHanded(other.properties) && !isRangedWeapon(other.properties) && other.equipSlot === EquipSlot.mainHand && thisHands)
+      occupants.push(other);
   }
 
   return occupants;
@@ -67,6 +82,7 @@ export const assertEquipConflicts = (
   if (slot == null) return;
 
   const twoHanded = isTwoHanded(item.properties);
+  const ranged = isRangedWeapon(item.properties);
 
   for (const other of others) {
     if (item.id && other.id === item.id) continue;
@@ -74,13 +90,18 @@ export const assertEquipConflicts = (
 
     if (slot === EquipSlot.armor && other.equipSlot === EquipSlot.armor)
       throw new Error('На персонаже уже надет доспех.');
+    if (slot === EquipSlot.ranged && other.equipSlot === EquipSlot.ranged)
+      throw new Error('В слоте дальнего боя уже есть оружие.');
     if (slot === other.equipSlot) throw new Error('Этот слот экипировки уже занят.');
 
+    if (slot === EquipSlot.ranged) continue;
+
     const otherHands = other.equipSlot === EquipSlot.mainHand || other.equipSlot === EquipSlot.offHand;
-    if (twoHanded && slot === EquipSlot.mainHand && otherHands) throw new Error('Двуручное оружие занимает обе руки.');
+    if (twoHanded && !ranged && slot === EquipSlot.mainHand && otherHands)
+      throw new Error('Двуручное оружие занимает обе руки.');
 
     const thisHands = slot === EquipSlot.mainHand || slot === EquipSlot.offHand;
-    if (isTwoHanded(other.properties) && other.equipSlot === EquipSlot.mainHand && thisHands)
+    if (isTwoHanded(other.properties) && !isRangedWeapon(other.properties) && other.equipSlot === EquipSlot.mainHand && thisHands)
       throw new Error('Двуручное оружие занимает обе руки.');
   }
 };

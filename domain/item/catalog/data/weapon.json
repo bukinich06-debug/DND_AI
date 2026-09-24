@@ -11,6 +11,7 @@
     "isMagical": false,
     "properties": [
       { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Лёгкое, фехтовальное." }
     ]
   },
@@ -27,6 +28,7 @@
     "properties": [
       { "type": "damage", "text": "1d8 колющий", "dice": "1d8", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 150/600", "normal": 150, "long": 600 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "twoHanded", "text": "Двуручное." }
     ]
   },
@@ -90,6 +92,7 @@
     "properties": [
       { "type": "damage", "text": "1d4 колющий", "dice": "1d4", "damageType": "piercing" },
       { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Фехтовальное, лёгкое." },
       { "type": "mastery", "mastery": "nick" }
     ]
@@ -206,6 +209,7 @@
     "properties": [
       { "type": "damage", "text": "1d4 колющий", "dice": "1d4", "damageType": "piercing" },
       { "type": "range", "text": "Метательное 20/60", "normal": 20, "long": 60 },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Фехтовальное." },
       { "type": "mastery", "mastery": "vex" }
     ]
@@ -223,6 +227,7 @@
     "properties": [
       { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 80/320", "normal": 80, "long": 320 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "twoHanded", "text": "Двуручное." },
       { "type": "note", "text": "Боеприпас: стрела." },
       { "type": "mastery", "mastery": "vex" }
@@ -241,6 +246,7 @@
     "properties": [
       { "type": "damage", "text": "1d8 колющий", "dice": "1d8", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 80/320", "normal": 80, "long": 320 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "twoHanded", "text": "Двуручное." },
       { "type": "note", "text": "Боеприпас: болт. Перезарядка." },
       { "type": "mastery", "mastery": "slow" }
@@ -259,6 +265,7 @@
     "properties": [
       { "type": "damage", "text": "1d4 дробящий", "dice": "1d4", "damageType": "bludgeoning" },
       { "type": "range", "text": "Дальность 30/120", "normal": 30, "long": 120 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "note", "text": "Боеприпас: пуля." },
       { "type": "mastery", "mastery": "slow" }
     ]
@@ -470,6 +477,7 @@
     "isMagical": false,
     "properties": [
       { "type": "damage", "text": "1d4 рубящий", "dice": "1d4", "damageType": "slashing" },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Фехтовальное, досягаемость." },
       { "type": "mastery", "mastery": "slow" }
     ]
@@ -486,6 +494,7 @@
     "isMagical": false,
     "properties": [
       { "type": "damage", "text": "1d8 колющий", "dice": "1d8", "damageType": "piercing" },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Фехтовальное." },
       { "type": "mastery", "mastery": "vex" }
     ]
@@ -502,6 +511,7 @@
     "isMagical": false,
     "properties": [
       { "type": "damage", "text": "1d6 рубящий", "dice": "1d6", "damageType": "slashing" },
+      { "type": "finesse", "text": "Фехтовальное." },
       { "type": "note", "text": "Фехтовальное, лёгкое." },
       { "type": "mastery", "mastery": "nick" }
     ]
@@ -535,6 +545,7 @@
     "properties": [
       { "type": "damage", "text": "1d10 колющий", "dice": "1d10", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 100/400", "normal": 100, "long": 400 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "twoHanded", "text": "Двуручное." },
       { "type": "note", "text": "Боеприпас: болт. Перезарядка, тяжёлое." },
       { "type": "mastery", "mastery": "push" }
@@ -553,6 +564,7 @@
     "properties": [
       { "type": "damage", "text": "1d6 колющий", "dice": "1d6", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 30/120", "normal": 30, "long": 120 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "note", "text": "Боеприпас: болт. Перезарядка, лёгкое." },
       { "type": "mastery", "mastery": "vex" }
     ]
@@ -570,6 +582,7 @@
     "properties": [
       { "type": "damage", "text": "1 колющий", "dice": "1", "damageType": "piercing" },
       { "type": "range", "text": "Дальность 25/100", "normal": 25, "long": 100 },
+      { "type": "ranged", "text": "Дальнобойное." },
       { "type": "note", "text": "Боеприпас: игла. Перезарядка." },
       { "type": "mastery", "mastery": "vex" }
     ]

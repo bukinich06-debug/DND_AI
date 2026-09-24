@@ -49,11 +49,12 @@ enum ItemKind {
   other
 }
 
-/// Слот экипировки: доспех или рука; null в Item = сумка
+/// Слот экипировки: доспех, рука или дальний бой; null в Item = сумка
 enum EquipSlot {
   armor
   mainHand
   offHand
+  ranged
 }
 
 /// Редкость предмета

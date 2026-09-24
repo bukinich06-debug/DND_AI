@@ -9,6 +9,8 @@ export type IItemProp =
   | { type: 'twoHanded'; text: string }
   | { type: 'stealthDisadvantage'; text: string }
   | { type: 'mastery'; text: string; mastery: WeaponMastery }
+  | { type: 'ranged'; text: string }
+  | { type: 'finesse'; text: string }
   | { type: 'note'; text: string };
 
 export interface IItem {
