@@ -5,6 +5,7 @@ import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
+import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/validateProperties';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolvePlayerAttackArgs {
@@ -57,7 +58,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolvePlayerAttackTool: ILlmTool = {
   name: 'resolve_player_attack',
   description:
-    'Разрешает атаку игрока против цели. Автоматически проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко, "UNKNOWN_WEAPON" если оружие не найдено или не принадлежит игроку. Если weaponItemId не указан, используется безоружная атака (d20 + STR mod vs AC, урон 1 + STR mod). Все параметры оружия (урон, дистанция, бонус) берутся из БД, не передавай их вручную.',
+    'Разрешает атаку игрока против цели. Автоматически проверяет дистанцию (рукопашная ≤5 футов, дальнобойная/метательная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко, "UNKNOWN_WEAPON" если оружие не найдено или не принадлежит игроку. Если weaponItemId не указан, используется безоружная атака (d20 + STR mod vs AC, урон 1 + STR mod). Все параметры оружия (урон, дистанция, бонус) берутся из БД, не передавай их вручную.',
   parameters: {
     type: 'object',
     properties: {
@@ -71,7 +72,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
       },
       weaponItemId: {
         type: 'string',
-        description: 'ID предмета-оружия из инвентаря игрока (из списка экипированного оружия). Если не указан, используется безоружная атака.',
+        description: 'ID предмета-оружия из инвентаря игрока (из списка экипированного оружия: mainHand, offHand или ranged). Если не указан, используется безоружная атака.',
       },
     },
     required: ['attackerPlayerId', 'targetParticipantId'],
@@ -131,11 +132,11 @@ export const resolvePlayerAttackTool: ILlmTool = {
         };
       }
 
-      if (!item.equipSlot || (item.equipSlot !== 'mainHand' && item.equipSlot !== 'offHand')) {
+      if (!item.equipSlot || (item.equipSlot !== 'mainHand' && item.equipSlot !== 'offHand' && item.equipSlot !== 'ranged')) {
         return {
           hit: false,
           errorCode: 'WEAPON_NOT_EQUIPPED',
-          message: 'Оружие не экипировано (должно быть в mainHand или offHand).',
+          message: 'Оружие не экипировано (должно быть в mainHand, offHand или ranged).',
         };
       }
 
@@ -145,20 +146,36 @@ export const resolvePlayerAttackTool: ILlmTool = {
       const damageProp = props.find((p) => p.type === 'damage');
       const rangeProp = props.find((p) => p.type === 'range');
 
-      if (rangeProp && rangeProp.type === 'range') {
+      const isRanged = isRangedWeapon(props);
+      const isFinesse = isFinesseWeapon(props);
+      const isThrown = rangeProp && rangeProp.type === 'range' && !isRanged;
+
+      if (isRanged) {
         isRangedAttack = true;
-        normalRange = rangeProp.normal;
+        normalRange = rangeProp && rangeProp.type === 'range' ? rangeProp.normal : null;
         attackBonus = calculateAbilityMod(attacker.dex) + attacker.proficiencyBonus;
-      } else {
+      } else if (isFinesse) {
         const strMod = calculateAbilityMod(attacker.str);
         const dexMod = calculateAbilityMod(attacker.dex);
         attackBonus = Math.max(strMod, dexMod) + attacker.proficiencyBonus;
+      } else {
+        attackBonus = calculateAbilityMod(attacker.str) + attacker.proficiencyBonus;
+      }
+
+      if (isThrown && distance > 5) {
+        isRangedAttack = true;
+        normalRange = rangeProp && rangeProp.type === 'range' ? rangeProp.normal : null;
       }
 
       if (damageProp && damageProp.type === 'damage') {
-        const abilityMod = isRangedAttack
-          ? calculateAbilityMod(attacker.dex)
-          : Math.max(calculateAbilityMod(attacker.str), calculateAbilityMod(attacker.dex));
+        let abilityMod: number;
+        if (isRanged) {
+          abilityMod = calculateAbilityMod(attacker.dex);
+        } else if (isFinesse) {
+          abilityMod = Math.max(calculateAbilityMod(attacker.str), calculateAbilityMod(attacker.dex));
+        } else {
+          abilityMod = calculateAbilityMod(attacker.str);
+        }
         damageFormula = `${damageProp.dice}${abilityMod >= 0 ? '+' : ''}${abilityMod}`;
       }
     }

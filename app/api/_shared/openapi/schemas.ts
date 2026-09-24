@@ -36,7 +36,7 @@ export const schemas = {
   },
   EquipSlot: {
     type: 'string',
-    enum: ['armor', 'mainHand', 'offHand'],
+    enum: ['armor', 'mainHand', 'offHand', 'ranged'],
   },
   WeaponMastery: {
     type: 'string',
@@ -106,6 +106,22 @@ export const schemas = {
           type: { type: 'string', enum: ['mastery'] },
           text: { type: 'string' },
           mastery: { $ref: '#/components/schemas/WeaponMastery' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text'],
+        properties: {
+          type: { type: 'string', enum: ['ranged'] },
+          text: { type: 'string' },
+        },
+      },
+      {
+        type: 'object',
+        required: ['type', 'text'],
+        properties: {
+          type: { type: 'string', enum: ['finesse'] },
+          text: { type: 'string' },
         },
       },
       {

@@ -23,7 +23,7 @@ const calculateAbilityMod = (score: number): number => Math.floor((score - 10) /
 export const getPlayerCombatStatsTool: ILlmTool = {
   name: 'get_player_combat_stats',
   description:
-    'Возвращает боевые характеристики игрока: HP, AC, модификаторы характеристик, proficiencyBonus, скорость, и экипированное оружие с damage/range из properties. Используй для проверки возможностей атаки.',
+    'Возвращает боевые характеристики игрока: HP, AC, модификаторы характеристик, proficiencyBonus, скорость, и экипированное оружие (mainHand, offHand, ranged) с damage/range из properties. Используй для проверки возможностей атаки.',
   parameters: {
     type: 'object',
     properties: {
@@ -55,7 +55,7 @@ export const getPlayerCombatStatsTool: ILlmTool = {
     });
 
     const weapons = equippedItems.items.filter(
-      (item) => item.equipSlot === 'mainHand' || item.equipSlot === 'offHand'
+      (item) => item.equipSlot === 'mainHand' || item.equipSlot === 'offHand' || item.equipSlot === 'ranged'
     );
 
     return {

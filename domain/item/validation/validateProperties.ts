@@ -53,6 +53,8 @@ const parseOne = (raw: unknown): IItemProp => {
   if (type === 'heal') return { type: 'heal', text, dice: assertDice(row.dice) };
   if (type === 'twoHanded') return { type: 'twoHanded', text };
   if (type === 'stealthDisadvantage') return { type: 'stealthDisadvantage', text };
+  if (type === 'ranged') return { type: 'ranged', text };
+  if (type === 'finesse') return { type: 'finesse', text };
   if (type === 'note') return { type: 'note', text };
 
   throw new Error('Неизвестный тип свойства предмета.');
@@ -80,3 +82,13 @@ export const validateItemProperties = (raw: unknown) => {
 
 export const isTwoHanded = (properties: IItemProp[] | null) =>
   Boolean(properties?.some((prop) => prop.type === 'twoHanded'));
+
+export const isRangedWeapon = (properties: IItemProp[] | null) =>
+  Boolean(properties?.some((prop) => prop.type === 'ranged'));
+
+export const isFinesseWeapon = (properties: IItemProp[] | null) => {
+  if (properties?.some((prop) => prop.type === 'finesse')) return true;
+  return Boolean(
+    properties?.some((prop) => prop.type === 'note' && prop.text.toLowerCase().includes('фехтовальное'))
+  );
+};

@@ -21,7 +21,7 @@ const parseArgs = (args: unknown): IArgs => {
 export const equipItemTool: ILlmTool = {
   name: 'equip_item',
   description:
-    'Надевает предмет игрока в слот armor / mainHand / offHand. Сначала search_player_items. Для «достаю свой меч» — экипировка, не спавн.',
+    'Надевает предмет игрока в слот armor / mainHand / offHand / ranged. Дальнобойное оружие (лук, арбалет) надевается в ranged. Сначала search_player_items. Для «достаю свой меч» — экипировка, не спавн.',
   parameters: {
     type: 'object',
     properties: {

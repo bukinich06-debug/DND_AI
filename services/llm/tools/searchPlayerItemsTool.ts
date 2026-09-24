@@ -24,7 +24,7 @@ const parseArgs = (args: unknown): ISearchPlayerItemsArgs => {
 export const searchPlayerItemsTool: ILlmTool = {
   name: 'search_player_items',
   description:
-    'Ищет предметы в инвентаре игрока. Без query — весь инвентарь. С query — кандидаты по имени/описанию; для инструментов PHB матч по стандартным именам. Эффект уникальных предметов — description и properties (массив { type, text, … }: damage/range/ac/heal/twoHanded/note). Если список пуст — предмета нет. Перед использованием вызывай этот tool. equipSlot: null — сумка; armor — доспех; mainHand/offHand — руки.',
+    'Ищет предметы в инвентаре игрока. Без query — весь инвентарь. С query — кандидаты по имени/описанию; для инструментов PHB матч по стандартным именам. Эффект уникальных предметов — description и properties (массив { type, text, … }: damage/range/ac/heal/twoHanded/ranged/note). Если список пуст — предмета нет. Перед использованием вызывай этот tool. equipSlot: null — сумка; armor — доспех; mainHand/offHand — руки; ranged — дальний бой (лук, арбалет).',
   parameters: {
     type: 'object',
     properties: {

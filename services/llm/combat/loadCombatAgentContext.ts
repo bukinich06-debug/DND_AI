@@ -80,7 +80,7 @@ export const loadCombatAgentContext = async ({
   });
 
   const weapons = equippedItems.items
-    .filter((item) => item.equipSlot === 'mainHand' || item.equipSlot === 'offHand')
+    .filter((item) => item.equipSlot === 'mainHand' || item.equipSlot === 'offHand' || item.equipSlot === 'ranged')
     .map((w) => ({
       id: w.id,
       name: w.name,

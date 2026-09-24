@@ -23,7 +23,9 @@ const formatWeapons = (ctx: ICombatAgentContext) => {
   return ctx.player.weapons
     .map((w) => {
       const props = w.properties as Record<string, unknown> | null;
-      if (!props) return `- ${w.name} (ID: ${w.id}, слот: ${w.equipSlot ?? 'неизвестно'})`;
+      const slotLabel =
+        w.equipSlot === 'mainHand' ? 'основная рука' : w.equipSlot === 'offHand' ? 'вторая рука' : 'дальний бой';
+      if (!props) return `- ${w.name} (ID: ${w.id}, слот: ${slotLabel})`;
 
       const damageArr = Array.isArray(props.damage)
         ? (props.damage as Array<Record<string, unknown>>)
@@ -53,7 +55,7 @@ const formatWeapons = (ctx: ICombatAgentContext) => {
       if (damageText) parts.push(`урон: ${damageText}`);
       if (rangeText) parts.push(`дистанция: ${rangeText}`);
 
-      return `- ${w.name} (ID: ${w.id}, слот: ${w.equipSlot ?? 'неизвестно'}${parts.length > 0 ? `, ${parts.join(', ')}` : ''})`;
+      return `- ${w.name} (ID: ${w.id}, слот: ${slotLabel}${parts.length > 0 ? `, ${parts.join(', ')}` : ''})`;
     })
     .join('\n');
 };
@@ -126,7 +128,8 @@ ${formatParticipants(ctx)}
 8. **Не сочиняй броски, HP или AC** — tools вернут фактические результаты.
 9. **Дистанция имеет значение**:
    - **Рукопашные атаки** (меч, топор, безоружная) работают только на расстоянии **≤5 футов**.
-   - **Дальнобойные атаки** (лук, арбалет) работают на дистанции ≤ нормальной дальности оружия (см. описание оружия).
+   - **Дальнобойные атаки** (лук, арбалет из слота ranged) работают на дистанции ≤ нормальной дальности оружия (см. описание оружия).
+   - **Метательное оружие** (кинжал, копьё из mainHand/offHand) можно бросить на дистанцию ≤ нормальной дальности или использовать вплотную (≤5 футов).
 10. **Не описывай ход как Мастер** — ты агент валидации; коротко сообщи результат после tools.
 11. **Не выдумывай результаты** — tools вернут результат.
 
