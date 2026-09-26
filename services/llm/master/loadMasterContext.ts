@@ -45,8 +45,7 @@ export interface IMasterContext {
     victory: boolean;
     defeated: string[];
     survivors: string[];
-    xpGained: number;
-    coinsGained: number;
+    defeatedMonsters: Array<{ name: string; catalogKey: string }>;
   } | null;
 }
 
@@ -100,22 +99,19 @@ export const loadMasterContext = async ({
         victory?: boolean;
         defeated?: string[];
         survivors?: string[];
-        xpGained?: number;
-        coinsGained?: number;
+        defeatedMonsters?: Array<{ name: string; catalogKey: string }>;
       };
       if (
         meta.victory !== undefined &&
         meta.defeated !== undefined &&
         meta.survivors !== undefined &&
-        meta.xpGained !== undefined &&
-        meta.coinsGained !== undefined
+        meta.defeatedMonsters !== undefined
       ) {
         lastEncounterResult = {
           victory: meta.victory,
           defeated: meta.defeated,
           survivors: meta.survivors,
-          xpGained: meta.xpGained,
-          coinsGained: meta.coinsGained,
+          defeatedMonsters: meta.defeatedMonsters,
         };
       }
     }

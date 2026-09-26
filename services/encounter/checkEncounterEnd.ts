@@ -3,7 +3,6 @@
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
-import { getCatalogMonsterByKey, crToXp } from '@/domain/monster';
 
 interface ICheckEncounterEndInput {
   encounterId: string;
@@ -13,8 +12,7 @@ interface IEncounterResult {
   victory: boolean;
   defeated: string[];
   survivors: string[];
-  xpGained: number;
-  coinsGained: number;
+  defeatedMonsters: Array<{ name: string; catalogKey: string }>;
 }
 
 interface ICheckEncounterEndResult {
@@ -45,6 +43,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
   const defeated: string[] = [];
   const survivors: string[] = [];
+  const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
 
   for (const p of participants) {
     let name = 'Unknown';
@@ -58,6 +57,13 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
     } else if (p.monsterInstanceId) {
       const monster = await monsterInstanceRepository.getById(p.monsterInstanceId);
       name = monster?.name ?? 'Monster';
+
+      if (p.isOut) {
+        defeatedMonsters.push({
+          name: monster?.name ?? 'Unknown Monster',
+          catalogKey: monster?.catalogKey ?? 'unknown',
+        });
+      }
     }
 
     if (p.isOut) {
@@ -67,48 +73,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
     }
   }
 
-  let xpGained = 0;
-  let coinsGained = 0;
-
-  if (victory) {
-    for (const m of monsterSide) {
-      if (!m.monsterInstanceId) continue;
-
-      const monster = await monsterInstanceRepository.getById(m.monsterInstanceId);
-      if (!monster) continue;
-
-      const catalog = getCatalogMonsterByKey(monster.catalogKey);
-      if (!catalog) continue;
-
-      xpGained += crToXp(catalog.challengeRating);
-      coinsGained += catalog.lootCoinsCp;
-    }
-
-    for (const p of playersAlive) {
-      if (!p.playerId) continue;
-      const player = await playerRepository.getById(p.playerId);
-      if (!player) continue;
-
-      await playerRepository.update(p.playerId, {
-        xp: (player.xp ?? 0) + xpGained,
-        coinsCp: player.coinsCp + coinsGained,
-      });
-    }
-  }
-
   await encounterRepository.update(input.encounterId, {
     status: 'ended',
   });
 
   const resultMessage = victory
-    ? `Победа! Получено ${xpGained} XP и ${coinsGained} медных монет.`
+    ? `Победа! Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`
     : `Поражение. Все игроки выбыли из боя.`;
 
   await encounterLogRepository.create({
     encounterId: input.encounterId,
     actorName: null,
     message: resultMessage,
-    meta: { victory, xpGained, coinsGained, defeated, survivors },
+    meta: { victory, defeated, survivors, defeatedMonsters },
   });
 
   return {
@@ -117,8 +94,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
       victory,
       defeated,
       survivors,
-      xpGained,
-      coinsGained,
+      defeatedMonsters,
     },
   };
 };

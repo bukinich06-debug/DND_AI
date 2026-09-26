@@ -2,4 +2,3 @@ export type { IMonsterCatalogEntry, ISearchMonsterCatalogResult, IMonsterAbility
 export { getCatalogMonsterByKey } from './getByKey';
 export { searchMonsterCatalog } from './searchCatalog';
 export { loadCatalog } from './loadCatalog';
-export { crToXp } from './crToXp';

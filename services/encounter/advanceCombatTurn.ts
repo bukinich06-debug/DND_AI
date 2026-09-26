@@ -30,8 +30,7 @@ interface IAdvanceCombatTurnResult {
     victory: boolean;
     defeated: string[];
     survivors: string[];
-    xpGained: number;
-    coinsGained: number;
+    defeatedMonsters: Array<{ name: string; catalogKey: string }>;
   };
 }
 
