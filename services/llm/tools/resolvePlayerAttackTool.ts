@@ -60,7 +60,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolvePlayerAttackTool: ILlmTool = {
   name: 'resolve_player_attack',
   description:
-    'Разрешает атаку игрока против цели. Автоматически проверяет дистанцию (рукопашная ≤5 футов, дальнобойная/метательная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко, "UNKNOWN_WEAPON" если оружие не найдено или не принадлежит игроку. Если weaponItemId не указан, используется безоружная атака (d20 + STR mod vs AC, урон 1 + STR mod). Все параметры оружия (урон, дистанция, бонус) берутся из БД, не передавай их вручную.',
+    'Разрешает атаку игрока против цели. НЕЛЬЗЯ атаковать выбывших целей (isOut=true) или цели с 0 HP. Автоматически проверяет дистанцию (рукопашная ≤5 футов, дальнобойная/метательная ≤rangeNormal), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. Если weaponItemId не указан, используется безоружная атака (d20 + STR mod vs AC, урон 1 + STR mod). Все параметры оружия (урон, дистанция, бонус) берутся из БД, не передавай их вручную.',
   parameters: {
     type: 'object',
     properties: {
@@ -115,6 +115,26 @@ export const resolvePlayerAttackTool: ILlmTool = {
       throw new Error('INVALID_TARGET: Нельзя атаковать самого себя.');
 
     if (targetParticipant.isOut) throw new Error('INVALID_TARGET: Цель уже выбыла из боя.');
+
+    let targetHpCheck = 1;
+    if (targetParticipant.playerId) {
+      const targetPlayer = await playerRepository.getById(targetParticipant.playerId);
+      if (targetPlayer) targetHpCheck = targetPlayer.hpCurrent;
+    } else if (targetParticipant.npcId) {
+      const targetStatBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
+      if (targetStatBlock) targetHpCheck = targetStatBlock.hpCurrent;
+    } else if (targetParticipant.monsterInstanceId) {
+      const targetMonster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
+      if (targetMonster) targetHpCheck = targetMonster.hpCurrent;
+    }
+
+    if (targetHpCheck <= 0) {
+      return {
+        hit: false,
+        errorCode: 'TARGET_DOWN',
+        message: 'Нельзя атаковать цель с 0 HP.',
+      };
+    }
 
     const distance = targetParticipant.feetFromPlayer;
 

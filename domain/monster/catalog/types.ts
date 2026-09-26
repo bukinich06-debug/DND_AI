@@ -42,6 +42,7 @@ export interface IMonsterCatalogEntry {
   reactions: IMonsterAbility[] | null;
   legendaryActions: IMonsterAction[] | null;
   lootCoinsCp: number;
+  finishesDowned?: boolean;
 }
 
 export interface ISearchMonsterCatalogResult {

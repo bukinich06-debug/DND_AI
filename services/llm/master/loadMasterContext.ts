@@ -43,9 +43,11 @@ export interface IMasterContext {
   npcs: Array<{ name: string; title: string | null; location: string | null; shopSpecialtyKey: string | null }>;
   lastEncounterResult: {
     victory: boolean;
+    outcome?: 'victory' | 'captured' | 'defeat';
     defeated: string[];
     survivors: string[];
     defeatedMonsters: Array<{ name: string; catalogKey: string }>;
+    capturedBy?: string[];
   } | null;
 }
 
@@ -97,9 +99,11 @@ export const loadMasterContext = async ({
     if (lastLog.meta && typeof lastLog.meta === 'object') {
       const meta = lastLog.meta as {
         victory?: boolean;
+        outcome?: 'victory' | 'captured' | 'defeat';
         defeated?: string[];
         survivors?: string[];
         defeatedMonsters?: Array<{ name: string; catalogKey: string }>;
+        capturedBy?: string[];
       };
       if (
         meta.victory !== undefined &&
@@ -109,9 +113,11 @@ export const loadMasterContext = async ({
       ) {
         lastEncounterResult = {
           victory: meta.victory,
+          outcome: meta.outcome,
           defeated: meta.defeated,
           survivors: meta.survivors,
           defeatedMonsters: meta.defeatedMonsters,
+          capturedBy: meta.capturedBy,
         };
       }
     }

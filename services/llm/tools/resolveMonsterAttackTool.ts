@@ -6,6 +6,7 @@ import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
+import { getCatalogMonsterByKey } from '@/domain/monster';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -64,7 +65,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode: "OUT_OF_REACH" если цель слишком далеко. Если attackName не указан, используется простая рукопашная атака (d20 + STR/DEX mod vs AC, урон 1d6 + mod). Можешь передать attackBonus, damageFormula и isRanged для конкретной атаки из actions.',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. Если attackName не указан, используется простая рукопашная атака (d20 + STR/DEX mod vs AC, урон 1d6 + mod). Можешь передать attackBonus, damageFormula и isRanged для конкретной атаки из actions.',
   parameters: {
     type: 'object',
     properties: {
@@ -103,8 +104,19 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const attacker = await monsterInstanceRepository.getById(parsed.attackerMonsterInstanceId);
     if (!attacker) throw new Error('Атакующий монстр не найден.');
 
+    const catalog = getCatalogMonsterByKey(attacker.catalogKey);
+    const isFinisher = catalog?.finishesDowned ?? false;
+
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
+
+    if (targetParticipant.isOut) {
+      return {
+        hit: false,
+        errorCode: 'TARGET_OUT',
+        message: 'Цель уже выбыла из боя и не может быть атакована.',
+      };
+    }
 
     const attackerParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
     const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
@@ -174,6 +186,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
     let targetHp = 0;
     let targetMaxHp = 0;
     let targetKind: 'player' | 'npc' | 'monster' = 'monster';
+    let targetIsUnconscious = false;
 
     if (targetParticipant.playerId) {
       const player = await playerRepository.getById(targetParticipant.playerId);
@@ -183,6 +196,23 @@ export const resolveMonsterAttackTool: ILlmTool = {
       targetMaxHp = player.hpMax;
       targetName = player.name;
       targetKind = 'player';
+      targetIsUnconscious = player.conditions.includes('unconscious');
+
+      if (targetHp === 0 && !isFinisher) {
+        const allParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
+        const anyStandingEnemies = allParticipants.some(
+          (p) => !p.isOut && p.playerId && p.playerId !== targetParticipant.playerId
+        );
+
+        if (anyStandingEnemies) {
+          return {
+            hit: false,
+            errorCode: 'TARGET_DOWN',
+            targetName,
+            message: `${targetName} без сознания (0 HP). Монстр не добивает лежачих, пока есть стоящие противники.`,
+          };
+        }
+      }
     } else if (targetParticipant.npcId) {
       const npc = await npcRepository.getById(targetParticipant.npcId);
       if (!npc) throw new Error('NPC не найден.');
@@ -221,19 +251,27 @@ export const resolveMonsterAttackTool: ILlmTool = {
     });
 
     const attackTotal = attackRoll.value + attackBonus;
-    const hit = attackTotal >= targetAc;
+    let hit = attackTotal >= targetAc;
+    let isCritical = false;
+
+    if (targetIsUnconscious && !isRangedAttack && distance <= 5) {
+      hit = true;
+      isCritical = true;
+    }
 
     let damageTotal = 0;
     const damageRolls: number[] = [];
+    let deathSaveFailuresAdded = 0;
 
     if (hit) {
       const { dieCount, die, bonus } = parseDamageFormula(damageFormula);
+      const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
 
-      for (let i = 0; i < dieCount; i += 1) {
+      for (let i = 0; i < effectiveDieCount; i += 1) {
         const roll = await rollDice({
           campaignId: ctx.campaignId,
           die,
-          note: `Урон монстра ${attacker.name} по ${targetName} (кубик ${i + 1})`,
+          note: `Урон монстра ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
           npcId: null,
           playerId: null,
         });
@@ -245,7 +283,36 @@ export const resolveMonsterAttackTool: ILlmTool = {
       const newHp = Math.max(0, targetHp - damageTotal);
 
       if (targetKind === 'player' && targetParticipant.playerId) {
-        await playerRepository.update(targetParticipant.playerId, { hpCurrent: newHp });
+        const player = await playerRepository.getById(targetParticipant.playerId);
+        if (player) {
+          if (targetHp === 0 && targetIsUnconscious) {
+            deathSaveFailuresAdded = isCritical ? 2 : 1;
+            const newDeathSaveFail = Math.min(3, player.deathSaveFail + deathSaveFailuresAdded);
+            const isDead = newDeathSaveFail >= 3;
+
+            await playerRepository.update(targetParticipant.playerId, {
+              deathSaveFail: newDeathSaveFail,
+              dead: isDead,
+            });
+
+            if (isDead) {
+              await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
+            }
+          } else {
+            const massiveDamageThreshold = player.hpMax;
+            const excessDamage = targetHp > 0 ? Math.max(0, damageTotal - targetHp) : 0;
+            const instantDeath = newHp === 0 && excessDamage >= massiveDamageThreshold;
+
+            await playerRepository.update(targetParticipant.playerId, {
+              hpCurrent: newHp,
+              dead: instantDeath,
+            });
+
+            if (newHp <= 0) {
+              await encounterParticipantRepository.update(targetParticipant.id, { isOut: instantDeath });
+            }
+          }
+        }
       } else if (targetKind === 'npc' && targetParticipant.npcId) {
         const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
         if (statBlock) {
@@ -293,6 +360,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       return {
         hit: true,
+        isCritical,
         attackRoll: attackRoll.value,
         attackBonus,
         attackTotal,
@@ -306,6 +374,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
         targetNewHp: newHp,
         targetMaxHp,
         targetIsOut: newHp <= 0,
+        deathSaveFailuresAdded,
         attackName: parsed.attackName,
       };
     }

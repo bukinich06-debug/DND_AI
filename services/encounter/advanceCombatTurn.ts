@@ -3,10 +3,12 @@
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository } from '@/data/npc';
+import { playerRepository } from '@/data/player';
 import { runMonsterCombatTurn } from '@/services/llm/monster/runMonsterCombatTurn';
 import { getActiveEncounter } from './getActiveEncounter';
 import { resetActionEconomy } from './actionEconomy';
 import { checkEncounterEnd } from './checkEncounterEnd';
+import { makeDeathSave } from '@/services/player/deathSaves/makeDeathSave';
 
 interface IAdvanceCombatTurnInput {
   campaignId: string;
@@ -28,9 +30,11 @@ interface IAdvanceCombatTurnResult {
   encounterEnded?: boolean;
   encounterResult?: {
     victory: boolean;
+    outcome: 'victory' | 'captured' | 'defeat';
     defeated: string[];
     survivors: string[];
     defeatedMonsters: Array<{ name: string; catalogKey: string }>;
+    capturedBy: string[];
   };
 }
 
@@ -93,13 +97,49 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
   const newLogEntries: ILogEntry[] = [];
 
   if (currentParticipant.playerId) {
-    return {
-      success: false,
-      error: 'Сейчас ход игрока. Ход не был продвинут.',
-      errorCode: 'PLAYER_TURN',
-      encounter: null,
-      newLogEntries: [],
-    };
+    const player = await playerRepository.getById(currentParticipant.playerId);
+    if (!player) throw new Error('Игрок не найден.');
+
+    if (player.hpCurrent === 0 && !player.dead && !player.isStable) {
+      const deathSaveResult = await makeDeathSave({
+        playerId: player.id,
+        campaignId: input.campaignId,
+      });
+
+      let message = '';
+      if (deathSaveResult.isRevived) {
+        message = `${player.name} бросает спасбросок от смерти: натуральная 20! Игрок восстаёт с 1 HP.`;
+      } else if (deathSaveResult.isDead) {
+        message = `${player.name} бросает спасбросок от смерти: ${deathSaveResult.roll}. ${deathSaveResult.roll === 1 ? 'Два провала!' : 'Провал.'} Спасброски: ${deathSaveResult.deathSaveSuccess} успехов, ${deathSaveResult.deathSaveFail} провалов. ИГРОК МЁРТВ.`;
+      } else if (deathSaveResult.isStable) {
+        message = `${player.name} бросает спасбросок от смерти: ${deathSaveResult.roll}. ${deathSaveResult.success ? 'Успех!' : 'Провал.'} Спасброски: ${deathSaveResult.deathSaveSuccess} успехов, ${deathSaveResult.deathSaveFail} провалов. Игрок стабилен.`;
+      } else {
+        message = `${player.name} бросает спасбросок от смерти: ${deathSaveResult.roll}. ${deathSaveResult.success ? 'Успех!' : 'Провал.'} Спасброски: ${deathSaveResult.deathSaveSuccess} успехов, ${deathSaveResult.deathSaveFail} провалов.`;
+      }
+
+      const logEntry = {
+        actorName: player.name,
+        message,
+        meta: { deathSaveResult },
+      };
+      await encounterLogRepository.create({
+        encounterId: encounter.id,
+        ...logEntry,
+      });
+      newLogEntries.push(logEntry);
+
+      if (deathSaveResult.isDead) {
+        await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
+      }
+    } else if (player.hpCurrent > 0 || player.dead || player.isStable) {
+      return {
+        success: false,
+        error: 'Сейчас ход игрока. Ход не был продвинут.',
+        errorCode: 'PLAYER_TURN',
+        encounter: null,
+        newLogEntries: [],
+      };
+    }
   } else if (currentParticipant.monsterInstanceId) {
     const monsterInstance = await monsterInstanceRepository.getById(currentParticipant.monsterInstanceId);
     const actorName = monsterInstance?.name ?? 'Монстр';
