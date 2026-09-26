@@ -31,11 +31,10 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
 
   if (ctx.encounter.status !== 'active') throw new Error('Боевая сцена не активна.');
 
-  const currentParticipant = ctx.participants.filter((p) => !p.isOut).sort((a, b) => a.order - b.order)[
-    ctx.encounter.currentTurnIndex
-  ];
+  const orderedParticipants = [...ctx.participants].sort((a, b) => a.order - b.order);
+  const currentParticipant = orderedParticipants[ctx.encounter.currentTurnIndex];
 
-  if (!currentParticipant || currentParticipant.playerId !== input.playerId)
+  if (!currentParticipant || currentParticipant.isOut || currentParticipant.playerId !== input.playerId)
     throw new Error('NOT_PLAYER_TURN: Сейчас не ход этого игрока.');
 
   const system = buildCombatPrompt(ctx, input.playerAction);

@@ -41,6 +41,13 @@ export interface IMasterContext {
     timeOfDay: TimeOfDay;
   };
   npcs: Array<{ name: string; title: string | null; location: string | null; shopSpecialtyKey: string | null }>;
+  lastEncounterResult: {
+    victory: boolean;
+    defeated: string[];
+    survivors: string[];
+    xpGained: number;
+    coinsGained: number;
+  } | null;
 }
 
 export const loadMasterContext = async ({
@@ -51,13 +58,18 @@ export const loadMasterContext = async ({
   if (!playerId.trim()) throw new Error('playerId обязателен.');
 
   const world = await loadLocationContext({ campaignId, playerId });
-  const [player, itemsHere, loc, campaign, allNpcs, npcLocations] = await Promise.all([
+  const [player, itemsHere, loc, campaign, allNpcs, npcLocations, lastEncounter] = await Promise.all([
     getPlayer(playerId),
     listItemsByLocation(world.playerHere.id),
     getPlayerLocation({ campaignId, playerId }),
     getCampaign(campaignId),
     db.npc.findMany({ where: { campaignId }, select: { id: true, name: true, title: true, shopSpecialtyKey: true } }),
     db.npcLocation.findMany({ where: { npc: { campaignId } }, select: { npcId: true, locationId: true, role: true } }),
+    db.encounter.findFirst({
+      where: { campaignId, status: 'ended' },
+      orderBy: { id: 'desc' },
+      include: { logs: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    }),
   ]);
 
   if (player.campaignId !== campaignId) throw new Error('Игрок не принадлежит этой кампании.');
@@ -79,6 +91,35 @@ export const loadMasterContext = async ({
       shopSpecialtyKey: npc.shopSpecialtyKey,
     };
   });
+
+  let lastEncounterResult = null;
+  if (lastEncounter && lastEncounter.logs.length > 0) {
+    const lastLog = lastEncounter.logs[0];
+    if (lastLog.meta && typeof lastLog.meta === 'object') {
+      const meta = lastLog.meta as {
+        victory?: boolean;
+        defeated?: string[];
+        survivors?: string[];
+        xpGained?: number;
+        coinsGained?: number;
+      };
+      if (
+        meta.victory !== undefined &&
+        meta.defeated !== undefined &&
+        meta.survivors !== undefined &&
+        meta.xpGained !== undefined &&
+        meta.coinsGained !== undefined
+      ) {
+        lastEncounterResult = {
+          victory: meta.victory,
+          defeated: meta.defeated,
+          survivors: meta.survivors,
+          xpGained: meta.xpGained,
+          coinsGained: meta.coinsGained,
+        };
+      }
+    }
+  }
 
   return {
     world,
@@ -109,5 +150,6 @@ export const loadMasterContext = async ({
       timeOfDay: campaign.timeOfDay,
     },
     npcs,
+    lastEncounterResult,
   };
 };
