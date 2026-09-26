@@ -4,6 +4,7 @@ import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
+import { spendAction } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -88,7 +89,8 @@ export const resolveMonsterAttackTool: ILlmTool = {
       },
       isRanged: {
         type: 'boolean',
-        description: 'Является ли атака дальнобойной (лук, арбалет). Если true, проверяется дистанция по описанию атаки',
+        description:
+          'Является ли атака дальнобойной (лук, арбалет). Если true, проверяется дистанция по описанию атаки',
       },
     },
     required: ['attackerMonsterInstanceId', 'targetParticipantId'],
@@ -103,9 +105,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
 
-    const attackerParticipants = await encounterParticipantRepository.listByEncounterId(
-      targetParticipant.encounterId
-    );
+    const attackerParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
     const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
     if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
 
@@ -158,6 +158,15 @@ export const resolveMonsterAttackTool: ILlmTool = {
           message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
         };
       }
+    }
+
+    const spendResult = await spendAction(attackerParticipant.id, 'action');
+    if (!spendResult.success) {
+      return {
+        hit: false,
+        errorCode: spendResult.errorCode,
+        message: 'Основное действие уже использовано в этом ходу.',
+      };
     }
 
     let targetAc = 10;
@@ -214,7 +223,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const hit = attackTotal >= targetAc;
 
     let damageTotal = 0;
-    let damageRolls: number[] = [];
+    const damageRolls: number[] = [];
 
     if (hit) {
       const { dieCount, die, bonus } = parseDamageFormula(damageFormula);

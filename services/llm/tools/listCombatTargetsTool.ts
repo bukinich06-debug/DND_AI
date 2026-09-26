@@ -13,8 +13,7 @@ const parseArgs = (args: unknown): IListCombatTargetsArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы listCombatTargets обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.encounterId !== 'string' || !raw.encounterId.trim())
-    throw new Error('encounterId обязателен.');
+  if (typeof raw.encounterId !== 'string' || !raw.encounterId.trim()) throw new Error('encounterId обязателен.');
 
   return {
     encounterId: raw.encounterId.trim(),

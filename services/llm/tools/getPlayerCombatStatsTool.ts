@@ -1,5 +1,7 @@
 import { playerRepository } from '@/data/player';
 import { searchPlayerItems } from '@/services/item/search/searchPlayerItems';
+import { encounterParticipantRepository } from '@/data/encounter';
+import { getActionEconomy } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IGetPlayerCombatStatsArgs {
@@ -10,8 +12,7 @@ const parseArgs = (args: unknown): IGetPlayerCombatStatsArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы getPlayerCombatStats обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.playerId !== 'string' || !raw.playerId.trim())
-    throw new Error('playerId обязателен.');
+  if (typeof raw.playerId !== 'string' || !raw.playerId.trim()) throw new Error('playerId обязателен.');
 
   return {
     playerId: raw.playerId.trim(),
@@ -23,7 +24,7 @@ const calculateAbilityMod = (score: number): number => Math.floor((score - 10) /
 export const getPlayerCombatStatsTool: ILlmTool = {
   name: 'get_player_combat_stats',
   description:
-    'Возвращает боевые характеристики игрока: HP, AC, модификаторы характеристик, proficiencyBonus, скорость, и экипированное оружие (mainHand, offHand, ranged) с damage/range из properties. Используй для проверки возможностей атаки.',
+    'Возвращает боевые характеристики игрока: HP, AC, модификаторы характеристик, proficiencyBonus, скорость, экипированное оружие (mainHand, offHand, ranged) с damage/range из properties, и состояние действий (actionUsed, bonusActionUsed, reactionUsed, movementUsedFeet, movementLeftFeet). Используй для проверки возможностей атаки и оставшихся действий.',
   parameters: {
     type: 'object',
     properties: {
@@ -58,6 +59,23 @@ export const getPlayerCombatStatsTool: ILlmTool = {
       (item) => item.equipSlot === 'mainHand' || item.equipSlot === 'offHand' || item.equipSlot === 'ranged'
     );
 
+    let actionEconomy = {
+      actionUsed: false,
+      bonusActionUsed: false,
+      reactionUsed: false,
+      movementUsedFeet: 0,
+      speed: player.speed,
+      movementLeftFeet: player.speed,
+    };
+
+    if (ctx.encounterId) {
+      const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+      const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
+      if (playerParticipant) {
+        actionEconomy = await getActionEconomy(playerParticipant.id);
+      }
+    }
+
     return {
       id: player.id,
       name: player.name,
@@ -84,6 +102,11 @@ export const getPlayerCombatStatsTool: ILlmTool = {
         equipSlot: w.equipSlot,
         properties: w.properties,
       })),
+      actionUsed: actionEconomy.actionUsed,
+      bonusActionUsed: actionEconomy.bonusActionUsed,
+      reactionUsed: actionEconomy.reactionUsed,
+      movementUsedFeet: actionEconomy.movementUsedFeet,
+      movementLeftFeet: actionEconomy.movementLeftFeet,
     };
   },
 };

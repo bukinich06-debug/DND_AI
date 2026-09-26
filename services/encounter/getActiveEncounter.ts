@@ -4,6 +4,7 @@ import { encounterRepository, encounterParticipantRepository, encounterLogReposi
 import { playerRepository } from '@/data/player';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { monsterInstanceRepository } from '@/data/monster';
+import { getCatalogMonsterByKey } from '@/domain/monster';
 import type { IEncounterLog } from '@/domain/encounter';
 
 interface IGetActiveEncounterInput {
@@ -23,6 +24,11 @@ interface IParticipantInfo {
   playerId: string | null;
   npcId: string | null;
   monsterInstanceId: string | null;
+  actionUsed: boolean;
+  bonusActionUsed: boolean;
+  reactionUsed: boolean;
+  movementUsedFeet: number;
+  speed: number;
 }
 
 interface IGetActiveEncounterResult {
@@ -39,9 +45,7 @@ interface IGetActiveEncounterResult {
   } | null;
 }
 
-export const getActiveEncounter = async (
-  input: IGetActiveEncounterInput
-): Promise<IGetActiveEncounterResult> => {
+export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promise<IGetActiveEncounterResult> => {
   const encounter = await encounterRepository.getActiveByCampaignId(input.campaignId);
 
   if (!encounter) {
@@ -59,6 +63,7 @@ export const getActiveEncounter = async (
     let displayName = 'Unknown';
     let hpCurrent = 0;
     let hpMax = 0;
+    let speed = 30;
     let kind: 'player' | 'npc' | 'monster' = 'player';
 
     if (participant.playerId) {
@@ -67,6 +72,7 @@ export const getActiveEncounter = async (
         displayName = player.name;
         hpCurrent = player.hpCurrent;
         hpMax = player.hpMax;
+        speed = player.speed;
         kind = 'player';
       }
     } else if (participant.npcId) {
@@ -77,6 +83,7 @@ export const getActiveEncounter = async (
         if (statBlock) {
           hpCurrent = statBlock.hpCurrent;
           hpMax = statBlock.hpMax;
+          speed = statBlock.speed;
         }
         kind = 'npc';
       }
@@ -86,6 +93,7 @@ export const getActiveEncounter = async (
         displayName = monster.name;
         hpCurrent = monster.hpCurrent;
         hpMax = monster.hpMax;
+        speed = monster.speed;
         kind = 'monster';
       }
     }
@@ -102,6 +110,11 @@ export const getActiveEncounter = async (
       playerId: participant.playerId,
       npcId: participant.npcId,
       monsterInstanceId: participant.monsterInstanceId,
+      actionUsed: participant.actionUsed,
+      bonusActionUsed: participant.bonusActionUsed,
+      reactionUsed: participant.reactionUsed,
+      movementUsedFeet: participant.movementUsedFeet,
+      speed,
     });
   }
 

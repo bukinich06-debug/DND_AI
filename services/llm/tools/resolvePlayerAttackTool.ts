@@ -6,6 +6,7 @@ import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/validateProperties';
+import { spendAction } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolvePlayerAttackArgs {
@@ -72,7 +73,8 @@ export const resolvePlayerAttackTool: ILlmTool = {
       },
       weaponItemId: {
         type: 'string',
-        description: 'ID предмета-оружия из инвентаря игрока (из списка экипированного оружия: mainHand, offHand или ranged). Если не указан, используется безоружная атака.',
+        description:
+          'ID предмета-оружия из инвентаря игрока (из списка экипированного оружия: mainHand, offHand или ranged). Если не указан, используется безоружная атака.',
       },
     },
     required: ['attackerPlayerId', 'targetParticipantId'],
@@ -93,19 +95,27 @@ export const resolvePlayerAttackTool: ILlmTool = {
     const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
     const hasBlockingCondition = attacker.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
     if (hasBlockingCondition)
-      throw new Error('PLAYER_INCAPACITATED: Игрок не может атаковать из-за состояния (unconscious/paralyzed/stunned/incapacitated/petrified).');
+      throw new Error(
+        'PLAYER_INCAPACITATED: Игрок не может атаковать из-за состояния (unconscious/paralyzed/stunned/incapacitated/petrified).'
+      );
 
-    if (attacker.exhaustionLevel >= 6)
-      throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
+    if (attacker.exhaustionLevel >= 6) throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
 
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
 
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const attackerParticipants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+    const attackerParticipant = attackerParticipants.find((p) => p.playerId === parsed.attackerPlayerId);
+    if (!attackerParticipant) throw new Error('Участник атакующего игрока не найден в боевой сцене.');
+
     if (targetParticipant.playerId === parsed.attackerPlayerId)
       throw new Error('INVALID_TARGET: Нельзя атаковать самого себя.');
 
-    if (targetParticipant.isOut)
-      throw new Error('INVALID_TARGET: Цель уже выбыла из боя.');
+    if (targetParticipant.isOut) throw new Error('INVALID_TARGET: Цель уже выбыла из боя.');
+
+    const distance = targetParticipant.feetFromPlayer;
 
     let weaponName = 'Безоружная атака';
     let isRangedAttack = false;
@@ -132,7 +142,10 @@ export const resolvePlayerAttackTool: ILlmTool = {
         };
       }
 
-      if (!item.equipSlot || (item.equipSlot !== 'mainHand' && item.equipSlot !== 'offHand' && item.equipSlot !== 'ranged')) {
+      if (
+        !item.equipSlot ||
+        (item.equipSlot !== 'mainHand' && item.equipSlot !== 'offHand' && item.equipSlot !== 'ranged')
+      ) {
         return {
           hit: false,
           errorCode: 'WEAPON_NOT_EQUIPPED',
@@ -180,8 +193,6 @@ export const resolvePlayerAttackTool: ILlmTool = {
       }
     }
 
-    const distance = targetParticipant.feetFromPlayer;
-
     let targetName = 'Неизвестный';
 
     if (targetParticipant.playerId) {
@@ -212,6 +223,15 @@ export const resolvePlayerAttackTool: ILlmTool = {
         targetName,
         distance,
         message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
+      };
+    }
+
+    const spendResult = await spendAction(attackerParticipant.id, 'action');
+    if (!spendResult.success) {
+      return {
+        hit: false,
+        errorCode: spendResult.errorCode,
+        message: 'Основное действие уже использовано в этом ходу.',
       };
     }
 
@@ -262,7 +282,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
     const hit = attackTotal >= targetAc;
 
     let damageTotal = 0;
-    let damageRolls: number[] = [];
+    const damageRolls: number[] = [];
 
     if (hit) {
       const parsedDamage = parseDamageFormula(damageFormula);

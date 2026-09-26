@@ -3,6 +3,7 @@ import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { searchPlayerItems } from '@/services/item/search/searchPlayerItems';
+import { getActionEconomy } from '@/services/encounter/actionEconomy';
 
 interface ILoadCombatAgentContextParams {
   campaignId: string;
@@ -33,6 +34,11 @@ export interface ICombatAgentContext {
     cha: number;
     proficiencyBonus: number;
     weapons: IWeapon[];
+    actionUsed: boolean;
+    bonusActionUsed: boolean;
+    reactionUsed: boolean;
+    movementUsedFeet: number;
+    movementLeftFeet: number;
   };
   encounter: {
     id: string;
@@ -89,6 +95,20 @@ export const loadCombatAgentContext = async ({
     }));
 
   const rawParticipants = await encounterParticipantRepository.listByEncounterId(encounterId);
+
+  const playerParticipant = rawParticipants.find((p) => p.playerId === playerId);
+  let playerActionEconomy = {
+    actionUsed: false,
+    bonusActionUsed: false,
+    reactionUsed: false,
+    movementUsedFeet: 0,
+    speed: player.speed,
+    movementLeftFeet: player.speed,
+  };
+
+  if (playerParticipant) {
+    playerActionEconomy = await getActionEconomy(playerParticipant.id);
+  }
 
   const participants = await Promise.all(
     rawParticipants.map(async (p) => {
@@ -157,6 +177,11 @@ export const loadCombatAgentContext = async ({
       cha: player.cha,
       proficiencyBonus: player.proficiencyBonus,
       weapons,
+      actionUsed: playerActionEconomy.actionUsed,
+      bonusActionUsed: playerActionEconomy.bonusActionUsed,
+      reactionUsed: playerActionEconomy.reactionUsed,
+      movementUsedFeet: playerActionEconomy.movementUsedFeet,
+      movementLeftFeet: playerActionEconomy.movementLeftFeet,
     },
     encounter: {
       id: encounter.id,

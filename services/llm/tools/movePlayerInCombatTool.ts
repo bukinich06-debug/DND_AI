@@ -1,5 +1,6 @@
 import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
+import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMovePlayerInCombatArgs {
@@ -12,8 +13,7 @@ const parseArgs = (args: unknown): IMovePlayerInCombatArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы movePlayerInCombat обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.playerId !== 'string' || !raw.playerId.trim())
-    throw new Error('playerId обязателен.');
+  if (typeof raw.playerId !== 'string' || !raw.playerId.trim()) throw new Error('playerId обязателен.');
   if (typeof raw.targetParticipantId !== 'string' || !raw.targetParticipantId.trim())
     throw new Error('targetParticipantId обязателен.');
 
@@ -51,8 +51,7 @@ export const movePlayerInCombatTool: ILlmTool = {
     const parsed = parseArgs(args);
 
     if (!ctx.playerId) throw new Error('playerId отсутствует в контексте.');
-    if (parsed.playerId !== ctx.playerId)
-      throw new Error('FORBIDDEN: Нельзя двигать другого игрока.');
+    if (parsed.playerId !== ctx.playerId) throw new Error('FORBIDDEN: Нельзя двигать другого игрока.');
 
     const player = await playerRepository.getById(parsed.playerId);
     if (!player) throw new Error('Игрок не найден.');
@@ -61,19 +60,22 @@ export const movePlayerInCombatTool: ILlmTool = {
 
     const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
     const hasBlockingCondition = player.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
-    if (hasBlockingCondition)
-      throw new Error('PLAYER_INCAPACITATED: Игрок не может двигаться из-за состояния.');
+    if (hasBlockingCondition) throw new Error('PLAYER_INCAPACITATED: Игрок не может двигаться из-за состояния.');
 
     const movementBlockingConditions = ['grappled', 'restrained'];
     const hasMovementBlock = player.conditions.some((c) => movementBlockingConditions.includes(c.toLowerCase()));
-    if (hasMovementBlock)
-      throw new Error('PLAYER_MOVEMENT_BLOCKED: Игрок не может двигаться (grappled/restrained).');
+    if (hasMovementBlock) throw new Error('PLAYER_MOVEMENT_BLOCKED: Игрок не может двигаться (grappled/restrained).');
 
-    if (player.exhaustionLevel >= 6)
-      throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
+    if (player.exhaustionLevel >= 6) throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
 
     if (player.exhaustionLevel >= 5)
       throw new Error('PLAYER_EXHAUSTED: Скорость игрока = 0 из-за истощения (exhaustion 5+).');
+
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+    const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
+    if (!playerParticipant) throw new Error('Участник игрока не найден в боевой сцене.');
 
     const target = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!target) throw new Error('Участник боя не найден.');
@@ -84,6 +86,21 @@ export const movePlayerInCombatTool: ILlmTool = {
 
     const maxMove = Math.min(speed, requestedFeet);
     const actualMove = Math.min(maxMove, current);
+
+    const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
+    if (!movementResult.success) {
+      return {
+        movedFeet: 0,
+        feetFromPlayerBefore: current,
+        feetFromPlayerAfter: current,
+        speed,
+        playerName: player.name,
+        targetName: target.monsterInstanceId ? 'монстр' : target.npcId ? 'NPC' : 'игрок',
+        errorCode: movementResult.errorCode,
+        movementLeft: movementResult.movementLeft,
+        message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+      };
+    }
 
     const newDistance = Math.max(0, current - actualMove);
 

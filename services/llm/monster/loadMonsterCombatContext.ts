@@ -4,6 +4,7 @@ import { encounterRepository, encounterParticipantRepository } from '@/data/enco
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
+import { getActionEconomy } from '@/services/encounter/actionEconomy';
 
 const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
   if (!value) return [];
@@ -34,6 +35,11 @@ export interface IMonsterCombatContext {
     cha: number;
     traits: IMonsterAbility[] | null;
     actions: IMonsterAction[] | null;
+    actionUsed: boolean;
+    bonusActionUsed: boolean;
+    reactionUsed: boolean;
+    movementUsedFeet: number;
+    movementLeftFeet: number;
   };
   encounter: {
     id: string;
@@ -83,6 +89,20 @@ export const loadMonsterCombatContext = async ({
   }
 
   const rawParticipants = await encounterParticipantRepository.listByEncounterId(encounterId);
+
+  const monsterParticipant = rawParticipants.find((p) => p.monsterInstanceId === monsterInstanceId);
+  let monsterActionEconomy = {
+    actionUsed: false,
+    bonusActionUsed: false,
+    reactionUsed: false,
+    movementUsedFeet: 0,
+    speed: monster.speed,
+    movementLeftFeet: monster.speed,
+  };
+
+  if (monsterParticipant) {
+    monsterActionEconomy = await getActionEconomy(monsterParticipant.id);
+  }
 
   const participants = await Promise.all(
     rawParticipants.map(async (p) => {
@@ -147,6 +167,11 @@ export const loadMonsterCombatContext = async ({
       cha: monster.cha,
       traits: catalogTraits,
       actions: catalogActions,
+      actionUsed: monsterActionEconomy.actionUsed,
+      bonusActionUsed: monsterActionEconomy.bonusActionUsed,
+      reactionUsed: monsterActionEconomy.reactionUsed,
+      movementUsedFeet: monsterActionEconomy.movementUsedFeet,
+      movementLeftFeet: monsterActionEconomy.movementLeftFeet,
     },
     encounter: {
       id: encounter.id,

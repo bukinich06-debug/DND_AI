@@ -32,69 +32,15 @@ const parseToolArgs = (raw: string): unknown => {
   }
 };
 
-const runOneTool = async (
-  call: ILlmToolCall,
-  ctx: IToolContext,
-  actionState: { attackUsed: boolean; totalMoved: number; consumableUsed: boolean; playerSpeed: number }
-): Promise<IToolCallLog> => {
+const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
   const name = call.function?.name?.trim() || '';
   let args: unknown = {};
   try {
     args = parseToolArgs(call.function?.arguments ?? '');
 
-    if (name === 'resolve_player_attack') {
-      if (actionState.attackUsed) {
-        return {
-          name,
-          args,
-          ok: false,
-          error: 'ACTION_ALREADY_USED: Атака уже использована в этом ходу.',
-        };
-      }
-    }
-
-    if (name === 'move_player_in_combat') {
-      const moveArgs = args as { feet?: number };
-      const requestedFeet = moveArgs.feet ?? actionState.playerSpeed;
-      if (actionState.totalMoved + requestedFeet > actionState.playerSpeed) {
-        return {
-          name,
-          args,
-          ok: false,
-          error: `MOVEMENT_EXCEEDED: Превышен лимит движения (уже двигался ${actionState.totalMoved} фт из ${actionState.playerSpeed} фт).`,
-        };
-      }
-    }
-
-    if (name === 'use_player_consumable') {
-      if (actionState.consumableUsed) {
-        return {
-          name,
-          args,
-          ok: false,
-          error: 'BONUS_ACTION_USED: Бонусное действие (расходник) уже использовано в этом ходу.',
-        };
-      }
-    }
-
     const tool = combatToolByName.get(name);
     if (!tool) throw new Error(`Неизвестный tool: ${name || '(пусто)'}.`);
     const result = await tool.execute(args, ctx);
-
-    if (name === 'resolve_player_attack') {
-      actionState.attackUsed = true;
-    }
-
-    if (name === 'move_player_in_combat') {
-      const moveResult = result as { movedFeet?: number };
-      if (moveResult.movedFeet) {
-        actionState.totalMoved += moveResult.movedFeet;
-      }
-    }
-
-    if (name === 'use_player_consumable') {
-      actionState.consumableUsed = true;
-    }
 
     return { name, args, ok: true, result };
   } catch (e) {
@@ -107,6 +53,24 @@ const runOneTool = async (
   }
 };
 
+const looksLikeAttack = (text: string): boolean => {
+  const lower = text.toLowerCase();
+  const attackKeywords = [
+    'атак',
+    'бью',
+    'удар',
+    'стреля',
+    'выстрел',
+    'рубл',
+    'наношу',
+    'нанесу',
+    'удари',
+    'бить',
+    'пораж',
+  ];
+  return attackKeywords.some((kw) => lower.includes(kw));
+};
+
 export const runCombatToolLoop = async ({
   system,
   ctx,
@@ -114,29 +78,51 @@ export const runCombatToolLoop = async ({
   const openAiTools = combatTools.map(toOpenAiCompatibleTool);
   const history: ILlmMessage[] = [{ role: 'system', content: system }];
   const toolCalls: IToolCallLog[] = [];
-
-  let playerSpeed = 30;
-  if (ctx.playerId) {
-    const { playerRepository } = await import('@/data/player');
-    const player = await playerRepository.getById(ctx.playerId);
-    if (player) playerSpeed = player.speed;
-  }
-
-  const actionState = {
-    attackUsed: false,
-    totalMoved: 0,
-    consumableUsed: false,
-    playerSpeed,
-  };
+  let attackWithoutToolAttempts = 0;
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendLlmChat({ messages: history, temperature: 0.7, tools: openAiTools });
+    const assistant = await sendLlmChat({ messages: history, temperature: 0.3, tools: openAiTools });
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
       if (!content) throw new Error('Пустой ответ LLM.');
+
       const reply = parseCombatReply(content);
+
+      const replyText = `${reply.say || ''} ${reply.do || ''}`;
+      const attackCalled = toolCalls.some(
+        (tc) =>
+          tc.name === 'resolve_player_attack' &&
+          tc.ok &&
+          !(typeof tc.result === 'object' && tc.result !== null && 'errorCode' in tc.result && tc.result.errorCode)
+      );
+
+      if (looksLikeAttack(replyText) && !attackCalled) {
+        attackWithoutToolAttempts++;
+
+        if (attackWithoutToolAttempts >= 2) {
+          return {
+            say: 'Ты заявил атаку, но не вызвал resolve_player_attack. Действие отклонено.',
+            do: null,
+            toolCalls,
+          };
+        }
+
+        history.push({
+          role: 'assistant',
+          content: assistant.content ?? null,
+        });
+
+        history.push({
+          role: 'system',
+          content:
+            'Ты заявил атаку в say/do, но не вызвал resolve_player_attack успешно. Вызови resolve_player_attack с нужными аргументами (weaponItemId из списка оружия или null для безоружной атаки) или откажи от атаки (say с объяснением, do: null).',
+        });
+
+        continue;
+      }
+
       return { ...reply, toolCalls };
     }
 
@@ -147,7 +133,7 @@ export const runCombatToolLoop = async ({
     });
 
     for (const call of calls) {
-      const log = await runOneTool(call, ctx, actionState);
+      const log = await runOneTool(call, ctx);
       toolCalls.push(log);
       history.push({
         role: 'tool',
