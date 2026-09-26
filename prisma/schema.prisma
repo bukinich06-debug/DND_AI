@@ -557,6 +557,10 @@ model EncounterParticipant {
   playerId          String?
   npcId             String?
   monsterInstanceId String?
+  actionUsed        Boolean @default(false)
+  bonusActionUsed   Boolean @default(false)
+  reactionUsed      Boolean @default(false)
+  movementUsedFeet  Int     @default(0)
 
   encounter       Encounter        @relation(fields: [encounterId], references: [id], onDelete: Cascade)
   player          Player?          @relation(fields: [playerId], references: [id])

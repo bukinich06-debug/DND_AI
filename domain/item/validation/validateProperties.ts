@@ -88,7 +88,5 @@ export const isRangedWeapon = (properties: IItemProp[] | null) =>
 
 export const isFinesseWeapon = (properties: IItemProp[] | null) => {
   if (properties?.some((prop) => prop.type === 'finesse')) return true;
-  return Boolean(
-    properties?.some((prop) => prop.type === 'note' && prop.text.toLowerCase().includes('фехтовальное'))
-  );
+  return Boolean(properties?.some((prop) => prop.type === 'note' && prop.text.toLowerCase().includes('фехтовальное')));
 };

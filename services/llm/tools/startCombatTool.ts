@@ -78,8 +78,7 @@ export const startCombatTool: ILlmTool = {
           properties: {
             catalogKey: {
               type: 'string',
-              description:
-                'Ключ монстра в справочнике (например "goblin", "orc", "wolf", "skeleton", "bandit").',
+              description: 'Ключ монстра в справочнике (например "goblin", "orc", "wolf", "skeleton", "bandit").',
             },
             count: {
               type: 'number',
@@ -96,8 +95,7 @@ export const startCombatTool: ILlmTool = {
       },
       allyNpcIds: {
         type: 'array',
-        description:
-          'Массив ID союзных НПС, которые будут участвовать в бою на стороне игрока (опционально).',
+        description: 'Массив ID союзных НПС, которые будут участвовать в бою на стороне игрока (опционально).',
         items: {
           type: 'string',
         },

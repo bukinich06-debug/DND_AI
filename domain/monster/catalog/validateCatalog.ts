@@ -40,8 +40,7 @@ const validateAbility = (raw: unknown, where: string, field: string): IMonsterAb
     throw new Error(`${where}.${field}: элемент должен быть объектом.`);
 
   const obj = raw as Record<string, unknown>;
-  if (typeof obj.name !== 'string' || !obj.name.trim())
-    throw new Error(`${where}.${field}: name обязателен.`);
+  if (typeof obj.name !== 'string' || !obj.name.trim()) throw new Error(`${where}.${field}: name обязателен.`);
   if (typeof obj.description !== 'string' || !obj.description.trim())
     throw new Error(`${where}.${field}: description обязателен.`);
 
@@ -56,8 +55,7 @@ const validateAction = (raw: unknown, where: string, field: string): IMonsterAct
     throw new Error(`${where}.${field}: элемент должен быть объектом.`);
 
   const obj = raw as Record<string, unknown>;
-  if (typeof obj.name !== 'string' || !obj.name.trim())
-    throw new Error(`${where}.${field}: name обязателен.`);
+  if (typeof obj.name !== 'string' || !obj.name.trim()) throw new Error(`${where}.${field}: name обязателен.`);
   if (typeof obj.description !== 'string' || !obj.description.trim())
     throw new Error(`${where}.${field}: description обязателен.`);
 

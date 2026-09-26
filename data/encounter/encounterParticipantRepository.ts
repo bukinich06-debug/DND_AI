@@ -17,6 +17,10 @@ const mapParticipant = (row: EncounterParticipant): IEncounterParticipant => ({
   playerId: row.playerId,
   npcId: row.npcId,
   monsterInstanceId: row.monsterInstanceId,
+  actionUsed: row.actionUsed,
+  bonusActionUsed: row.bonusActionUsed,
+  reactionUsed: row.reactionUsed,
+  movementUsedFeet: row.movementUsedFeet,
 });
 
 const validateExactlyOneEntity = (input: {
@@ -42,6 +46,10 @@ export const encounterParticipantRepository: IEncounterParticipantRepository = {
         playerId: input.playerId ?? null,
         npcId: input.npcId ?? null,
         monsterInstanceId: input.monsterInstanceId ?? null,
+        actionUsed: input.actionUsed ?? false,
+        bonusActionUsed: input.bonusActionUsed ?? false,
+        reactionUsed: input.reactionUsed ?? false,
+        movementUsedFeet: input.movementUsedFeet ?? 0,
       },
     });
     return mapParticipant(row);
@@ -69,8 +77,7 @@ export const encounterParticipantRepository: IEncounterParticipantRepository = {
       const updated = {
         playerId: input.playerId !== undefined ? input.playerId : current.playerId,
         npcId: input.npcId !== undefined ? input.npcId : current.npcId,
-        monsterInstanceId:
-          input.monsterInstanceId !== undefined ? input.monsterInstanceId : current.monsterInstanceId,
+        monsterInstanceId: input.monsterInstanceId !== undefined ? input.monsterInstanceId : current.monsterInstanceId,
       };
       validateExactlyOneEntity(updated);
     }
@@ -85,6 +92,10 @@ export const encounterParticipantRepository: IEncounterParticipantRepository = {
         ...(input.playerId !== undefined ? { playerId: input.playerId } : {}),
         ...(input.npcId !== undefined ? { npcId: input.npcId } : {}),
         ...(input.monsterInstanceId !== undefined ? { monsterInstanceId: input.monsterInstanceId } : {}),
+        ...(input.actionUsed !== undefined ? { actionUsed: input.actionUsed } : {}),
+        ...(input.bonusActionUsed !== undefined ? { bonusActionUsed: input.bonusActionUsed } : {}),
+        ...(input.reactionUsed !== undefined ? { reactionUsed: input.reactionUsed } : {}),
+        ...(input.movementUsedFeet !== undefined ? { movementUsedFeet: input.movementUsedFeet } : {}),
       },
     });
     return mapParticipant(row);

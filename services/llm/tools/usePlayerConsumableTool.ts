@@ -1,8 +1,9 @@
 import { itemRepository } from '@/data/item';
 import { playerRepository } from '@/data/player';
-import { encounterLogRepository } from '@/data/encounter';
+import { encounterLogRepository, encounterParticipantRepository } from '@/data/encounter';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { DiceKind } from '@/domain/shared';
+import { spendAction } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IUsePlayerConsumableArgs {
@@ -14,10 +15,8 @@ const parseArgs = (args: unknown): IUsePlayerConsumableArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы usePlayerConsumable обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.playerId !== 'string' || !raw.playerId.trim())
-    throw new Error('playerId обязателен.');
-  if (typeof raw.itemId !== 'string' || !raw.itemId.trim())
-    throw new Error('itemId обязателен.');
+  if (typeof raw.playerId !== 'string' || !raw.playerId.trim()) throw new Error('playerId обязателен.');
+  if (typeof raw.itemId !== 'string' || !raw.itemId.trim()) throw new Error('itemId обязателен.');
 
   return {
     playerId: raw.playerId.trim(),
@@ -84,15 +83,19 @@ export const usePlayerConsumableTool: ILlmTool = {
     if (hasBlockingCondition)
       throw new Error('PLAYER_INCAPACITATED: Игрок не может использовать предметы из-за состояния.');
 
-    if (player.exhaustionLevel >= 6)
-      throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
+    if (player.exhaustionLevel >= 6) throw new Error('PLAYER_EXHAUSTED: Игрок истощён до смерти (exhaustion 6).');
+
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+    const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
+    if (!playerParticipant) throw new Error('Участник игрока не найден в боевой сцене.');
 
     const item = await itemRepository.getById(parsed.itemId);
 
     if (!item) throw new Error('Предмет не найден.');
     if (item.playerId !== parsed.playerId) throw new Error('Предмет не принадлежит этому игроку.');
-    if (item.kind !== 'consumable')
-      throw new Error('Предмет не является расходным (kind должен быть consumable).');
+    if (item.kind !== 'consumable') throw new Error('Предмет не является расходным (kind должен быть consumable).');
     if (item.quantity < 1) throw new Error('Предмет закончился (quantity < 1).');
 
     const props = item.properties ?? [];
@@ -103,6 +106,15 @@ export const usePlayerConsumableTool: ILlmTool = {
         used: false,
         errorCode: 'UNKNOWN_CONSUMABLE_EFFECT',
         message: 'Эффект предмета не распознан (нет heal в properties).',
+      };
+    }
+
+    const spendResult = await spendAction(playerParticipant.id, 'bonus');
+    if (!spendResult.success) {
+      return {
+        used: false,
+        errorCode: spendResult.errorCode,
+        message: 'Бонусное действие уже использовано в этом ходу.',
       };
     }
 

@@ -5,6 +5,7 @@ import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository } from '@/data/npc';
 import { runMonsterCombatTurn } from '@/services/llm/monster/runMonsterCombatTurn';
 import { getActiveEncounter } from './getActiveEncounter';
+import { resetActionEconomy } from './actionEconomy';
 
 interface IAdvanceCombatTurnInput {
   campaignId: string;
@@ -259,6 +260,11 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     currentTurnIndex: nextTurnIndex,
     round: nextRound,
   });
+
+  const newCurrentParticipant = participants[nextTurnIndex];
+  if (newCurrentParticipant) {
+    await resetActionEconomy(newCurrentParticipant.id);
+  }
 
   const updatedEncounter = await getActiveEncounter({
     campaignId: input.campaignId,

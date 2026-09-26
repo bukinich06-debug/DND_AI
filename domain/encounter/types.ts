@@ -34,11 +34,22 @@ export interface IEncounterParticipant {
   playerId: string | null;
   npcId: string | null;
   monsterInstanceId: string | null;
+  actionUsed: boolean;
+  bonusActionUsed: boolean;
+  reactionUsed: boolean;
+  movementUsedFeet: number;
 }
 
-export type ICreateEncounterParticipant = Omit<IEncounterParticipant, 'id' | 'isOut' | 'feetFromPlayer'> & {
+export type ICreateEncounterParticipant = Omit<
+  IEncounterParticipant,
+  'id' | 'isOut' | 'feetFromPlayer' | 'actionUsed' | 'bonusActionUsed' | 'reactionUsed' | 'movementUsedFeet'
+> & {
   isOut?: boolean;
   feetFromPlayer?: number;
+  actionUsed?: boolean;
+  bonusActionUsed?: boolean;
+  reactionUsed?: boolean;
+  movementUsedFeet?: number;
 };
 
 export type IUpdateEncounterParticipant = Partial<Omit<ICreateEncounterParticipant, 'encounterId'>>;

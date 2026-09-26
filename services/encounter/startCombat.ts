@@ -64,7 +64,10 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     }
   }
 
-  const monsterInstances: Array<{ instance: any; feetFromPlayer: number }> = [];
+  const monsterInstances: Array<{
+    instance: Awaited<ReturnType<typeof monsterInstanceRepository.create>>;
+    feetFromPlayer: number;
+  }> = [];
   for (const enemy of input.enemies) {
     if (enemy.count < 1) throw new Error(`Количество врагов должно быть >= 1 для ключа ${enemy.catalogKey}.`);
 

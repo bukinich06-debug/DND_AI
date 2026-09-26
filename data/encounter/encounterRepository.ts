@@ -1,10 +1,5 @@
 import type { Encounter } from '@/generated/client';
-import type {
-  ICreateEncounter,
-  IEncounter,
-  IEncounterRepository,
-  IUpdateEncounter,
-} from '@/domain/encounter';
+import type { ICreateEncounter, IEncounter, IEncounterRepository, IUpdateEncounter } from '@/domain/encounter';
 import { db } from '@/data/shared';
 
 const mapEncounter = (row: Encounter): IEncounter => ({

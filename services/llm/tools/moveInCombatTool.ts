@@ -1,5 +1,6 @@
 import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
+import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMoveInCombatArgs {
@@ -75,6 +76,20 @@ export const moveInCombatTool: ILlmTool = {
 
     const maxMove = Math.min(speed, requestedFeet);
     const actualMove = Math.min(maxMove, current);
+
+    const movementResult = await spendMovement(participant.id, actualMove, speed);
+    if (!movementResult.success) {
+      return {
+        movedFeet: 0,
+        feetFromPlayerBefore: current,
+        feetFromPlayerAfter: current,
+        speed,
+        monsterName: monster.name,
+        errorCode: movementResult.errorCode,
+        movementLeft: movementResult.movementLeft,
+        message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+      };
+    }
 
     const newDistance = Math.max(0, current - actualMove);
 

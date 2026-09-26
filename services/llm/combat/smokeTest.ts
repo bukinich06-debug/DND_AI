@@ -12,9 +12,9 @@ const _checkExports = () => {
   const _fn: typeof runPlayerCombatTurn = runPlayerCombatTurn;
   const _tools: typeof combatTools = combatTools;
   const _toolMap: typeof combatToolByName = combatToolByName;
-  
+
   type _Result = IRunPlayerCombatTurnResult;
-  
+
   return { _fn, _tools, _toolMap };
 };
 
@@ -29,11 +29,11 @@ const expectedToolNames = [
 
 const checkTools = () => {
   const missingTools = expectedToolNames.filter((name) => !combatToolByName.has(name));
-  
+
   if (missingTools.length > 0) {
     throw new Error(`Отсутствуют tools: ${missingTools.join(', ')}`);
   }
-  
+
   console.log('✅ Все необходимые tools присутствуют');
   console.log('Tools:', Array.from(combatToolByName.keys()).join(', '));
 };
