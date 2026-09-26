@@ -21,6 +21,11 @@ export interface IEncounterRepository {
   getActiveByCampaignId: (campaignId: string) => Promise<IEncounter | null>;
   listByCampaignId: (campaignId: string) => Promise<IEncounter[]>;
   update: (id: string, input: IUpdateEncounter) => Promise<IEncounter>;
+  updateConditional: (
+    id: string,
+    expectedTurnIndex: number,
+    input: IUpdateEncounter
+  ) => Promise<{ success: boolean; encounter?: IEncounter }>;
   delete: (id: string) => Promise<void>;
 }
 

@@ -1,5 +1,6 @@
 import { runPlayerCombatTurn } from '@/services/llm/combat';
 import { getActiveEncounter } from '@/services/encounter/getActiveEncounter';
+import { encounterLogRepository } from '@/data/encounter';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface IRequestBody {
@@ -10,8 +11,10 @@ interface IRequestBody {
 }
 
 export const POST = async (req: NextRequest) => {
+  let body: IRequestBody | null = null;
+
   try {
-    const body = (await req.json()) as IRequestBody;
+    body = (await req.json()) as IRequestBody;
 
     if (!body.campaignId?.trim()) {
       return NextResponse.json({ error: 'campaignId обязателен.', errorCode: 'MISSING_CAMPAIGN_ID' }, { status: 400 });
@@ -39,6 +42,14 @@ export const POST = async (req: NextRequest) => {
       playerAction: body.playerAction,
     });
 
+    if (result.say) {
+      await encounterLogRepository.create({
+        encounterId: body.encounterId,
+        actorName: null,
+        message: result.say,
+      });
+    }
+
     const encounterState = await getActiveEncounter({
       campaignId: body.campaignId,
       playerId: body.playerId,
@@ -55,6 +66,14 @@ export const POST = async (req: NextRequest) => {
     const message = e instanceof Error ? e.message : 'Неизвестная ошибка';
 
     if (message.startsWith('NOT_PLAYER_TURN:')) {
+      if (body?.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: body.encounterId,
+          actorName: null,
+          message: message.replace('NOT_PLAYER_TURN: ', ''),
+        });
+      }
+
       return NextResponse.json(
         { error: message.replace('NOT_PLAYER_TURN: ', ''), errorCode: 'NOT_PLAYER_TURN' },
         { status: 400 }
@@ -63,6 +82,16 @@ export const POST = async (req: NextRequest) => {
 
     if (message === 'Боевая сцена не активна.') {
       return NextResponse.json({ error: message, errorCode: 'ENCOUNTER_NOT_ACTIVE' }, { status: 400 });
+    }
+
+    if (message.includes('Основное действие уже использовано') || message.includes('уже использовано')) {
+      if (body?.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: body.encounterId,
+          actorName: null,
+          message,
+        });
+      }
     }
 
     return NextResponse.json({ error: message, errorCode: 'INTERNAL_ERROR' }, { status: 500 });

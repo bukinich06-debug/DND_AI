@@ -4,7 +4,6 @@ import { encounterRepository, encounterParticipantRepository, encounterLogReposi
 import { playerRepository } from '@/data/player';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { monsterInstanceRepository } from '@/data/monster';
-import { getCatalogMonsterByKey } from '@/domain/monster';
 import type { IEncounterLog } from '@/domain/encounter';
 
 interface IGetActiveEncounterInput {
@@ -57,9 +56,11 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
 
   const participants = await encounterParticipantRepository.listByEncounterId(encounter.id);
 
+  const orderedParticipants = [...participants].sort((a, b) => a.order - b.order);
+
   const participantInfos: IParticipantInfo[] = [];
 
-  for (const participant of participants) {
+  for (const participant of orderedParticipants) {
     let displayName = 'Unknown';
     let hpCurrent = 0;
     let hpMax = 0;
@@ -119,8 +120,8 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
   }
 
   const currentParticipant =
-    participants.length > 0 && encounter.currentTurnIndex < participants.length
-      ? participants[encounter.currentTurnIndex]
+    orderedParticipants.length > 0 && encounter.currentTurnIndex < orderedParticipants.length
+      ? orderedParticipants[encounter.currentTurnIndex]
       : null;
 
   const isPlayerTurn =

@@ -68,4 +68,28 @@ export const encounterRepository: IEncounterRepository = {
   delete: async (id) => {
     await db.encounter.delete({ where: { id } });
   },
+
+  updateConditional: async (id, expectedTurnIndex, input: IUpdateEncounter) => {
+    const result = await db.encounter.updateMany({
+      where: {
+        id,
+        currentTurnIndex: expectedTurnIndex,
+      },
+      data: {
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.round !== undefined ? { round: input.round } : {}),
+        ...(input.currentTurnIndex !== undefined ? { currentTurnIndex: input.currentTurnIndex } : {}),
+        ...(input.locationId !== undefined ? { locationId: input.locationId } : {}),
+      },
+    });
+
+    if (result.count === 0) {
+      return { success: false };
+    }
+
+    const row = await db.encounter.findUnique({ where: { id } });
+    if (!row) return { success: false };
+
+    return { success: true, encounter: mapEncounter(row) };
+  },
 };

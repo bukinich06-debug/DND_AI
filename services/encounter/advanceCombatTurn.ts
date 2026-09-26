@@ -6,6 +6,7 @@ import { npcRepository } from '@/data/npc';
 import { runMonsterCombatTurn } from '@/services/llm/monster/runMonsterCombatTurn';
 import { getActiveEncounter } from './getActiveEncounter';
 import { resetActionEconomy } from './actionEconomy';
+import { checkEncounterEnd } from './checkEncounterEnd';
 
 interface IAdvanceCombatTurnInput {
   campaignId: string;
@@ -24,6 +25,13 @@ interface IAdvanceCombatTurnResult {
   errorCode?: string;
   encounter: Awaited<ReturnType<typeof getActiveEncounter>>['encounter'];
   newLogEntries: ILogEntry[];
+  encounterEnded?: boolean;
+  encounterResult?: {
+    victory: boolean;
+    defeated: string[];
+    survivors: string[];
+    defeatedMonsters: Array<{ name: string; catalogKey: string }>;
+  };
 }
 
 export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise<IAdvanceCombatTurnResult> => {
@@ -49,7 +57,9 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     };
   }
 
-  const activeParticipants = participants.filter((p) => !p.isOut);
+  const orderedParticipants = [...participants].sort((a, b) => a.order - b.order);
+
+  const activeParticipants = orderedParticipants.filter((p) => !p.isOut);
 
   if (activeParticipants.length === 0) {
     return {
@@ -60,7 +70,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     };
   }
 
-  const currentParticipant = participants[encounter.currentTurnIndex];
+  const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
 
   if (!currentParticipant) {
     return {
@@ -91,139 +101,152 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       newLogEntries: [],
     };
   } else if (currentParticipant.monsterInstanceId) {
-    const monsterResult = await runMonsterCombatTurn({
-      campaignId: input.campaignId,
-      encounterId: encounter.id,
-      monsterInstanceId: currentParticipant.monsterInstanceId,
-    });
-
     const monsterInstance = await monsterInstanceRepository.getById(currentParticipant.monsterInstanceId);
     const actorName = monsterInstance?.name ?? 'Монстр';
 
-    if (monsterResult.say) {
-      const sayEntry = {
+    try {
+      const monsterResult = await runMonsterCombatTurn({
+        campaignId: input.campaignId,
+        encounterId: encounter.id,
+        monsterInstanceId: currentParticipant.monsterInstanceId,
+      });
+
+      if (monsterResult.say) {
+        const sayEntry = {
+          actorName,
+          message: `Говорит: ${monsterResult.say}`,
+        };
+        await encounterLogRepository.create({
+          encounterId: encounter.id,
+          ...sayEntry,
+        });
+        newLogEntries.push(sayEntry);
+      }
+
+      if (monsterResult.do) {
+        const doEntry = {
+          actorName,
+          message: `Действует: ${monsterResult.do}`,
+        };
+        await encounterLogRepository.create({
+          encounterId: encounter.id,
+          ...doEntry,
+        });
+        newLogEntries.push(doEntry);
+      }
+
+      const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
+
+      for (const move of moveResults) {
+        if (typeof move.result === 'object' && move.result !== null) {
+          const res = move.result as {
+            movedFeet?: number;
+            feetFromPlayerBefore?: number;
+            feetFromPlayerAfter?: number;
+            monsterName?: string;
+          };
+
+          if (res.movedFeet && res.movedFeet > 0) {
+            const moveEntry = {
+              actorName,
+              message: `${res.monsterName || actorName} приближается на ${res.movedFeet} фт (осталось ${res.feetFromPlayerAfter} фт до игрока)`,
+              meta: move.result,
+            };
+            await encounterLogRepository.create({
+              encounterId: encounter.id,
+              ...moveEntry,
+            });
+            newLogEntries.push(moveEntry);
+          }
+        }
+      }
+
+      const attackResults = monsterResult.toolCalls.filter((tc) => tc.name === 'resolve_monster_attack' && tc.result);
+
+      for (const attack of attackResults) {
+        if (typeof attack.result === 'object' && attack.result !== null) {
+          const res = attack.result as {
+            hit?: boolean;
+            damageTotal?: number;
+            targetName?: string;
+            attackRoll?: number;
+            attackBonus?: number;
+            attackTotal?: number;
+            targetAc?: number;
+            damageRolls?: number[];
+            damageBonus?: number;
+            targetPreviousHp?: number;
+            targetNewHp?: number;
+            errorCode?: string;
+          };
+
+          if (res.errorCode === 'OUT_OF_REACH') {
+            const attackEntry = {
+              actorName,
+              message: `Атака невозможна: ${res.targetName || 'цель'} слишком далеко`,
+              meta: attack.result,
+            };
+            await encounterLogRepository.create({
+              encounterId: encounter.id,
+              ...attackEntry,
+            });
+            newLogEntries.push(attackEntry);
+          } else if (res.hit && res.damageTotal !== undefined) {
+            const attackDetails =
+              res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+                ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
+                : '';
+
+            const damageDetails =
+              res.damageRolls && res.damageBonus !== undefined
+                ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
+                : `${res.damageTotal}`;
+
+            const hpDetails =
+              res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
+                ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
+                : '';
+
+            const attackEntry = {
+              actorName,
+              message: `Попадание по ${res.targetName || 'цель'}: ${attackDetails}урон ${damageDetails}${hpDetails}`,
+              meta: attack.result,
+            };
+            await encounterLogRepository.create({
+              encounterId: encounter.id,
+              ...attackEntry,
+            });
+            newLogEntries.push(attackEntry);
+          } else if (res.hit === false) {
+            const attackDetails =
+              res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+                ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
+                : '';
+
+            const attackEntry = {
+              actorName,
+              message: `Атака по ${res.targetName || 'цели'} промахнулась${attackDetails}`,
+              meta: attack.result,
+            };
+            await encounterLogRepository.create({
+              encounterId: encounter.id,
+              ...attackEntry,
+            });
+            newLogEntries.push(attackEntry);
+          }
+        }
+      }
+    } catch (monsterError) {
+      const errorEntry = {
         actorName,
-        message: `Говорит: ${monsterResult.say}`,
+        message: `${actorName} медлит (ошибка хода монстра).`,
+        meta: { error: monsterError instanceof Error ? monsterError.message : String(monsterError) },
       };
       await encounterLogRepository.create({
         encounterId: encounter.id,
-        ...sayEntry,
+        ...errorEntry,
       });
-      newLogEntries.push(sayEntry);
-    }
-
-    if (monsterResult.do) {
-      const doEntry = {
-        actorName,
-        message: `Действует: ${monsterResult.do}`,
-      };
-      await encounterLogRepository.create({
-        encounterId: encounter.id,
-        ...doEntry,
-      });
-      newLogEntries.push(doEntry);
-    }
-
-    const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
-
-    for (const move of moveResults) {
-      if (typeof move.result === 'object' && move.result !== null) {
-        const res = move.result as {
-          movedFeet?: number;
-          feetFromPlayerBefore?: number;
-          feetFromPlayerAfter?: number;
-          monsterName?: string;
-        };
-
-        if (res.movedFeet && res.movedFeet > 0) {
-          const moveEntry = {
-            actorName,
-            message: `${res.monsterName || actorName} приближается на ${res.movedFeet} фт (осталось ${res.feetFromPlayerAfter} фт до игрока)`,
-            meta: move.result,
-          };
-          await encounterLogRepository.create({
-            encounterId: encounter.id,
-            ...moveEntry,
-          });
-          newLogEntries.push(moveEntry);
-        }
-      }
-    }
-
-    const attackResults = monsterResult.toolCalls.filter((tc) => tc.name === 'resolve_monster_attack' && tc.result);
-
-    for (const attack of attackResults) {
-      if (typeof attack.result === 'object' && attack.result !== null) {
-        const res = attack.result as {
-          hit?: boolean;
-          damageTotal?: number;
-          targetName?: string;
-          attackRoll?: number;
-          attackBonus?: number;
-          attackTotal?: number;
-          targetAc?: number;
-          damageRolls?: number[];
-          damageBonus?: number;
-          targetPreviousHp?: number;
-          targetNewHp?: number;
-          errorCode?: string;
-        };
-
-        if (res.errorCode === 'OUT_OF_REACH') {
-          const attackEntry = {
-            actorName,
-            message: `Атака невозможна: ${res.targetName || 'цель'} слишком далеко`,
-            meta: attack.result,
-          };
-          await encounterLogRepository.create({
-            encounterId: encounter.id,
-            ...attackEntry,
-          });
-          newLogEntries.push(attackEntry);
-        } else if (res.hit && res.damageTotal !== undefined) {
-          const attackDetails =
-            res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-              ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
-              : '';
-
-          const damageDetails =
-            res.damageRolls && res.damageBonus !== undefined
-              ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
-              : `${res.damageTotal}`;
-
-          const hpDetails =
-            res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
-              ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
-              : '';
-
-          const attackEntry = {
-            actorName,
-            message: `Попадание по ${res.targetName || 'цель'}: ${attackDetails}урон ${damageDetails}${hpDetails}`,
-            meta: attack.result,
-          };
-          await encounterLogRepository.create({
-            encounterId: encounter.id,
-            ...attackEntry,
-          });
-          newLogEntries.push(attackEntry);
-        } else if (res.hit === false) {
-          const attackDetails =
-            res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-              ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
-              : '';
-
-          const attackEntry = {
-            actorName,
-            message: `Атака по ${res.targetName || 'цели'} промахнулась${attackDetails}`,
-            meta: attack.result,
-          };
-          await encounterLogRepository.create({
-            encounterId: encounter.id,
-            ...attackEntry,
-          });
-          newLogEntries.push(attackEntry);
-        }
-      }
+      newLogEntries.push(errorEntry);
     }
   } else if (currentParticipant.npcId) {
     const npc = await npcRepository.getById(currentParticipant.npcId);
@@ -243,28 +266,40 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
   let nextTurnIndex = encounter.currentTurnIndex + 1;
   let nextRound = encounter.round;
 
-  while (nextTurnIndex < participants.length && participants[nextTurnIndex].isOut) {
+  while (nextTurnIndex < orderedParticipants.length && orderedParticipants[nextTurnIndex].isOut) {
     nextTurnIndex++;
   }
 
-  if (nextTurnIndex >= participants.length) {
+  if (nextTurnIndex >= orderedParticipants.length) {
     nextRound++;
     nextTurnIndex = 0;
 
-    while (nextTurnIndex < participants.length && participants[nextTurnIndex].isOut) {
+    while (nextTurnIndex < orderedParticipants.length && orderedParticipants[nextTurnIndex].isOut) {
       nextTurnIndex++;
     }
   }
 
-  await encounterRepository.update(encounter.id, {
+  const updateResult = await encounterRepository.updateConditional(encounter.id, encounter.currentTurnIndex, {
     currentTurnIndex: nextTurnIndex,
     round: nextRound,
   });
 
-  const newCurrentParticipant = participants[nextTurnIndex];
+  if (!updateResult.success) {
+    return {
+      success: false,
+      error: 'Ход уже был продвинут другим запросом.',
+      errorCode: 'ALREADY_ADVANCED',
+      encounter: null,
+      newLogEntries: [],
+    };
+  }
+
+  const newCurrentParticipant = orderedParticipants[nextTurnIndex];
   if (newCurrentParticipant) {
     await resetActionEconomy(newCurrentParticipant.id);
   }
+
+  const endCheck = await checkEncounterEnd({ encounterId: encounter.id });
 
   const updatedEncounter = await getActiveEncounter({
     campaignId: input.campaignId,
@@ -275,5 +310,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     success: true,
     encounter: updatedEncounter.encounter,
     newLogEntries,
+    encounterEnded: endCheck.ended,
+    encounterResult: endCheck.result ?? undefined,
   };
 };

@@ -5,6 +5,7 @@ import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
+import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -284,6 +285,10 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       if (newHp <= 0 && !targetParticipant.isOut) {
         await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
+      }
+
+      if (ctx.encounterId) {
+        await checkEncounterEnd({ encounterId: ctx.encounterId });
       }
 
       return {
