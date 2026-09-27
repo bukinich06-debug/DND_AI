@@ -100,6 +100,10 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     const player = await playerRepository.getById(currentParticipant.playerId);
     if (!player) throw new Error('Игрок не найден.');
 
+    if (player.dead && !currentParticipant.isOut) {
+      await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
+    }
+
     if (player.hpCurrent === 0 && !player.dead && !player.isStable) {
       const deathSaveResult = await makeDeathSave({
         playerId: player.id,
@@ -131,7 +135,18 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       if (deathSaveResult.isDead) {
         await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
       }
-    } else if (player.hpCurrent > 0 || player.dead || player.isStable) {
+    } else if (player.hpCurrent === 0 && player.isStable) {
+      const stableEntry = {
+        actorName: player.name,
+        message: `${player.name} стабилен, но без сознания`,
+        meta: { stable: true },
+      };
+      await encounterLogRepository.create({
+        encounterId: encounter.id,
+        ...stableEntry,
+      });
+      newLogEntries.push(stableEntry);
+    } else if (player.hpCurrent > 0) {
       return {
         success: false,
         error: 'Сейчас ход игрока. Ход не был продвинут.',
@@ -218,6 +233,10 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             targetPreviousHp?: number;
             targetNewHp?: number;
             errorCode?: string;
+            isCritical?: boolean;
+            isNatural20?: boolean;
+            isNatural1?: boolean;
+            deathSaveFailuresAdded?: number;
           };
 
           if (res.errorCode === 'OUT_OF_REACH') {
@@ -232,6 +251,8 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             });
             newLogEntries.push(attackEntry);
           } else if (res.hit && res.damageTotal !== undefined) {
+            const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
+
             const attackDetails =
               res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
                 ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
@@ -247,9 +268,14 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                 ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
                 : '';
 
+            const deathSaveDetails =
+              res.deathSaveFailuresAdded && res.deathSaveFailuresAdded > 0
+                ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
+                : '';
+
             const attackEntry = {
               actorName,
-              message: `Попадание по ${res.targetName || 'цель'}: ${attackDetails}урон ${damageDetails}${hpDetails}`,
+              message: `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`,
               meta: attack.result,
             };
             await encounterLogRepository.create({
@@ -258,6 +284,8 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             });
             newLogEntries.push(attackEntry);
           } else if (res.hit === false) {
+            const nat1Text = res.isNatural1 ? ' [nat1]' : '';
+
             const attackDetails =
               res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
                 ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
@@ -265,7 +293,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
 
             const attackEntry = {
               actorName,
-              message: `Атака по ${res.targetName || 'цели'} промахнулась${attackDetails}`,
+              message: `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`,
               meta: attack.result,
             };
             await encounterLogRepository.create({

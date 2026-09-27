@@ -7,6 +7,7 @@ import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import { getCatalogMonsterByKey } from '@/domain/monster';
+import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -122,13 +123,14 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
     if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
 
-    const isRangedAttack =
+    const isRangedAttack = Boolean(
       parsed.isRanged === true ||
       (parsed.attackName &&
         (parsed.attackName.toLowerCase().includes('лук') ||
           parsed.attackName.toLowerCase().includes('арбалет') ||
           parsed.attackName.toLowerCase().includes('метательн') ||
-          parsed.attackName.toLowerCase().includes('дальнобойн')));
+          parsed.attackName.toLowerCase().includes('дальнобойн')))
+    );
 
     let distance = 0;
     let targetName = 'Неизвестный';
@@ -200,11 +202,20 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       if (targetHp === 0 && !isFinisher) {
         const allParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
-        const anyStandingEnemies = allParticipants.some(
-          (p) => !p.isOut && p.playerId && p.playerId !== targetParticipant.playerId
-        );
 
-        if (anyStandingEnemies) {
+        const standingPlayers: typeof allParticipants = [];
+        for (const p of allParticipants) {
+          if (p.playerId && p.playerId !== targetParticipant.playerId) {
+            const otherPlayer = await playerRepository.getById(p.playerId);
+            if (otherPlayer && otherPlayer.hpCurrent > 0 && !otherPlayer.dead) {
+              standingPlayers.push(p);
+            }
+          } else if (p.npcId && !p.isOut) {
+            standingPlayers.push(p);
+          }
+        }
+
+        if (standingPlayers.length > 0) {
           return {
             hit: false,
             errorCode: 'TARGET_DOWN',
@@ -251,13 +262,20 @@ export const resolveMonsterAttackTool: ILlmTool = {
     });
 
     const attackTotal = attackRoll.value + attackBonus;
-    let hit = attackTotal >= targetAc;
-    let isCritical = false;
 
-    if (targetIsUnconscious && !isRangedAttack && distance <= 5) {
-      hit = true;
-      isCritical = true;
-    }
+    const critResult = resolveCritical({
+      attackRoll: attackRoll.value,
+      attackTotal,
+      targetAc,
+      targetIsUnconscious: Boolean(targetIsUnconscious),
+      isRangedAttack,
+      distance,
+    });
+
+    const hit = critResult.hit;
+    const isCritical = critResult.isCritical;
+    const isNatural20 = critResult.isNatural20;
+    const isNatural1 = critResult.isNatural1;
 
     let damageTotal = 0;
     const damageRolls: number[] = [];
@@ -308,8 +326,8 @@ export const resolveMonsterAttackTool: ILlmTool = {
               dead: instantDeath,
             });
 
-            if (newHp <= 0) {
-              await encounterParticipantRepository.update(targetParticipant.id, { isOut: instantDeath });
+            if (instantDeath) {
+              await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
             }
           }
         }
@@ -350,7 +368,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
         await monsterInstanceRepository.update(targetParticipant.monsterInstanceId, { hpCurrent: newHp });
       }
 
-      if (newHp <= 0 && !targetParticipant.isOut) {
+      if (newHp <= 0 && !targetParticipant.isOut && (targetKind === 'npc' || targetKind === 'monster')) {
         await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
       }
 
@@ -361,6 +379,8 @@ export const resolveMonsterAttackTool: ILlmTool = {
       return {
         hit: true,
         isCritical,
+        isNatural20,
+        isNatural1: false,
         attackRoll: attackRoll.value,
         attackBonus,
         attackTotal,
@@ -381,6 +401,9 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
     return {
       hit: false,
+      isCritical: false,
+      isNatural20: false,
+      isNatural1,
       attackRoll: attackRoll.value,
       attackBonus,
       attackTotal,
