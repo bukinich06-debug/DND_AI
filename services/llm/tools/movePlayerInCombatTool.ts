@@ -1,11 +1,14 @@
 import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
+import { monsterInstanceRepository } from '@/data/monster';
+import { npcRepository } from '@/data/npc';
 import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMovePlayerInCombatArgs {
   playerId: string;
-  targetParticipantId: string;
+  action: 'approach' | 'retreat' | 'move_away';
+  targetParticipantId?: string | null;
   feet?: number | null;
 }
 
@@ -14,12 +17,13 @@ const parseArgs = (args: unknown): IMovePlayerInCombatArgs => {
 
   const raw = args as Record<string, unknown>;
   if (typeof raw.playerId !== 'string' || !raw.playerId.trim()) throw new Error('playerId обязателен.');
-  if (typeof raw.targetParticipantId !== 'string' || !raw.targetParticipantId.trim())
-    throw new Error('targetParticipantId обязателен.');
+  if (typeof raw.action !== 'string' || !['approach', 'retreat', 'move_away'].includes(raw.action))
+    throw new Error('action должен быть approach, retreat или move_away.');
 
   return {
     playerId: raw.playerId.trim(),
-    targetParticipantId: raw.targetParticipantId.trim(),
+    action: raw.action as 'approach' | 'retreat' | 'move_away',
+    targetParticipantId: (raw.targetParticipantId as string | null | undefined) ?? null,
     feet: (raw.feet as number | null | undefined) ?? null,
   };
 };
@@ -27,7 +31,7 @@ const parseArgs = (args: unknown): IMovePlayerInCombatArgs => {
 export const movePlayerInCombatTool: ILlmTool = {
   name: 'move_player_in_combat',
   description:
-    'Перемещает игрока ближе к цели на указанное количество футов (или на всю доступную скорость). Уменьшает feetFromPlayer выбранного participant. Используй перед рукопашной атакой, если цель слишком далеко. Движение игрока к монстру = уменьшение feetFromPlayer этого монстра.',
+    'Перемещает игрока по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию вся скорость). КОД определяет направление и останавливает в 5 футах при approach.',
   parameters: {
     type: 'object',
     properties: {
@@ -35,16 +39,21 @@ export const movePlayerInCombatTool: ILlmTool = {
         type: 'string',
         description: 'ID игрока',
       },
+      action: {
+        type: 'string',
+        enum: ['approach', 'retreat', 'move_away'],
+        description: 'approach - к цели (остановка в 5 фт), retreat/move_away - от цели/врагов',
+      },
       targetParticipantId: {
         type: 'string',
-        description: 'ID участника боя — цели движения',
+        description: 'ID цели для approach или retreat. Если не указан при retreat - от ближайшего врага',
       },
       feet: {
         type: 'number',
-        description: 'Количество футов для перемещения (по умолчанию = вся скорость игрока)',
+        description: 'Желаемое расстояние движения (по умолчанию = вся доступная скорость)',
       },
     },
-    required: ['playerId', 'targetParticipantId'],
+    required: ['playerId', 'action'],
     additionalProperties: false,
   },
   execute: async (args: unknown, ctx: IToolContext) => {
@@ -77,53 +86,147 @@ export const movePlayerInCombatTool: ILlmTool = {
     const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
     if (!playerParticipant) throw new Error('Участник игрока не найден в боевой сцене.');
 
-    const target = await encounterParticipantRepository.getById(parsed.targetParticipantId);
-    if (!target) throw new Error('Участник боя не найден.');
-
     const speed = player.speed;
-    const current = target.feetFromPlayer;
+    const positionBefore = playerParticipant.positionFeet;
     const requestedFeet = parsed.feet ?? speed;
 
-    const maxMove = Math.min(speed, requestedFeet);
-    const actualMove = Math.min(maxMove, current);
+    let targetPosition: number;
+    let targetName = 'неизвестная цель';
 
-    const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
-    if (!movementResult.success) {
+    if (parsed.action === 'approach') {
+      if (!parsed.targetParticipantId) throw new Error('targetParticipantId обязателен для approach.');
+      const target = participants.find((p) => p.id === parsed.targetParticipantId);
+      if (!target) throw new Error('Цель не найдена.');
+      targetPosition = target.positionFeet;
+
+      if (target.monsterInstanceId) {
+        const monster = await monsterInstanceRepository.getById(target.monsterInstanceId);
+        if (monster) targetName = monster.name;
+      } else if (target.npcId) {
+        const npc = await npcRepository.getById(target.npcId);
+        if (npc) targetName = npc.name;
+      }
+
+      const direction = targetPosition > positionBefore ? 1 : -1;
+      const distance = Math.abs(targetPosition - positionBefore);
+      const maxMoveToStop = Math.max(0, distance - 5);
+      const actualMove = Math.min(requestedFeet, maxMoveToStop);
+
+      const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
+      if (!movementResult.success) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          distanceToTarget: distance,
+          speed,
+          playerName: player.name,
+          errorCode: movementResult.errorCode,
+          movementLeft: movementResult.movementLeft,
+          message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        };
+      }
+
+      const positionAfter = positionBefore + direction * actualMove;
+
+      await encounterParticipantRepository.update(playerParticipant.id, { positionFeet: positionAfter });
+
+      for (const p of participants) {
+        const playerPositions = participants.filter((pt) => pt.playerId).map((pt) => pt.positionFeet);
+        const newFeetFromPlayer =
+          p.playerId || playerPositions.length === 0
+            ? 0
+            : Math.min(...playerPositions.map((pos) => Math.abs(p.positionFeet - pos)));
+
+        await encounterParticipantRepository.update(p.id, { feetFromPlayer: newFeetFromPlayer });
+      }
+
+      if (ctx.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: player.name,
+          message: `движется к ${targetName} на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}, дистанция до цели: ${distance} → ${Math.abs(positionAfter - targetPosition)} фт)`,
+          meta: {
+            action: 'approach',
+            movedFeet: actualMove,
+            positionBefore,
+            positionAfter,
+            distanceToTarget: Math.abs(positionAfter - targetPosition),
+            speed,
+          },
+        });
+      }
+
       return {
-        movedFeet: 0,
-        feetFromPlayerBefore: current,
-        feetFromPlayerAfter: current,
+        movedFeet: actualMove,
+        positionBefore,
+        positionAfter,
+        distanceToTarget: Math.abs(positionAfter - targetPosition),
         speed,
         playerName: player.name,
-        targetName: target.monsterInstanceId ? 'монстр' : target.npcId ? 'NPC' : 'игрок',
-        errorCode: movementResult.errorCode,
-        movementLeft: movementResult.movementLeft,
-        message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        targetName,
+      };
+    } else {
+      if (parsed.targetParticipantId) {
+        const target = participants.find((p) => p.id === parsed.targetParticipantId);
+        if (!target) throw new Error('Цель не найдена.');
+        targetPosition = target.positionFeet;
+      } else {
+        const enemies = participants.filter((p) => p.monsterInstanceId);
+        if (enemies.length === 0) throw new Error('Нет врагов для отступления.');
+        const closest = enemies.reduce((prev, curr) =>
+          Math.abs(curr.positionFeet - positionBefore) < Math.abs(prev.positionFeet - positionBefore) ? curr : prev
+        );
+        targetPosition = closest.positionFeet;
+      }
+
+      const direction = targetPosition > positionBefore ? -1 : 1;
+      const actualMove = Math.min(requestedFeet, speed);
+
+      const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
+      if (!movementResult.success) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          speed,
+          playerName: player.name,
+          errorCode: movementResult.errorCode,
+          movementLeft: movementResult.movementLeft,
+          message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        };
+      }
+
+      const positionAfter = positionBefore + direction * actualMove;
+
+      await encounterParticipantRepository.update(playerParticipant.id, { positionFeet: positionAfter });
+
+      for (const p of participants) {
+        const playerPositions = participants.filter((pt) => pt.playerId).map((pt) => pt.positionFeet);
+        const newFeetFromPlayer =
+          p.playerId || playerPositions.length === 0
+            ? 0
+            : Math.min(...playerPositions.map((pos) => Math.abs(p.positionFeet - pos)));
+
+        await encounterParticipantRepository.update(p.id, { feetFromPlayer: newFeetFromPlayer });
+      }
+
+      if (ctx.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: player.name,
+          message: `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
+          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed },
+        });
+      }
+
+      return {
+        movedFeet: actualMove,
+        positionBefore,
+        positionAfter,
+        speed,
+        playerName: player.name,
       };
     }
-
-    const newDistance = Math.max(0, current - actualMove);
-
-    await encounterParticipantRepository.update(target.id, {
-      feetFromPlayer: newDistance,
-    });
-
-    if (ctx.encounterId) {
-      await encounterLogRepository.create({
-        encounterId: ctx.encounterId,
-        actorName: player.name,
-        message: `перемещается на ${actualMove} футов (дистанция до цели: ${current} → ${newDistance} фт)`,
-        meta: { movedFeet: actualMove, feetFromPlayerBefore: current, feetFromPlayerAfter: newDistance, speed },
-      });
-    }
-
-    return {
-      movedFeet: actualMove,
-      feetFromPlayerBefore: current,
-      feetFromPlayerAfter: newDistance,
-      speed,
-      playerName: player.name,
-      targetName: target.monsterInstanceId ? 'монстр' : target.npcId ? 'NPC' : 'игрок',
-    };
   },
 };

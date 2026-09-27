@@ -36,6 +36,7 @@ export interface IEncounterParticipant {
   order: number;
   isOut: boolean;
   feetFromPlayer: number;
+  positionFeet: number;
   playerId: string | null;
   npcId: string | null;
   monsterInstanceId: string | null;
@@ -47,10 +48,11 @@ export interface IEncounterParticipant {
 
 export type ICreateEncounterParticipant = Omit<
   IEncounterParticipant,
-  'id' | 'isOut' | 'feetFromPlayer' | 'actionUsed' | 'bonusActionUsed' | 'reactionUsed' | 'movementUsedFeet'
+  'id' | 'isOut' | 'feetFromPlayer' | 'positionFeet' | 'actionUsed' | 'bonusActionUsed' | 'reactionUsed' | 'movementUsedFeet'
 > & {
   isOut?: boolean;
   feetFromPlayer?: number;
+  positionFeet?: number;
   actionUsed?: boolean;
   bonusActionUsed?: boolean;
   reactionUsed?: boolean;

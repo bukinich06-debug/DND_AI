@@ -132,22 +132,20 @@ export const resolveMonsterAttackTool: ILlmTool = {
           parsed.attackName.toLowerCase().includes('дальнобойн')))
     );
 
-    let distance = 0;
     let targetName = 'Неизвестный';
 
     if (targetParticipant.playerId) {
       const player = await playerRepository.getById(targetParticipant.playerId);
       if (player) targetName = player.name;
-      distance = attackerParticipant.feetFromPlayer;
     } else if (targetParticipant.npcId) {
       const npc = await npcRepository.getById(targetParticipant.npcId);
       if (npc) targetName = npc.name;
-      distance = Math.abs(attackerParticipant.feetFromPlayer - targetParticipant.feetFromPlayer);
     } else if (targetParticipant.monsterInstanceId) {
       const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
       if (monster) targetName = monster.name;
-      distance = Math.abs(attackerParticipant.feetFromPlayer - targetParticipant.feetFromPlayer);
     }
+
+    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
 
     if (!isRangedAttack && distance > 5) {
       return {

@@ -30,7 +30,7 @@ interface IAdvanceCombatTurnResult {
   encounterEnded?: boolean;
   encounterResult?: {
     victory: boolean;
-    outcome: 'victory' | 'captured' | 'defeat';
+    outcome: 'victory' | 'captured' | 'defeat' | 'fled';
     defeated: string[];
     survivors: string[];
     defeatedMonsters: Array<{ name: string; catalogKey: string }>;
