@@ -168,6 +168,7 @@ model Player {
   inspiration      Boolean @default(false)
   deathSaveSuccess Int     @default(0)
   deathSaveFail    Int     @default(0)
+  isStable         Boolean @default(false)
   armorProf        String[]
   weaponProf       String[]
   toolProf         String[]

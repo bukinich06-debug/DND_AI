@@ -29,6 +29,7 @@ export interface IPlayer {
   inspiration: boolean;
   deathSaveSuccess: number;
   deathSaveFail: number;
+  isStable: boolean;
   armorProf: string[];
   weaponProf: string[];
   toolProf: string[];
@@ -60,6 +61,7 @@ export type ICreatePlayer = Omit<
   | 'inspiration'
   | 'deathSaveSuccess'
   | 'deathSaveFail'
+  | 'isStable'
   | 'coinsCp'
   | 'conditions'
   | 'exhaustionLevel'
@@ -76,6 +78,7 @@ export type ICreatePlayer = Omit<
   inspiration?: boolean;
   deathSaveSuccess?: number;
   deathSaveFail?: number;
+  isStable?: boolean;
   coinsCp?: number;
   conditions?: string[];
   exhaustionLevel?: number;

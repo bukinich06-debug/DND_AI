@@ -28,6 +28,11 @@ interface IParticipantInfo {
   reactionUsed: boolean;
   movementUsedFeet: number;
   speed: number;
+  deathSaveSuccess: number;
+  deathSaveFail: number;
+  isStable: boolean;
+  dead: boolean;
+  conditions: string[];
 }
 
 interface IGetActiveEncounterResult {
@@ -66,6 +71,11 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
     let hpMax = 0;
     let speed = 30;
     let kind: 'player' | 'npc' | 'monster' = 'player';
+    let deathSaveSuccess = 0;
+    let deathSaveFail = 0;
+    let isStable = false;
+    let dead = false;
+    let conditions: string[] = [];
 
     if (participant.playerId) {
       const player = await playerRepository.getById(participant.playerId);
@@ -75,6 +85,11 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
         hpMax = player.hpMax;
         speed = player.speed;
         kind = 'player';
+        deathSaveSuccess = player.deathSaveSuccess;
+        deathSaveFail = player.deathSaveFail;
+        isStable = player.isStable;
+        dead = player.dead;
+        conditions = player.conditions;
       }
     } else if (participant.npcId) {
       const npc = await npcRepository.getById(participant.npcId);
@@ -96,6 +111,7 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
         hpMax = monster.hpMax;
         speed = monster.speed;
         kind = 'monster';
+        conditions = monster.conditions;
       }
     }
 
@@ -116,6 +132,11 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
       reactionUsed: participant.reactionUsed,
       movementUsedFeet: participant.movementUsedFeet,
       speed,
+      deathSaveSuccess,
+      deathSaveFail,
+      isStable,
+      dead,
+      conditions,
     });
   }
 

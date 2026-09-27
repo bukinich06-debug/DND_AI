@@ -49,7 +49,8 @@
     ],
     "reactions": null,
     "legendaryActions": null,
-    "lootCoinsCp": 50
+    "lootCoinsCp": 50,
+    "finishesDowned": false
   },
   {
     "key": "wolf",
@@ -98,7 +99,8 @@
     ],
     "reactions": null,
     "legendaryActions": null,
-    "lootCoinsCp": 0
+    "lootCoinsCp": 0,
+    "finishesDowned": true
   },
   {
     "key": "bandit",
@@ -145,7 +147,8 @@
     ],
     "reactions": null,
     "legendaryActions": null,
-    "lootCoinsCp": 200
+    "lootCoinsCp": 200,
+    "finishesDowned": false
   },
   {
     "key": "orc",
@@ -197,7 +200,8 @@
     ],
     "reactions": null,
     "legendaryActions": null,
-    "lootCoinsCp": 100
+    "lootCoinsCp": 100,
+    "finishesDowned": true
   },
   {
     "key": "skeleton",
@@ -244,6 +248,7 @@
     ],
     "reactions": null,
     "legendaryActions": null,
-    "lootCoinsCp": 0
+    "lootCoinsCp": 0,
+    "finishesDowned": true
   }
 ]

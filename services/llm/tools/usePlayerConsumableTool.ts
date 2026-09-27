@@ -4,6 +4,7 @@ import { encounterLogRepository, encounterParticipantRepository } from '@/data/e
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { DiceKind } from '@/domain/shared';
 import { spendAction } from '@/services/encounter/actionEconomy';
+import { stabilizePlayer } from '@/services/player/deathSaves/stabilizePlayer';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IUsePlayerConsumableArgs {
@@ -50,7 +51,7 @@ const parseDiceFormula = (formula: string): { dieCount: number; die: DiceKind; b
 export const usePlayerConsumableTool: ILlmTool = {
   name: 'use_player_consumable',
   description:
-    'Использует расходный предмет (зелье лечения и т.п.) из инвентаря игрока. Автоматически применяет эффект (лечение HP), списывает quantity или удаляет предмет. Пишет в лог боя. Можно использовать один раз за ход (тратит бонусное действие).',
+    'Использует расходный предмет (зелье лечения и т.п.) из инвентаря игрока. Автоматически применяет эффект (лечение HP), снимает состояние unconscious, сбрасывает спасброски от смерти, списывает quantity или удаляет предмет. Пишет в лог боя. Можно использовать один раз за ход (тратит бонусное действие).',
   parameters: {
     type: 'object',
     properties: {
@@ -138,7 +139,15 @@ export const usePlayerConsumableTool: ILlmTool = {
     const oldHp = player.hpCurrent;
     const newHp = Math.min(player.hpMax, oldHp + healTotal);
 
-    await playerRepository.update(player.id, { hpCurrent: newHp });
+    if (oldHp === 0 && newHp > 0) {
+      await stabilizePlayer({
+        playerId: player.id,
+        restoreHp: newHp,
+        removeUnconscious: true,
+      });
+    } else {
+      await playerRepository.update(player.id, { hpCurrent: newHp });
+    }
 
     if (item.quantity > 1) {
       await itemRepository.update(item.id, { quantity: item.quantity - 1 });
