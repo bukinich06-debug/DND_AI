@@ -116,6 +116,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     kind: 'player' | 'npc' | 'monster';
   }> = [];
 
+  let playerOffset = 0;
   for (const campaignPlayer of alivePlayers) {
     const playerInitiativeRoll = await rollDice({
       campaignId: input.campaignId,
@@ -124,10 +125,15 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
       playerId: campaignPlayer.id,
     });
     const playerInitiativeBonus = (campaignPlayer.initiativeBonus ?? 0) + abilityMod(campaignPlayer.dex);
+    
+    const isMainPlayer = campaignPlayer.id === input.playerId;
+    const position = isMainPlayer ? 0 : playerOffset === 0 ? 5 : -playerOffset;
+    if (!isMainPlayer) playerOffset += 5;
+
     combatants.push({
       name: campaignPlayer.name,
       initiative: playerInitiativeRoll.value + playerInitiativeBonus,
-      positionFeet: 0,
+      positionFeet: position,
       playerId: campaignPlayer.id,
       kind: 'player',
     });
