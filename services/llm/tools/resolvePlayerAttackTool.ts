@@ -8,6 +8,7 @@ import { rollDice } from '@/services/dice/roll/rollDice';
 import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/validateProperties';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
+import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolvePlayerAttackArgs {
@@ -260,6 +261,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
     let targetHp = 0;
     let targetMaxHp = 0;
     let targetKind: 'player' | 'npc' | 'monster' = 'monster';
+    let targetIsUnconscious = false;
 
     if (targetParticipant.playerId) {
       const player = await playerRepository.getById(targetParticipant.playerId);
@@ -269,6 +271,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
       targetMaxHp = player.hpMax;
       targetName = player.name;
       targetKind = 'player';
+      targetIsUnconscious = player.conditions.includes('unconscious');
     } else if (targetParticipant.npcId) {
       const npc = await npcRepository.getById(targetParticipant.npcId);
       if (!npc) throw new Error('NPC не найден.');
@@ -300,7 +303,20 @@ export const resolvePlayerAttackTool: ILlmTool = {
     });
 
     const attackTotal = attackRoll.value + attackBonus;
-    const hit = attackTotal >= targetAc;
+
+    const critResult = resolveCritical({
+      attackRoll: attackRoll.value,
+      attackTotal,
+      targetAc,
+      targetIsUnconscious,
+      isRangedAttack,
+      distance,
+    });
+
+    const hit = critResult.hit;
+    const isCritical = critResult.isCritical;
+    const isNatural20 = critResult.isNatural20;
+    const isNatural1 = critResult.isNatural1;
 
     let damageTotal = 0;
     const damageRolls: number[] = [];
@@ -308,12 +324,13 @@ export const resolvePlayerAttackTool: ILlmTool = {
     if (hit) {
       const parsedDamage = parseDamageFormula(damageFormula);
       const { dieCount, die, bonus } = parsedDamage;
+      const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
 
-      for (let i = 0; i < dieCount; i += 1) {
+      for (let i = 0; i < effectiveDieCount; i += 1) {
         const roll = await rollDice({
           campaignId: ctx.campaignId,
           die,
-          note: `Урон игрока ${attacker.name} по ${targetName} (кубик ${i + 1})`,
+          note: `Урон игрока ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
           npcId: null,
           playerId: attacker.id,
         });
@@ -370,15 +387,19 @@ export const resolvePlayerAttackTool: ILlmTool = {
       if (ctx.encounterId) {
         await checkEncounterEnd({ encounterId: ctx.encounterId });
 
+        const critText = isCritical ? (isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
         await encounterLogRepository.create({
           encounterId: ctx.encounterId,
           actorName: attacker.name,
-          message: `атакует ${targetName} (${weaponName}): попадание! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}`,
+          message: `атакует ${targetName} (${weaponName}): попадание${critText}! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}`,
           meta: {
             attackRoll: attackRoll.value,
             attackBonus,
             attackTotal,
             targetAc,
+            isCritical,
+            isNatural20,
+            isNatural1: false,
             damageFormula,
             damageRolls,
             damageTotal,
@@ -390,6 +411,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
 
       return {
         hit: true,
+        isCritical,
+        isNatural20,
+        isNatural1: false,
         attackRoll: attackRoll.value,
         attackBonus,
         attackTotal,
@@ -408,21 +432,28 @@ export const resolvePlayerAttackTool: ILlmTool = {
     }
 
     if (ctx.encounterId) {
+      const missText = isNatural1 ? 'промах [nat1]' : 'промах';
       await encounterLogRepository.create({
         encounterId: ctx.encounterId,
         actorName: attacker.name,
-        message: `атакует ${targetName} (${weaponName}): промах (${attackTotal} vs AC ${targetAc})`,
+        message: `атакует ${targetName} (${weaponName}): ${missText} (${attackTotal} vs AC ${targetAc})`,
         meta: {
           attackRoll: attackRoll.value,
           attackBonus,
           attackTotal,
           targetAc,
+          isCritical: false,
+          isNatural20: false,
+          isNatural1,
         },
       });
     }
 
     return {
       hit: false,
+      isCritical: false,
+      isNatural20: false,
+      isNatural1,
       attackRoll: attackRoll.value,
       attackBonus,
       attackTotal,

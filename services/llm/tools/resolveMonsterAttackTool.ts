@@ -1,5 +1,5 @@
 import { DiceKind } from '@/domain/shared';
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
@@ -7,6 +7,7 @@ import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import { getCatalogMonsterByKey } from '@/domain/monster';
+import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -122,13 +123,14 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
     if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
 
-    const isRangedAttack =
+    const isRangedAttack = Boolean(
       parsed.isRanged === true ||
       (parsed.attackName &&
         (parsed.attackName.toLowerCase().includes('лук') ||
           parsed.attackName.toLowerCase().includes('арбалет') ||
           parsed.attackName.toLowerCase().includes('метательн') ||
-          parsed.attackName.toLowerCase().includes('дальнобойн')));
+          parsed.attackName.toLowerCase().includes('дальнобойн')))
+    );
 
     let distance = 0;
     let targetName = 'Неизвестный';
@@ -251,13 +253,20 @@ export const resolveMonsterAttackTool: ILlmTool = {
     });
 
     const attackTotal = attackRoll.value + attackBonus;
-    let hit = attackTotal >= targetAc;
-    let isCritical = false;
 
-    if (targetIsUnconscious && !isRangedAttack && distance <= 5) {
-      hit = true;
-      isCritical = true;
-    }
+    const critResult = resolveCritical({
+      attackRoll: attackRoll.value,
+      attackTotal,
+      targetAc,
+      targetIsUnconscious: Boolean(targetIsUnconscious),
+      isRangedAttack,
+      distance,
+    });
+
+    const hit = critResult.hit;
+    const isCritical = critResult.isCritical;
+    const isNatural20 = critResult.isNatural20;
+    const isNatural1 = critResult.isNatural1;
 
     let damageTotal = 0;
     const damageRolls: number[] = [];
@@ -356,11 +365,36 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       if (ctx.encounterId) {
         await checkEncounterEnd({ encounterId: ctx.encounterId });
+
+        const critText = isCritical ? (isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
+        const weaponText = parsed.attackName ? ` (${parsed.attackName})` : '';
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: attacker.name,
+          message: `атакует ${targetName}${weaponText}: попадание${critText}! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}${deathSaveFailuresAdded > 0 ? ` [провалы спасброска +${deathSaveFailuresAdded}]` : ''}`,
+          meta: {
+            attackRoll: attackRoll.value,
+            attackBonus,
+            attackTotal,
+            targetAc,
+            isCritical,
+            isNatural20,
+            isNatural1: false,
+            damageFormula,
+            damageRolls,
+            damageTotal,
+            targetPreviousHp: targetHp,
+            targetNewHp: newHp,
+            deathSaveFailuresAdded,
+          },
+        });
       }
 
       return {
         hit: true,
         isCritical,
+        isNatural20,
+        isNatural1: false,
         attackRoll: attackRoll.value,
         attackBonus,
         attackTotal,
@@ -379,8 +413,30 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
+    if (ctx.encounterId) {
+      const missText = isNatural1 ? 'промах [nat1]' : 'промах';
+      const weaponText = parsed.attackName ? ` (${parsed.attackName})` : '';
+      await encounterLogRepository.create({
+        encounterId: ctx.encounterId,
+        actorName: attacker.name,
+        message: `атакует ${targetName}${weaponText}: ${missText} (${attackTotal} vs AC ${targetAc})`,
+        meta: {
+          attackRoll: attackRoll.value,
+          attackBonus,
+          attackTotal,
+          targetAc,
+          isCritical: false,
+          isNatural20: false,
+          isNatural1,
+        },
+      });
+    }
+
     return {
       hit: false,
+      isCritical: false,
+      isNatural20: false,
+      isNatural1,
       attackRoll: attackRoll.value,
       attackBonus,
       attackTotal,
