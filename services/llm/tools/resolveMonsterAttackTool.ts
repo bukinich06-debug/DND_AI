@@ -1,5 +1,5 @@
 import { DiceKind } from '@/domain/shared';
-import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
@@ -202,11 +202,20 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
       if (targetHp === 0 && !isFinisher) {
         const allParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
-        const anyStandingEnemies = allParticipants.some(
-          (p) => !p.isOut && p.playerId && p.playerId !== targetParticipant.playerId
-        );
 
-        if (anyStandingEnemies) {
+        const standingPlayers: typeof allParticipants = [];
+        for (const p of allParticipants) {
+          if (p.playerId && p.playerId !== targetParticipant.playerId) {
+            const otherPlayer = await playerRepository.getById(p.playerId);
+            if (otherPlayer && otherPlayer.hpCurrent > 0 && !otherPlayer.dead) {
+              standingPlayers.push(p);
+            }
+          } else if (p.npcId && !p.isOut) {
+            standingPlayers.push(p);
+          }
+        }
+
+        if (standingPlayers.length > 0) {
           return {
             hit: false,
             errorCode: 'TARGET_DOWN',
@@ -317,8 +326,8 @@ export const resolveMonsterAttackTool: ILlmTool = {
               dead: instantDeath,
             });
 
-            if (newHp <= 0) {
-              await encounterParticipantRepository.update(targetParticipant.id, { isOut: instantDeath });
+            if (instantDeath) {
+              await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
             }
           }
         }
@@ -359,35 +368,12 @@ export const resolveMonsterAttackTool: ILlmTool = {
         await monsterInstanceRepository.update(targetParticipant.monsterInstanceId, { hpCurrent: newHp });
       }
 
-      if (newHp <= 0 && !targetParticipant.isOut) {
+      if (newHp <= 0 && !targetParticipant.isOut && (targetKind === 'npc' || targetKind === 'monster')) {
         await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
       }
 
       if (ctx.encounterId) {
         await checkEncounterEnd({ encounterId: ctx.encounterId });
-
-        const critText = isCritical ? (isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
-        const weaponText = parsed.attackName ? ` (${parsed.attackName})` : '';
-        await encounterLogRepository.create({
-          encounterId: ctx.encounterId,
-          actorName: attacker.name,
-          message: `атакует ${targetName}${weaponText}: попадание${critText}! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}${deathSaveFailuresAdded > 0 ? ` [провалы спасброска +${deathSaveFailuresAdded}]` : ''}`,
-          meta: {
-            attackRoll: attackRoll.value,
-            attackBonus,
-            attackTotal,
-            targetAc,
-            isCritical,
-            isNatural20,
-            isNatural1: false,
-            damageFormula,
-            damageRolls,
-            damageTotal,
-            targetPreviousHp: targetHp,
-            targetNewHp: newHp,
-            deathSaveFailuresAdded,
-          },
-        });
       }
 
       return {
@@ -411,25 +397,6 @@ export const resolveMonsterAttackTool: ILlmTool = {
         deathSaveFailuresAdded,
         attackName: parsed.attackName,
       };
-    }
-
-    if (ctx.encounterId) {
-      const missText = isNatural1 ? 'промах [nat1]' : 'промах';
-      const weaponText = parsed.attackName ? ` (${parsed.attackName})` : '';
-      await encounterLogRepository.create({
-        encounterId: ctx.encounterId,
-        actorName: attacker.name,
-        message: `атакует ${targetName}${weaponText}: ${missText} (${attackTotal} vs AC ${targetAc})`,
-        meta: {
-          attackRoll: attackRoll.value,
-          attackBonus,
-          attackTotal,
-          targetAc,
-          isCritical: false,
-          isNatural20: false,
-          isNatural1,
-        },
-      });
     }
 
     return {

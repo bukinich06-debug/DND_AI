@@ -342,7 +342,18 @@ export const resolvePlayerAttackTool: ILlmTool = {
       const newHp = Math.max(0, targetHp - damageTotal);
 
       if (targetKind === 'player' && targetParticipant.playerId) {
-        await playerRepository.update(targetParticipant.playerId, { hpCurrent: newHp });
+        const massiveDamageThreshold = targetMaxHp;
+        const excessDamage = targetHp > 0 ? Math.max(0, damageTotal - targetHp) : 0;
+        const instantDeath = newHp === 0 && excessDamage >= massiveDamageThreshold;
+
+        await playerRepository.update(targetParticipant.playerId, {
+          hpCurrent: newHp,
+          dead: instantDeath,
+        });
+
+        if (instantDeath) {
+          await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
+        }
       } else if (targetKind === 'npc' && targetParticipant.npcId) {
         const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
         if (statBlock) {
@@ -380,7 +391,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
         await monsterInstanceRepository.update(targetParticipant.monsterInstanceId, { hpCurrent: newHp });
       }
 
-      if (newHp <= 0 && !targetParticipant.isOut) {
+      if (newHp <= 0 && !targetParticipant.isOut && (targetKind === 'npc' || targetKind === 'monster')) {
         await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
       }
 

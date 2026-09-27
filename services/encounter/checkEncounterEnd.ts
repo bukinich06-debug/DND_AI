@@ -36,7 +36,18 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
   const playerSide = participants.filter((p) => p.playerId || (p.npcId && p.npcId));
   const monsterSide = participants.filter((p) => p.monsterInstanceId);
 
-  const playersAlive = playerSide.filter((p) => !p.isOut);
+  const playersAlive: typeof participants = [];
+  for (const p of playerSide) {
+    if (p.playerId) {
+      const player = await playerRepository.getById(p.playerId);
+      if (player && player.hpCurrent > 0 && !player.dead) {
+        playersAlive.push(p);
+      }
+    } else if (p.npcId && !p.isOut) {
+      playersAlive.push(p);
+    }
+  }
+
   const monstersAlive = monsterSide.filter((p) => !p.isOut);
 
   if (playersAlive.length > 0 && monstersAlive.length > 0) {
