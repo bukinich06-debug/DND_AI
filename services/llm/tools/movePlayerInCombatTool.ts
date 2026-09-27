@@ -107,10 +107,11 @@ export const movePlayerInCombatTool: ILlmTool = {
         if (npc) targetName = npc.name;
       }
 
-      const direction = targetPosition > positionBefore ? 1 : -1;
       const distance = Math.abs(targetPosition - positionBefore);
       const maxMoveToStop = Math.max(0, distance - 5);
       const actualMove = Math.min(requestedFeet, maxMoveToStop);
+
+      const direction = targetPosition === positionBefore ? 0 : targetPosition > positionBefore ? 1 : -1;
 
       const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
       if (!movementResult.success) {
@@ -180,7 +181,17 @@ export const movePlayerInCombatTool: ILlmTool = {
         targetPosition = closest.positionFeet;
       }
 
-      const direction = targetPosition > positionBefore ? -1 : 1;
+      let direction: number;
+      if (targetPosition === positionBefore) {
+        const enemies = participants.filter((p) => p.monsterInstanceId);
+        const centerOfEnemies =
+          enemies.length > 0
+            ? enemies.reduce((sum, e) => sum + e.positionFeet, 0) / enemies.length
+            : positionBefore;
+        direction = centerOfEnemies > positionBefore ? -1 : centerOfEnemies < positionBefore ? 1 : -1;
+      } else {
+        direction = targetPosition > positionBefore ? -1 : 1;
+      }
       const actualMove = Math.min(requestedFeet, speed);
 
       const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
@@ -211,13 +222,33 @@ export const movePlayerInCombatTool: ILlmTool = {
         await encounterParticipantRepository.update(p.id, { feetFromPlayer: newFeetFromPlayer });
       }
 
+      const enemies = participants.filter((p) => p.monsterInstanceId && !p.isOut);
+      const minDistanceToEnemies =
+        enemies.length > 0
+          ? Math.min(...enemies.map((enemy) => Math.abs(positionAfter - enemy.positionFeet)))
+          : Infinity;
+
+      let fled = false;
+      if (minDistanceToEnemies > 120) {
+        await encounterParticipantRepository.update(playerParticipant.id, { isOut: true });
+        fled = true;
+      }
+
       if (ctx.encounterId) {
+        const { checkEncounterEnd } = await import('@/services/encounter/checkEncounterEnd');
+
         await encounterLogRepository.create({
           encounterId: ctx.encounterId,
           actorName: player.name,
-          message: `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
-          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed },
+          message: fled
+            ? `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}) и сбегает из боя (дистанция >120 фт от всех противников)`
+            : `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
+          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed, fled },
         });
+
+        if (fled) {
+          await checkEncounterEnd({ encounterId: ctx.encounterId });
+        }
       }
 
       return {
@@ -226,6 +257,7 @@ export const movePlayerInCombatTool: ILlmTool = {
         positionAfter,
         speed,
         playerName: player.name,
+        fled,
       };
     }
   },

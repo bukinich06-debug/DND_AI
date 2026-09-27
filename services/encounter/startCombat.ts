@@ -15,11 +15,16 @@ interface IEnemyInput {
   feetFromPlayer?: number;
 }
 
+interface IAllyInput {
+  npcId: string;
+  positionFeet?: number;
+}
+
 interface IStartCombatInput {
   campaignId: string;
   playerId: string;
   enemies: IEnemyInput[];
-  allyNpcIds?: string[];
+  allyNpcs?: IAllyInput[];
   locationId?: string;
 }
 
@@ -51,19 +56,17 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   const allPlayers = await playerRepository.listByCampaignId(input.campaignId);
   const alivePlayers = allPlayers.filter((p) => !p.dead && p.hpCurrent > 0);
 
-  const allyNpcs = [];
-  const allyStatBlocks = [];
-  if (input.allyNpcIds && input.allyNpcIds.length > 0) {
-    for (const npcId of input.allyNpcIds) {
-      const npc = await npcRepository.getById(npcId);
-      if (!npc) throw new Error(`НПС с id ${npcId} не найден.`);
+  const allyNpcs: Array<{ npc: any; statBlock: any; positionFeet?: number }> = [];
+  if (input.allyNpcs && input.allyNpcs.length > 0) {
+    for (const allyInput of input.allyNpcs) {
+      const npc = await npcRepository.getById(allyInput.npcId);
+      if (!npc) throw new Error(`НПС с id ${allyInput.npcId} не найден.`);
       if (npc.campaignId !== input.campaignId) throw new Error(`НПС ${npc.name} не принадлежит этой кампании.`);
 
-      const statBlock = await npcStatBlockRepository.getByNpcId(npcId);
+      const statBlock = await npcStatBlockRepository.getByNpcId(allyInput.npcId);
       if (!statBlock) throw new Error(`У НПС ${npc.name} нет блока характеристик для боя.`);
 
-      allyNpcs.push(npc);
-      allyStatBlocks.push(statBlock);
+      allyNpcs.push({ npc, statBlock, positionFeet: allyInput.positionFeet });
     }
   }
 
@@ -140,8 +143,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   }
 
   for (let i = 0; i < allyNpcs.length; i++) {
-    const npc = allyNpcs[i];
-    const statBlock = allyStatBlocks[i];
+    const { npc, statBlock, positionFeet } = allyNpcs[i];
     const npcInitiativeRoll = await rollDice({
       campaignId: input.campaignId,
       die: 'd20',
@@ -149,10 +151,11 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
       npcId: npc.id,
     });
     const npcInitiativeBonus = (statBlock.initiativeBonus ?? 0) + abilityMod(statBlock.dex);
+    const position = positionFeet !== undefined ? positionFeet : -5 - i * 5;
     combatants.push({
       name: npc.name,
       initiative: npcInitiativeRoll.value + npcInitiativeBonus,
-      positionFeet: -5 - i * 5,
+      positionFeet: position,
       npcId: npc.id,
       kind: 'npc',
     });

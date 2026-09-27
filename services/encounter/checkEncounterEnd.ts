@@ -51,46 +51,6 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
   const monstersAlive = monsterSide.filter((p) => !p.isOut);
 
-  for (const p of [...playerSide, ...monsterSide]) {
-    if (p.isOut) continue;
-
-    const enemies = p.playerId || p.npcId ? monstersAlive : playersAlive;
-    if (enemies.length === 0) continue;
-
-    const minDistance = Math.min(...enemies.map((enemy) => Math.abs(p.positionFeet - enemy.positionFeet)));
-
-    if (minDistance > 120) {
-      await encounterParticipantRepository.update(p.id, { isOut: true });
-
-      let name = 'Неизвестный';
-      if (p.playerId) {
-        const player = await playerRepository.getById(p.playerId);
-        name = player?.name ?? 'Игрок';
-      } else if (p.npcId) {
-        const npc = await npcRepository.getById(p.npcId);
-        name = npc?.name ?? 'NPC';
-      } else if (p.monsterInstanceId) {
-        const monster = await monsterInstanceRepository.getById(p.monsterInstanceId);
-        name = monster?.name ?? 'Монстр';
-      }
-
-      await encounterLogRepository.create({
-        encounterId: input.encounterId,
-        actorName: name,
-        message: `сбежал из боя (дистанция >120 фт от всех противников)`,
-        meta: { fled: true, distance: minDistance },
-      });
-
-      if (p.playerId || p.npcId) {
-        const idx = playersAlive.findIndex((pa) => pa.id === p.id);
-        if (idx !== -1) playersAlive.splice(idx, 1);
-      } else {
-        const idx = monstersAlive.findIndex((ma) => ma.id === p.id);
-        if (idx !== -1) monstersAlive.splice(idx, 1);
-      }
-    }
-  }
-
   if (playersAlive.length > 0 && monstersAlive.length > 0) {
     return { ended: false, result: null };
   }
