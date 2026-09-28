@@ -2,21 +2,17 @@ import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import type { ILlmTool } from './types';
+import type { ILlmTool, IToolContext } from './types';
 
 interface IListCombatTargetsArgs {
-  encounterId: string;
   livingOnly?: boolean;
 }
 
 const parseArgs = (args: unknown): IListCombatTargetsArgs => {
-  if (!args || typeof args !== 'object') throw new Error('Аргументы listCombatTargets обязательны.');
+  if (!args || typeof args !== 'object') return { livingOnly: false };
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.encounterId !== 'string' || !raw.encounterId.trim()) throw new Error('encounterId обязателен.');
-
   return {
-    encounterId: raw.encounterId.trim(),
     livingOnly: raw.livingOnly === true,
   };
 };
@@ -24,30 +20,34 @@ const parseArgs = (args: unknown): IListCombatTargetsArgs => {
 export const listCombatTargetsTool: ILlmTool = {
   name: 'list_combat_targets',
   description:
-    'Возвращает список всех участников активной боевой сцены с позицией на линии (positionFeet), дистанцией до игрока и направлением (впереди/позади игрока), а также AC и HP. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Передай encounterId текущего боя. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников.',
+    'Возвращает список всех участников активной боевой сцены с позицией на линии (positionFeet), дистанцией до текущего участника и направлением (впереди/позади), а также AC и HP. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников. encounterId берётся из контекста хода.',
   parameters: {
     type: 'object',
     properties: {
-      encounterId: {
-        type: 'string',
-        description: 'ID боевой сцены',
-      },
       livingOnly: {
         type: 'boolean',
         description: 'Если true, возвращает только участников с isOut=false',
       },
     },
-    required: ['encounterId'],
+    required: [],
     additionalProperties: false,
   },
-  execute: async (args: unknown) => {
+  execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
 
-    const participants = await encounterParticipantRepository.listByEncounterId(parsed.encounterId);
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
     const filtered = parsed.livingOnly ? participants.filter((p) => !p.isOut) : participants;
 
-    const playerParticipant = participants.find((p) => p.playerId);
-    const playerPosition = playerParticipant?.positionFeet ?? 0;
+    let currentPosition = 0;
+    if (ctx.playerId) {
+      const playerParticipant = participants.find((p) => p.playerId === ctx.playerId);
+      currentPosition = playerParticipant?.positionFeet ?? 0;
+    } else if (ctx.monsterInstanceId) {
+      const monsterParticipant = participants.find((p) => p.monsterInstanceId === ctx.monsterInstanceId);
+      currentPosition = monsterParticipant?.positionFeet ?? 0;
+    }
 
     const result = await Promise.all(
       filtered.map(async (p) => {
@@ -83,9 +83,9 @@ export const listCombatTargetsTool: ILlmTool = {
           }
         }
 
-        const distance = Math.abs(p.positionFeet - playerPosition);
+        const distance = Math.abs(p.positionFeet - currentPosition);
         const direction =
-          p.positionFeet > playerPosition ? 'впереди' : p.positionFeet < playerPosition ? 'позади' : 'на месте';
+          p.positionFeet > currentPosition ? 'впереди' : p.positionFeet < currentPosition ? 'позади' : 'на месте';
 
         return {
           participantId: p.id,

@@ -36,7 +36,21 @@ const parseArgs = (args: unknown): IResolvePlayerAttackArgs => {
 
 const calculateAbilityMod = (score: number): number => Math.floor((score - 10) / 2);
 
-const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind; bonus: number } => {
+const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind | null; bonus: number } => {
+  const fixedOnlyMatch = formula.match(/^(\d+)$/);
+  if (fixedOnlyMatch) {
+    return { dieCount: 0, die: null, bonus: parseInt(fixedOnlyMatch[1], 10) };
+  }
+
+  const fixedPlusBonusMatch = formula.match(/^(\d+)\s*([+-])\s*(\d+)$/);
+  if (fixedPlusBonusMatch) {
+    const base = parseInt(fixedPlusBonusMatch[1], 10);
+    const sign = fixedPlusBonusMatch[2];
+    const bonusVal = parseInt(fixedPlusBonusMatch[3], 10);
+    const total = sign === '+' ? base + bonusVal : base - bonusVal;
+    return { dieCount: 0, die: null, bonus: total };
+  }
+
   const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
   if (!match) throw new Error(`Некорректная формула урона: ${formula}`);
 
@@ -327,20 +341,25 @@ export const resolvePlayerAttackTool: ILlmTool = {
     if (hit) {
       const parsedDamage = parseDamageFormula(damageFormula);
       const { dieCount, die, bonus } = parsedDamage;
-      const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
 
-      for (let i = 0; i < effectiveDieCount; i += 1) {
-        const roll = await rollDice({
-          campaignId: ctx.campaignId,
-          die,
-          note: `Урон игрока ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
-          npcId: null,
-          playerId: attacker.id,
-        });
-        damageRolls.push(roll.value);
+      if (die === null) {
+        damageTotal = bonus;
+      } else {
+        const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
+
+        for (let i = 0; i < effectiveDieCount; i += 1) {
+          const roll = await rollDice({
+            campaignId: ctx.campaignId,
+            die,
+            note: `Урон игрока ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
+            npcId: null,
+            playerId: attacker.id,
+          });
+          damageRolls.push(roll.value);
+        }
+
+        damageTotal = damageRolls.reduce((sum, val) => sum + val, 0) + bonus;
       }
-
-      damageTotal = damageRolls.reduce((sum, val) => sum + val, 0) + bonus;
 
       const newHp = Math.max(0, targetHp - damageTotal);
 

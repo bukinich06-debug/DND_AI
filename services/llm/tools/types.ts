@@ -5,6 +5,7 @@ export interface IToolContext {
   locationId?: string;
   playerHereId?: string;
   encounterId?: string;
+  monsterInstanceId?: string;
   passedCheck?: {
     skill: string;
     knowledgeId: string | null;

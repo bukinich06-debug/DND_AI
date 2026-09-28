@@ -29,38 +29,35 @@ const formatWeapons = (ctx: ICombatAgentContext) => {
 
   return ctx.player.weapons
     .map((w) => {
-      const props = w.properties as Record<string, unknown> | null;
+      const props = Array.isArray(w.properties) ? w.properties : [];
       const slotLabel =
         w.equipSlot === 'mainHand' ? 'основная рука' : w.equipSlot === 'offHand' ? 'вторая рука' : 'дальний бой';
-      if (!props) return `- ${w.name} (ID: ${w.id}, слот: ${slotLabel})`;
 
-      const damageArr = Array.isArray(props.damage)
-        ? (props.damage as Array<Record<string, unknown>>)
-        : props.damage
-          ? [props.damage]
-          : [];
-      const rangeArr = Array.isArray(props.range)
-        ? (props.range as Array<Record<string, unknown>>)
-        : props.range
-          ? [props.range]
-          : [];
-
-      const damageText = damageArr
-        .map((d) => {
-          const dObj = d as { formula?: string; type?: string };
-          return `${dObj.formula ?? '?'} ${dObj.type ?? ''}`;
-        })
-        .join(', ');
-      const rangeText = rangeArr
-        .map((r) => {
-          const rObj = r as { normal?: number; max?: number };
-          return `нормальная ${rObj.normal ?? '?'} фт, макс ${rObj.max ?? '?'} фт`;
-        })
-        .join('; ');
+      const damageProp = props.find((p) => typeof p === 'object' && p !== null && p.type === 'damage');
+      const rangeProp = props.find((p) => typeof p === 'object' && p !== null && p.type === 'range');
+      const isRanged = props.some((p) => typeof p === 'object' && p !== null && p.type === 'ranged');
 
       const parts: string[] = [];
-      if (damageText) parts.push(`урон: ${damageText}`);
-      if (rangeText) parts.push(`дистанция: ${rangeText}`);
+
+      if (damageProp && typeof damageProp === 'object' && 'dice' in damageProp && 'damageType' in damageProp) {
+        const dice = damageProp.dice as string;
+        const damageType = damageProp.damageType as string;
+        parts.push(`урон: ${dice} ${damageType}`);
+      }
+
+      if (rangeProp && typeof rangeProp === 'object' && 'normal' in rangeProp) {
+        const normal = rangeProp.normal as number;
+        const long = 'long' in rangeProp ? (rangeProp.long as number) : null;
+        if (isRanged) {
+          parts.push(`дальность: ${normal}${long ? `/${long}` : ''} фт (дальнобойное)`);
+        } else {
+          parts.push(`дальность: ${normal}${long ? `/${long}` : ''} фт (метательное)`);
+        }
+      } else if (isRanged) {
+        parts.push('дальнобойное');
+      } else {
+        parts.push('ближний бой (досягаемость 5 фт)');
+      }
 
       return `- ${w.name} (ID: ${w.id}, слот: ${slotLabel}${parts.length > 0 ? `, ${parts.join(', ')}` : ''})`;
     })

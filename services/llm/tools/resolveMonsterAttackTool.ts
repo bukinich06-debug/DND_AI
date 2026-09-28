@@ -1,5 +1,5 @@
 import { DiceKind } from '@/domain/shared';
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
@@ -12,36 +12,40 @@ import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
-  attackerMonsterInstanceId: string;
   targetParticipantId: string;
   attackName?: string | null;
-  attackBonus?: number | null;
-  damageFormula?: string | null;
-  isRanged?: boolean | null;
 }
 
 const parseArgs = (args: unknown): IResolveMonsterAttackArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы resolveMonsterAttack обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.attackerMonsterInstanceId !== 'string' || !raw.attackerMonsterInstanceId.trim())
-    throw new Error('attackerMonsterInstanceId обязателен.');
   if (typeof raw.targetParticipantId !== 'string' || !raw.targetParticipantId.trim())
     throw new Error('targetParticipantId обязателен.');
 
   return {
-    attackerMonsterInstanceId: raw.attackerMonsterInstanceId.trim(),
     targetParticipantId: raw.targetParticipantId.trim(),
     attackName: (raw.attackName as string | null | undefined) ?? null,
-    attackBonus: (raw.attackBonus as number | null | undefined) ?? null,
-    damageFormula: (raw.damageFormula as string | null | undefined) ?? null,
-    isRanged: (raw.isRanged as boolean | null | undefined) ?? null,
   };
 };
 
 const calculateAbilityMod = (score: number): number => Math.floor((score - 10) / 2);
 
-const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind; bonus: number } => {
+const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind | null; bonus: number } => {
+  const fixedOnlyMatch = formula.match(/^(\d+)$/);
+  if (fixedOnlyMatch) {
+    return { dieCount: 0, die: null, bonus: parseInt(fixedOnlyMatch[1], 10) };
+  }
+
+  const fixedPlusBonusMatch = formula.match(/^(\d+)\s*([+-])\s*(\d+)$/);
+  if (fixedPlusBonusMatch) {
+    const base = parseInt(fixedPlusBonusMatch[1], 10);
+    const sign = fixedPlusBonusMatch[2];
+    const bonusVal = parseInt(fixedPlusBonusMatch[3], 10);
+    const total = sign === '+' ? base + bonusVal : base - bonusVal;
+    return { dieCount: 0, die: null, bonus: total };
+  }
+
   const match = formula.match(/^(\d+)d(\d+)([+-]\d+)?$/i);
   if (!match) throw new Error(`Некорректная формула урона: ${formula}`);
 
@@ -67,47 +71,50 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind;
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. Если attackName не указан, используется простая рукопашная атака (d20 + STR/DEX mod vs AC, урон 1d6 + mod). Можешь передать attackBonus, damageFormula и isRanged для конкретной атаки из actions.',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра (если не указано, используется простая рукопашная атака 1d6 + модификатор). Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
   parameters: {
     type: 'object',
     properties: {
-      attackerMonsterInstanceId: {
-        type: 'string',
-        description: 'ID экземпляра атакующего монстра',
-      },
       targetParticipantId: {
         type: 'string',
         description: 'ID участника боя — цели атаки',
       },
       attackName: {
         type: 'string',
-        description: 'Название атаки (например, "Короткий меч")',
-      },
-      attackBonus: {
-        type: 'number',
-        description: 'Бонус к броску атаки. Если не указан, используется STR или DEX mod',
-      },
-      damageFormula: {
-        type: 'string',
-        description: 'Формула урона (например, "1d6+2"). Если не указана, используется 1d6 + mod',
-      },
-      isRanged: {
-        type: 'boolean',
         description:
-          'Является ли атака дальнобойной (лук, арбалет). Если true, проверяется дистанция по описанию атаки',
+          'Название атаки из списка доступных действий монстра (например, "Короткий меч", "Укус"). Если не указано, используется простая рукопашная атака.',
       },
     },
-    required: ['attackerMonsterInstanceId', 'targetParticipantId'],
+    required: ['targetParticipantId'],
     additionalProperties: false,
   },
   execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
 
-    const attacker = await monsterInstanceRepository.getById(parsed.attackerMonsterInstanceId);
+    if (!ctx.monsterInstanceId) throw new Error('monsterInstanceId отсутствует в контексте.');
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const attacker = await monsterInstanceRepository.getById(ctx.monsterInstanceId);
     if (!attacker) throw new Error('Атакующий монстр не найден.');
 
     const catalog = getCatalogMonsterByKey(attacker.catalogKey);
     const isFinisher = catalog?.finishesDowned ?? false;
+
+    const allParticipants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+    const attackerParticipant = allParticipants.find((p) => p.monsterInstanceId === attacker.id);
+    if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
+
+    const encounter = await encounterRepository.getById(ctx.encounterId);
+    if (!encounter) throw new Error('Боевая сцена не найдена.');
+
+    const currentParticipant = allParticipants.find((p) => p.order === encounter.currentTurnIndex);
+    if (!currentParticipant || currentParticipant.id !== attackerParticipant.id) {
+      throw new Error('FORBIDDEN: Монстр может атаковать только в свой ход.');
+    }
+
+    if (attackerParticipant.isOut) {
+      throw new Error('MONSTER_OUT: Атакующий монстр выбыл из боя и не может действовать.');
+    }
 
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
@@ -120,18 +127,43 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
-    const attackerParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
-    const attackerParticipant = attackerParticipants.find((p) => p.monsterInstanceId === attacker.id);
-    if (!attackerParticipant) throw new Error('Участник атакующего монстра не найден в боевой сцене.');
+    let attackBonus: number;
+    let damageFormula: string;
+    let isRangedAttack = false;
+    let normalRange: number | null = null;
 
-    const isRangedAttack = Boolean(
-      parsed.isRanged === true ||
-      (parsed.attackName &&
-        (parsed.attackName.toLowerCase().includes('лук') ||
-          parsed.attackName.toLowerCase().includes('арбалет') ||
-          parsed.attackName.toLowerCase().includes('метательн') ||
-          parsed.attackName.toLowerCase().includes('дальнобойн')))
-    );
+    const strMod = calculateAbilityMod(attacker.str);
+    const dexMod = calculateAbilityMod(attacker.dex);
+    const attackMod = Math.max(strMod, dexMod);
+
+    if (parsed.attackName) {
+      const catalogActions = catalog.actions ?? [];
+      const action = catalogActions.find((a) => a.name.toLowerCase() === parsed.attackName!.toLowerCase());
+
+      if (!action) {
+        return {
+          hit: false,
+          errorCode: 'UNKNOWN_ACTION',
+          message: `Действие "${parsed.attackName}" не найдено в каталоге монстра. Доступные действия: ${catalogActions.map((a) => a.name).join(', ') || 'нет'}.`,
+        };
+      }
+
+      attackBonus = action.attackBonus ?? attackMod;
+      damageFormula = action.damage ?? `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+
+      const desc = action.description?.toLowerCase() ?? '';
+      isRangedAttack = desc.includes('дальнобойн') || desc.includes('дистанц');
+
+      const rangeMatch = action.description?.match(/(\d+)\/(\d+)\s*фут/);
+      if (rangeMatch) {
+        normalRange = parseInt(rangeMatch[1], 10);
+      }
+    } else {
+      attackBonus = attackMod;
+      damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+    }
+
+    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
 
     let targetName = 'Неизвестный';
 
@@ -146,8 +178,6 @@ export const resolveMonsterAttackTool: ILlmTool = {
       if (monster) targetName = monster.name;
     }
 
-    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
-
     if (!isRangedAttack && distance > 5) {
       return {
         hit: false,
@@ -158,20 +188,14 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
-    if (isRangedAttack) {
-      const rangeMatch = parsed.attackName?.match(/(\d+)\/(\d+)\s*фут/);
-      let normalRange = 80;
-      if (rangeMatch) normalRange = parseInt(rangeMatch[1], 10);
-
-      if (distance > normalRange) {
-        return {
-          hit: false,
-          errorCode: 'OUT_OF_REACH',
-          targetName,
-          distance,
-          message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
-        };
-      }
+    if (isRangedAttack && normalRange !== null && distance > normalRange) {
+      return {
+        hit: false,
+        errorCode: 'OUT_OF_REACH',
+        targetName,
+        distance,
+        message: `${targetName} находится слишком далеко для дальнобойной атаки (${distance} футов, нормальная дистанция ${normalRange} футов)`,
+      };
     }
 
     const spendResult = await spendAction(attackerParticipant.id, 'action');
@@ -229,13 +253,6 @@ export const resolveMonsterAttackTool: ILlmTool = {
       throw new Error('Участник боя не имеет привязанной сущности.');
     }
 
-    const strMod = calculateAbilityMod(attacker.str);
-    const dexMod = calculateAbilityMod(attacker.dex);
-    const attackMod = Math.max(strMod, dexMod);
-
-    const attackBonus = parsed.attackBonus ?? attackMod;
-    const damageFormula = parsed.damageFormula ?? `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
-
     const attackRoll = await rollDice({
       campaignId: ctx.campaignId,
       die: DiceKind.d20,
@@ -266,20 +283,25 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
     if (hit) {
       const { dieCount, die, bonus } = parseDamageFormula(damageFormula);
-      const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
 
-      for (let i = 0; i < effectiveDieCount; i += 1) {
-        const roll = await rollDice({
-          campaignId: ctx.campaignId,
-          die,
-          note: `Урон монстра ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
-          npcId: null,
-          playerId: null,
-        });
-        damageRolls.push(roll.value);
+      if (die === null) {
+        damageTotal = bonus;
+      } else {
+        const effectiveDieCount = isCritical ? dieCount * 2 : dieCount;
+
+        for (let i = 0; i < effectiveDieCount; i += 1) {
+          const roll = await rollDice({
+            campaignId: ctx.campaignId,
+            die,
+            note: `Урон монстра ${attacker.name} по ${targetName} (кубик ${i + 1})${isCritical ? ' [КРИТ]' : ''}`,
+            npcId: null,
+            playerId: null,
+          });
+          damageRolls.push(roll.value);
+        }
+
+        damageTotal = damageRolls.reduce((sum, val) => sum + val, 0) + bonus;
       }
-
-      damageTotal = damageRolls.reduce((sum, val) => sum + val, 0) + bonus;
 
       const newHp = Math.max(0, targetHp - damageTotal);
 

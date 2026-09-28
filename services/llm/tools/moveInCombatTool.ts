@@ -5,19 +5,15 @@ import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMoveInCombatArgs {
-  monsterInstanceId: string;
   action: 'approach' | 'retreat' | 'move_away';
   targetParticipantId?: string | null;
   feet?: number | null;
-  encounterId?: string | null;
 }
 
 const parseArgs = (args: unknown): IMoveInCombatArgs => {
   if (!args || typeof args !== 'object') throw new Error('Аргументы moveInCombat обязательны.');
 
   const raw = args as Record<string, unknown>;
-  if (typeof raw.monsterInstanceId !== 'string' || !raw.monsterInstanceId.trim())
-    throw new Error('monsterInstanceId обязателен.');
   if (typeof raw.action !== 'string' || !['approach', 'retreat', 'move_away'].includes(raw.action))
     throw new Error('action должен быть approach, retreat или move_away.');
 
@@ -30,25 +26,19 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
   }
 
   return {
-    monsterInstanceId: raw.monsterInstanceId.trim(),
     action: raw.action as 'approach' | 'retreat' | 'move_away',
     targetParticipantId: (raw.targetParticipantId as string | null | undefined) ?? null,
     feet,
-    encounterId: (raw.encounterId as string | null | undefined) ?? null,
   };
 };
 
 export const moveInCombatTool: ILlmTool = {
   name: 'move_in_combat',
   description:
-    'Перемещает монстра по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию вся скорость). КОД определяет направление и останавливает в 5 футах при approach.',
+    'Перемещает монстра по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию вся скорость). КОД определяет направление и останавливает в 5 футах при approach. monsterInstanceId и encounterId берутся из контекста хода.',
   parameters: {
     type: 'object',
     properties: {
-      monsterInstanceId: {
-        type: 'string',
-        description: 'ID экземпляра монстра',
-      },
       action: {
         type: 'string',
         enum: ['approach', 'retreat', 'move_away'],
@@ -62,25 +52,20 @@ export const moveInCombatTool: ILlmTool = {
         type: 'number',
         description: 'Желаемое расстояние движения (по умолчанию = вся доступная скорость)',
       },
-      encounterId: {
-        type: 'string',
-        description: 'ID боевой сцены (опционально)',
-      },
     },
-    required: ['monsterInstanceId', 'action'],
+    required: ['action'],
     additionalProperties: false,
   },
   execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
 
-    const monster = await monsterInstanceRepository.getById(parsed.monsterInstanceId);
+    if (!ctx.monsterInstanceId) throw new Error('monsterInstanceId отсутствует в контексте.');
+    if (!ctx.encounterId) throw new Error('encounterId отсутствует в контексте.');
+
+    const monster = await monsterInstanceRepository.getById(ctx.monsterInstanceId);
     if (!monster) throw new Error('Монстр не найден.');
 
-    const allParticipants = parsed.encounterId
-      ? await encounterParticipantRepository.listByEncounterId(parsed.encounterId)
-      : ctx.encounterId
-        ? await encounterParticipantRepository.listByEncounterId(ctx.encounterId)
-        : [];
+    const allParticipants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
 
     const participant = allParticipants.find((p) => p.monsterInstanceId === monster.id);
     if (!participant) throw new Error('Участник монстра не найден в боевой сцене.');
