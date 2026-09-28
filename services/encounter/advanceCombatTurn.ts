@@ -13,6 +13,7 @@ import { makeDeathSave } from '@/services/player/deathSaves/makeDeathSave';
 interface IAdvanceCombatTurnInput {
   campaignId: string;
   playerId?: string;
+  playerEndedTurn?: boolean;
 }
 
 interface ILogEntry {
@@ -100,15 +101,17 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     const player = await playerRepository.getById(currentParticipant.playerId);
     if (!player) throw new Error('Игрок не найден.');
 
-    const playerCanAct = player.hpCurrent > 0 && !player.dead && !player.isStable;
-    if (playerCanAct) {
-      return {
-        success: false,
-        error: 'Нельзя продвинуть ход во время хода игрока. Игрок должен совершить действия или явно завершить ход.',
-        errorCode: 'PLAYER_TURN_ACTIVE',
-        encounter: null,
-        newLogEntries: [],
-      };
+    if (!input.playerEndedTurn) {
+      const playerCanAct = player.hpCurrent > 0 && !player.dead && !player.isStable;
+      if (playerCanAct) {
+        return {
+          success: false,
+          error: 'Нельзя продвинуть ход во время хода игрока. Игрок должен совершить действия или явно завершить ход.',
+          errorCode: 'PLAYER_TURN_ACTIVE',
+          encounter: null,
+          newLogEntries: [],
+        };
+      }
     }
 
     if (player.dead && !currentParticipant.isOut) {

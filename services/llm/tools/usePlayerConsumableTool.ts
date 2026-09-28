@@ -5,6 +5,7 @@ import { rollDice } from '@/services/dice/roll/rollDice';
 import { DiceKind } from '@/domain/shared';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { stabilizePlayer } from '@/services/player/deathSaves/stabilizePlayer';
+import { db } from '@/data/shared';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IUsePlayerConsumableArgs {
@@ -129,6 +130,34 @@ export const usePlayerConsumableTool: ILlmTool = {
       };
     }
 
+    let consumeResult;
+    if (item.quantity > 1) {
+      consumeResult = await db.item.updateMany({
+        where: {
+          id: item.id,
+          quantity: { gte: 1 },
+        },
+        data: {
+          quantity: { decrement: 1 },
+        },
+      });
+    } else {
+      consumeResult = await db.item.deleteMany({
+        where: {
+          id: item.id,
+          quantity: { gte: 1 },
+        },
+      });
+    }
+
+    if (consumeResult.count === 0) {
+      return {
+        used: false,
+        errorCode: 'ITEM_DEPLETED',
+        message: 'Предмет закончился (другой запрос уже использовал его).',
+      };
+    }
+
     const healFormula = healProp.dice;
     const parsed_heal = parseDiceFormula(healFormula);
     const { dieCount, die, bonus } = parsed_heal;
@@ -157,12 +186,6 @@ export const usePlayerConsumableTool: ILlmTool = {
       });
     } else {
       await playerRepository.update(player.id, { hpCurrent: newHp });
-    }
-
-    if (item.quantity > 1) {
-      await itemRepository.update(item.id, { quantity: item.quantity - 1 });
-    } else {
-      await itemRepository.delete(item.id);
     }
 
     if (ctx.encounterId) {
