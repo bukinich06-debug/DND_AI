@@ -43,7 +43,7 @@ export interface IMasterContext {
   npcs: Array<{ name: string; title: string | null; location: string | null; shopSpecialtyKey: string | null }>;
   lastEncounterResult: {
     victory: boolean;
-    outcome?: 'victory' | 'captured' | 'defeat';
+    outcome?: 'victory' | 'captured' | 'defeat' | 'fled';
     defeated: string[];
     survivors: string[];
     defeatedMonsters: Array<{ name: string; catalogKey: string }>;
@@ -99,7 +99,7 @@ export const loadMasterContext = async ({
     if (lastLog.meta && typeof lastLog.meta === 'object') {
       const meta = lastLog.meta as {
         victory?: boolean;
-        outcome?: 'victory' | 'captured' | 'defeat';
+        outcome?: 'victory' | 'captured' | 'defeat' | 'fled';
         defeated?: string[];
         survivors?: string[];
         defeatedMonsters?: Array<{ name: string; catalogKey: string }>;

@@ -137,7 +137,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
       };
     }
 
-    const distance = targetParticipant.feetFromPlayer;
+    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
 
     let weaponName = 'Безоружная атака';
     let isRangedAttack = false;

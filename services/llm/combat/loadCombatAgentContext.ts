@@ -39,6 +39,7 @@ export interface ICombatAgentContext {
     reactionUsed: boolean;
     movementUsedFeet: number;
     movementLeftFeet: number;
+    positionFeet: number;
   };
   encounter: {
     id: string;
@@ -56,6 +57,7 @@ export interface ICombatAgentContext {
     hp: number | null;
     ac: number | null;
     feetFromPlayer: number;
+    positionFeet: number;
     playerId: string | null;
     npcId: string | null;
     monsterInstanceId: string | null;
@@ -154,6 +156,7 @@ export const loadCombatAgentContext = async ({
         hp,
         ac,
         feetFromPlayer: p.feetFromPlayer,
+        positionFeet: p.positionFeet,
         playerId: p.playerId,
         npcId: p.npcId,
         monsterInstanceId: p.monsterInstanceId,
@@ -182,6 +185,7 @@ export const loadCombatAgentContext = async ({
       reactionUsed: playerActionEconomy.reactionUsed,
       movementUsedFeet: playerActionEconomy.movementUsedFeet,
       movementLeftFeet: playerActionEconomy.movementLeftFeet,
+      positionFeet: playerParticipant?.positionFeet ?? 0,
     },
     encounter: {
       id: encounter.id,

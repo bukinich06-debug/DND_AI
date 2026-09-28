@@ -2,7 +2,7 @@ import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import type { ILlmTool, IToolContext } from './types';
+import type { ILlmTool } from './types';
 
 interface IListCombatTargetsArgs {
   encounterId: string;
@@ -24,7 +24,7 @@ const parseArgs = (args: unknown): IListCombatTargetsArgs => {
 export const listCombatTargetsTool: ILlmTool = {
   name: 'list_combat_targets',
   description:
-    'Возвращает список всех участников активной боевой сцены с дистанцией до игрока (feetFromPlayer) и AC. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Передай encounterId текущего боя. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников.',
+    'Возвращает список всех участников активной боевой сцены с позицией на линии (positionFeet), дистанцией до игрока и направлением (впереди/позади игрока), а также AC и HP. Используй, чтобы увидеть доступные цели для атаки, союзников и их состояние. Передай encounterId текущего боя. Установи livingOnly=true, чтобы исключить выбывших (isOut=true) участников.',
   parameters: {
     type: 'object',
     properties: {
@@ -40,11 +40,14 @@ export const listCombatTargetsTool: ILlmTool = {
     required: ['encounterId'],
     additionalProperties: false,
   },
-  execute: async (args: unknown, _ctx: IToolContext) => {
+  execute: async (args: unknown) => {
     const parsed = parseArgs(args);
 
     const participants = await encounterParticipantRepository.listByEncounterId(parsed.encounterId);
     const filtered = parsed.livingOnly ? participants.filter((p) => !p.isOut) : participants;
+
+    const playerParticipant = participants.find((p) => p.playerId);
+    const playerPosition = playerParticipant?.positionFeet ?? 0;
 
     const result = await Promise.all(
       filtered.map(async (p) => {
@@ -80,6 +83,10 @@ export const listCombatTargetsTool: ILlmTool = {
           }
         }
 
+        const distance = Math.abs(p.positionFeet - playerPosition);
+        const direction =
+          p.positionFeet > playerPosition ? 'впереди' : p.positionFeet < playerPosition ? 'позади' : 'на месте';
+
         return {
           participantId: p.id,
           name,
@@ -89,7 +96,9 @@ export const listCombatTargetsTool: ILlmTool = {
           isOut: p.isOut,
           hp,
           ac,
-          feetFromPlayer: p.feetFromPlayer,
+          positionFeet: p.positionFeet,
+          distance,
+          direction,
           playerId: p.playerId,
           npcId: p.npcId,
           monsterInstanceId: p.monsterInstanceId,

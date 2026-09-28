@@ -30,7 +30,7 @@ interface IAdvanceCombatTurnResult {
   encounterEnded?: boolean;
   encounterResult?: {
     victory: boolean;
-    outcome: 'victory' | 'captured' | 'defeat';
+    outcome: 'victory' | 'captured' | 'defeat' | 'fled';
     defeated: string[];
     survivors: string[];
     defeatedMonsters: Array<{ name: string; catalogKey: string }>;
@@ -196,15 +196,28 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         if (typeof move.result === 'object' && move.result !== null) {
           const res = move.result as {
             movedFeet?: number;
-            feetFromPlayerBefore?: number;
-            feetFromPlayerAfter?: number;
+            positionBefore?: number;
+            positionAfter?: number;
+            distanceToTarget?: number;
             monsterName?: string;
+            fled?: boolean;
           };
 
-          if (res.movedFeet && res.movedFeet > 0) {
+          if (res.movedFeet && res.movedFeet > 0 && !res.fled) {
+            const action =
+              move.args && typeof move.args === 'object' && 'action' in move.args
+                ? (move.args as { action?: string }).action
+                : 'движется';
+            const actionText =
+              action === 'approach'
+                ? 'приближается'
+                : action === 'retreat' || action === 'move_away'
+                  ? 'отступает'
+                  : 'движется';
+
             const moveEntry = {
               actorName,
-              message: `${res.monsterName || actorName} приближается на ${res.movedFeet} фт (осталось ${res.feetFromPlayerAfter} фт до игрока)`,
+              message: `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})`,
               meta: move.result,
             };
             await encounterLogRepository.create({

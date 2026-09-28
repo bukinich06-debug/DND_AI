@@ -1,10 +1,13 @@
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
+import { playerRepository } from '@/data/player';
 import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMoveInCombatArgs {
   monsterInstanceId: string;
+  action: 'approach' | 'retreat' | 'move_away';
+  targetParticipantId?: string | null;
   feet?: number | null;
   encounterId?: string | null;
 }
@@ -15,10 +18,22 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
   const raw = args as Record<string, unknown>;
   if (typeof raw.monsterInstanceId !== 'string' || !raw.monsterInstanceId.trim())
     throw new Error('monsterInstanceId обязателен.');
+  if (typeof raw.action !== 'string' || !['approach', 'retreat', 'move_away'].includes(raw.action))
+    throw new Error('action должен быть approach, retreat или move_away.');
+
+  let feet: number | null = null;
+  if (raw.feet !== undefined && raw.feet !== null) {
+    if (typeof raw.feet !== 'number') throw new Error('feet должен быть числом.');
+    if (!Number.isInteger(raw.feet)) throw new Error('feet должен быть целым числом.');
+    if (raw.feet <= 0) throw new Error('feet должен быть положительным (>0).');
+    feet = raw.feet;
+  }
 
   return {
     monsterInstanceId: raw.monsterInstanceId.trim(),
-    feet: (raw.feet as number | null | undefined) ?? null,
+    action: raw.action as 'approach' | 'retreat' | 'move_away',
+    targetParticipantId: (raw.targetParticipantId as string | null | undefined) ?? null,
+    feet,
     encounterId: (raw.encounterId as string | null | undefined) ?? null,
   };
 };
@@ -26,7 +41,7 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
 export const moveInCombatTool: ILlmTool = {
   name: 'move_in_combat',
   description:
-    'Перемещает монстра ближе к игроку на указанное количество футов (или на всю доступную скорость). Уменьшает feetFromPlayer участника. Используй перед рукопашной атакой, если цель слишком далеко.',
+    'Перемещает монстра по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию вся скорость). КОД определяет направление и останавливает в 5 футах при approach.',
   parameters: {
     type: 'object',
     properties: {
@@ -34,19 +49,28 @@ export const moveInCombatTool: ILlmTool = {
         type: 'string',
         description: 'ID экземпляра монстра',
       },
+      action: {
+        type: 'string',
+        enum: ['approach', 'retreat', 'move_away'],
+        description: 'approach - к цели (остановка в 5 фт), retreat/move_away - от цели/врагов',
+      },
+      targetParticipantId: {
+        type: 'string',
+        description: 'ID цели для approach или retreat. Если не указан при retreat - от ближайшего врага',
+      },
       feet: {
         type: 'number',
-        description: 'Количество футов для перемещения (по умолчанию = вся скорость монстра)',
+        description: 'Желаемое расстояние движения (по умолчанию = вся доступная скорость)',
       },
       encounterId: {
         type: 'string',
         description: 'ID боевой сцены (опционально)',
       },
     },
-    required: ['monsterInstanceId'],
+    required: ['monsterInstanceId', 'action'],
     additionalProperties: false,
   },
-  execute: async (args: unknown, _ctx: IToolContext) => {
+  execute: async (args: unknown, ctx: IToolContext) => {
     const parsed = parseArgs(args);
 
     const monster = await monsterInstanceRepository.getById(parsed.monsterInstanceId);
@@ -54,55 +78,173 @@ export const moveInCombatTool: ILlmTool = {
 
     const allParticipants = parsed.encounterId
       ? await encounterParticipantRepository.listByEncounterId(parsed.encounterId)
-      : [];
+      : ctx.encounterId
+        ? await encounterParticipantRepository.listByEncounterId(ctx.encounterId)
+        : [];
 
-    let participant = allParticipants.find((p) => p.monsterInstanceId === monster.id);
-
-    if (!participant) {
-      const allEncounterParticipants = await encounterParticipantRepository.listByEncounterId('');
-      for (const ep of allEncounterParticipants) {
-        if (ep.monsterInstanceId === monster.id) {
-          participant = ep;
-          break;
-        }
-      }
-    }
-
+    const participant = allParticipants.find((p) => p.monsterInstanceId === monster.id);
     if (!participant) throw new Error('Участник монстра не найден в боевой сцене.');
 
     const speed = monster.speed;
-    const current = participant.feetFromPlayer;
+    const positionBefore = participant.positionFeet;
     const requestedFeet = parsed.feet ?? speed;
 
-    const maxMove = Math.min(speed, requestedFeet);
-    const actualMove = Math.min(maxMove, current);
+    let targetPosition: number;
+    let targetName = 'неизвестная цель';
 
-    const movementResult = await spendMovement(participant.id, actualMove, speed);
-    if (!movementResult.success) {
+    if (parsed.action === 'approach') {
+      if (!parsed.targetParticipantId) throw new Error('targetParticipantId обязателен для approach.');
+      const target = allParticipants.find((p) => p.id === parsed.targetParticipantId);
+      if (!target) throw new Error('Цель не найдена.');
+      targetPosition = target.positionFeet;
+
+      if (target.playerId) {
+        const player = await playerRepository.getById(target.playerId);
+        if (player) targetName = player.name;
+      }
+
+      const distance = Math.abs(targetPosition - positionBefore);
+      const maxMoveToStop = Math.max(0, distance - 5);
+      const actualMove = Math.min(requestedFeet, maxMoveToStop);
+
+      const direction = targetPosition === positionBefore ? 0 : targetPosition > positionBefore ? 1 : -1;
+
+      const movementResult = await spendMovement(participant.id, actualMove, speed);
+      if (!movementResult.success) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          distanceToTarget: distance,
+          speed,
+          monsterName: monster.name,
+          errorCode: movementResult.errorCode,
+          movementLeft: movementResult.movementLeft,
+          message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        };
+      }
+
+      const positionAfter = positionBefore + direction * actualMove;
+
+      await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
+
+      const playerParticipant = allParticipants.find((p) => p.playerId);
+      const playerPosition = playerParticipant?.positionFeet ?? 0;
+      const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
+
+      await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
+
+      if (ctx.encounterId) {
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: monster.name,
+          message: `движется к ${targetName} на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}, дистанция до цели: ${distance} → ${Math.abs(positionAfter - targetPosition)} фт)`,
+          meta: {
+            action: 'approach',
+            movedFeet: actualMove,
+            positionBefore,
+            positionAfter,
+            distanceToTarget: Math.abs(positionAfter - targetPosition),
+            speed,
+          },
+        });
+      }
+
       return {
-        movedFeet: 0,
-        feetFromPlayerBefore: current,
-        feetFromPlayerAfter: current,
+        movedFeet: actualMove,
+        positionBefore,
+        positionAfter,
+        distanceToTarget: Math.abs(positionAfter - targetPosition),
         speed,
         monsterName: monster.name,
-        errorCode: movementResult.errorCode,
-        movementLeft: movementResult.movementLeft,
-        message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        targetName,
+      };
+    } else {
+      if (parsed.targetParticipantId) {
+        const target = allParticipants.find((p) => p.id === parsed.targetParticipantId);
+        if (!target) throw new Error('Цель не найдена.');
+        targetPosition = target.positionFeet;
+      } else {
+        const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
+        if (enemies.length === 0) throw new Error('Нет живых врагов для отступления.');
+        const closest = enemies.reduce((prev, curr) =>
+          Math.abs(curr.positionFeet - positionBefore) < Math.abs(prev.positionFeet - positionBefore) ? curr : prev
+        );
+        targetPosition = closest.positionFeet;
+      }
+
+      let direction: number;
+      if (targetPosition === positionBefore) {
+        const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
+        const centerOfEnemies =
+          enemies.length > 0 ? enemies.reduce((sum, e) => sum + e.positionFeet, 0) / enemies.length : positionBefore;
+        direction = centerOfEnemies > positionBefore ? -1 : centerOfEnemies < positionBefore ? 1 : -1;
+      } else {
+        direction = targetPosition > positionBefore ? -1 : 1;
+      }
+      const actualMove = Math.min(requestedFeet, speed);
+
+      const movementResult = await spendMovement(participant.id, actualMove, speed);
+      if (!movementResult.success) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          speed,
+          monsterName: monster.name,
+          errorCode: movementResult.errorCode,
+          movementLeft: movementResult.movementLeft,
+          message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
+        };
+      }
+
+      const positionAfter = positionBefore + direction * actualMove;
+
+      await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
+
+      const playerParticipant = allParticipants.find((p) => p.playerId);
+      const playerPosition = playerParticipant?.positionFeet ?? 0;
+      const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
+
+      await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
+
+      const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
+      const minDistanceToEnemies =
+        enemies.length > 0
+          ? Math.min(...enemies.map((enemy) => Math.abs(positionAfter - enemy.positionFeet)))
+          : Infinity;
+
+      let fled = false;
+      if (minDistanceToEnemies > 120) {
+        await encounterParticipantRepository.update(participant.id, { isOut: true });
+        fled = true;
+      }
+
+      if (ctx.encounterId) {
+        const { checkEncounterEnd } = await import('@/services/encounter/checkEncounterEnd');
+
+        await encounterLogRepository.create({
+          encounterId: ctx.encounterId,
+          actorName: monster.name,
+          message: fled
+            ? `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}) и сбегает из боя (дистанция >120 фт от всех противников)`
+            : `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
+          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed, fled },
+        });
+
+        if (fled) {
+          await checkEncounterEnd({ encounterId: ctx.encounterId });
+        }
+      }
+
+      return {
+        movedFeet: actualMove,
+        positionBefore,
+        positionAfter,
+        speed,
+        monsterName: monster.name,
+        fled,
       };
     }
-
-    const newDistance = Math.max(0, current - actualMove);
-
-    await encounterParticipantRepository.update(participant.id, {
-      feetFromPlayer: newDistance,
-    });
-
-    return {
-      movedFeet: actualMove,
-      feetFromPlayerBefore: current,
-      feetFromPlayerAfter: newDistance,
-      speed,
-      monsterName: monster.name,
-    };
   },
 };

@@ -3,6 +3,7 @@
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
+import { npcRepository } from '@/data/npc';
 import { getCatalogMonsterByKey } from '@/domain/monster';
 import { stabilizePlayer } from '@/services/player/deathSaves/stabilizePlayer';
 
@@ -12,7 +13,7 @@ interface ICheckEncounterEndInput {
 
 interface IEncounterResult {
   victory: boolean;
-  outcome: 'victory' | 'captured' | 'defeat';
+  outcome: 'victory' | 'captured' | 'defeat' | 'fled';
   defeated: string[];
   survivors: string[];
   defeatedMonsters: Array<{ name: string; catalogKey: string }>;
@@ -40,7 +41,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
   for (const p of playerSide) {
     if (p.playerId) {
       const player = await playerRepository.getById(p.playerId);
-      if (player && player.hpCurrent > 0 && !player.dead) {
+      if (player && player.hpCurrent > 0 && !player.dead && !p.isOut) {
         playersAlive.push(p);
       }
     } else if (p.npcId && !p.isOut) {
@@ -55,7 +56,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
   }
 
   let victory = false;
-  let outcome: 'victory' | 'captured' | 'defeat' = 'defeat';
+  let outcome: 'victory' | 'captured' | 'defeat' | 'fled' = 'defeat';
   const capturedBy: string[] = [];
 
   if (playersAlive.length > 0) {
@@ -77,40 +78,56 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
       outcome = 'victory';
       victory = true;
     } else if (anyPlayerAlive) {
-      const monsterDetails = await Promise.all(
-        monstersAlive.map(async (p) => {
-          const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-          if (!monster) return null;
-          const catalog = getCatalogMonsterByKey(monster.catalogKey);
-          return { name: monster.name, finishes: catalog?.finishesDowned ?? false };
-        })
+      const allPlayersFled = await Promise.all(
+        playerSide
+          .filter((p) => p.playerId)
+          .map(async (p) => {
+            const player = await playerRepository.getById(p.playerId!);
+            return p.isOut && player && player.hpCurrent > 0 && !player.dead;
+          })
       );
 
-      const finishingMonsters = monsterDetails.filter((m) => m && m.finishes);
+      const allFled = allPlayersFled.every((f) => f) && allPlayersFled.length > 0;
 
-      if (finishingMonsters.length === 0) {
-        outcome = 'captured';
+      if (allFled) {
+        outcome = 'fled';
         victory = false;
+      } else {
+        const monsterDetails = await Promise.all(
+          monstersAlive.map(async (p) => {
+            const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+            if (!monster) return null;
+            const catalog = getCatalogMonsterByKey(monster.catalogKey);
+            return { name: monster.name, finishes: catalog?.finishesDowned ?? false };
+          })
+        );
 
-        for (const detail of monsterDetails) {
-          if (detail) capturedBy.push(detail.name);
-        }
+        const finishingMonsters = monsterDetails.filter((m) => m && m.finishes);
 
-        for (const p of playerSide) {
-          if (p.playerId) {
-            const player = await playerRepository.getById(p.playerId);
-            if (player && !player.dead) {
-              await stabilizePlayer({
-                playerId: p.playerId,
-                restoreHp: 1,
-                removeUnconscious: false,
-              });
+        if (finishingMonsters.length === 0) {
+          outcome = 'captured';
+          victory = false;
+
+          for (const detail of monsterDetails) {
+            if (detail) capturedBy.push(detail.name);
+          }
+
+          for (const p of playerSide) {
+            if (p.playerId) {
+              const player = await playerRepository.getById(p.playerId);
+              if (player && !player.dead) {
+                await stabilizePlayer({
+                  playerId: p.playerId,
+                  restoreHp: 1,
+                  removeUnconscious: false,
+                });
+              }
             }
           }
+        } else {
+          outcome = 'defeat';
+          victory = false;
         }
-      } else {
-        outcome = 'defeat';
-        victory = false;
       }
     } else {
       outcome = 'defeat';
@@ -159,6 +176,8 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
     resultMessage = `Победа! Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
   } else if (outcome === 'captured') {
     resultMessage = `Все игроки выведены из строя. Захвачены противниками: ${capturedBy.join(', ')}.`;
+  } else if (outcome === 'fled') {
+    resultMessage = `Все игроки сбежали из боя.`;
   } else {
     resultMessage = `Поражение. Все игроки мертвы.`;
   }

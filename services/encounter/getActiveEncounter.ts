@@ -19,6 +19,7 @@ interface IParticipantInfo {
   hpMax: number;
   initiative: number;
   feetFromPlayer: number;
+  positionFeet: number;
   isOut: boolean;
   playerId: string | null;
   npcId: string | null;
@@ -123,6 +124,7 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
       hpMax,
       initiative: participant.initiative,
       feetFromPlayer: participant.feetFromPlayer,
+      positionFeet: participant.positionFeet,
       isOut: participant.isOut,
       playerId: participant.playerId,
       npcId: participant.npcId,
@@ -138,6 +140,16 @@ export const getActiveEncounter = async (input: IGetActiveEncounterInput): Promi
       dead,
       conditions,
     });
+  }
+
+  const playerPositions = participantInfos.filter((p) => p.kind === 'player').map((p) => p.positionFeet);
+
+  for (const participant of participantInfos) {
+    if (participant.kind === 'player') {
+      participant.feetFromPlayer = 0;
+    } else if (playerPositions.length > 0) {
+      participant.feetFromPlayer = Math.min(...playerPositions.map((pos) => Math.abs(participant.positionFeet - pos)));
+    }
   }
 
   const currentParticipant =

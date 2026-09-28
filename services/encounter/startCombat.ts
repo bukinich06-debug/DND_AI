@@ -15,11 +15,16 @@ interface IEnemyInput {
   feetFromPlayer?: number;
 }
 
+interface IAllyInput {
+  npcId: string;
+  positionFeet?: number;
+}
+
 interface IStartCombatInput {
   campaignId: string;
   playerId: string;
   enemies: IEnemyInput[];
-  allyNpcIds?: string[];
+  allyNpcs?: IAllyInput[];
   locationId?: string;
 }
 
@@ -48,19 +53,21 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
 
   const effectiveLocationId = input.locationId ?? player.locationId;
 
-  const allyNpcs = [];
-  const allyStatBlocks = [];
-  if (input.allyNpcIds && input.allyNpcIds.length > 0) {
-    for (const npcId of input.allyNpcIds) {
-      const npc = await npcRepository.getById(npcId);
-      if (!npc) throw new Error(`НПС с id ${npcId} не найден.`);
+  const allyNpcs: Array<{
+    npc: NonNullable<Awaited<ReturnType<typeof npcRepository.getById>>>;
+    statBlock: NonNullable<Awaited<ReturnType<typeof npcStatBlockRepository.getByNpcId>>>;
+    positionFeet?: number;
+  }> = [];
+  if (input.allyNpcs && input.allyNpcs.length > 0) {
+    for (const allyInput of input.allyNpcs) {
+      const npc = await npcRepository.getById(allyInput.npcId);
+      if (!npc) throw new Error(`НПС с id ${allyInput.npcId} не найден.`);
       if (npc.campaignId !== input.campaignId) throw new Error(`НПС ${npc.name} не принадлежит этой кампании.`);
 
-      const statBlock = await npcStatBlockRepository.getByNpcId(npcId);
+      const statBlock = await npcStatBlockRepository.getByNpcId(allyInput.npcId);
       if (!statBlock) throw new Error(`У НПС ${npc.name} нет блока характеристик для боя.`);
 
-      allyNpcs.push(npc);
-      allyStatBlocks.push(statBlock);
+      allyNpcs.push({ npc, statBlock, positionFeet: allyInput.positionFeet });
     }
   }
 
@@ -106,7 +113,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   const combatants: Array<{
     name: string;
     initiative: number;
-    feetFromPlayer: number;
+    positionFeet: number;
     playerId?: string;
     npcId?: string;
     monsterInstanceId?: string;
@@ -120,17 +127,17 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     playerId: player.id,
   });
   const playerInitiativeBonus = (player.initiativeBonus ?? 0) + abilityMod(player.dex);
+
   combatants.push({
     name: player.name,
     initiative: playerInitiativeRoll.value + playerInitiativeBonus,
-    feetFromPlayer: 0,
+    positionFeet: 0,
     playerId: player.id,
     kind: 'player',
   });
 
   for (let i = 0; i < allyNpcs.length; i++) {
-    const npc = allyNpcs[i];
-    const statBlock = allyStatBlocks[i];
+    const { npc, statBlock, positionFeet } = allyNpcs[i];
     const npcInitiativeRoll = await rollDice({
       campaignId: input.campaignId,
       die: 'd20',
@@ -138,10 +145,11 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
       npcId: npc.id,
     });
     const npcInitiativeBonus = (statBlock.initiativeBonus ?? 0) + abilityMod(statBlock.dex);
+    const position = positionFeet !== undefined ? positionFeet : -5 - i * 5;
     combatants.push({
       name: npc.name,
       initiative: npcInitiativeRoll.value + npcInitiativeBonus,
-      feetFromPlayer: 5,
+      positionFeet: position,
       npcId: npc.id,
       kind: 'npc',
     });
@@ -157,7 +165,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     combatants.push({
       name: instance.name,
       initiative: monsterInitiativeRoll.value + monsterInitiativeBonus,
-      feetFromPlayer,
+      positionFeet: feetFromPlayer,
       monsterInstanceId: instance.id,
       kind: 'monster',
     });
@@ -170,13 +178,18 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     locationId: effectiveLocationId,
   });
 
+  const playerPosition = 0;
+
   for (let i = 0; i < combatants.length; i++) {
     const combatant = combatants[i];
+    const feetFromPlayer = combatant.playerId ? 0 : Math.abs(combatant.positionFeet - playerPosition);
+
     await encounterParticipantRepository.create({
       encounterId: encounter.id,
       initiative: combatant.initiative,
       order: i,
-      feetFromPlayer: combatant.feetFromPlayer,
+      feetFromPlayer,
+      positionFeet: combatant.positionFeet,
       playerId: combatant.playerId ?? null,
       npcId: combatant.npcId ?? null,
       monsterInstanceId: combatant.monsterInstanceId ?? null,

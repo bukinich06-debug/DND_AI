@@ -60,6 +60,9 @@ export const spendMovement = async (
   feet: number,
   speed: number
 ): Promise<ISpendMovementResult> => {
+  if (feet < 0) throw new Error('feet не может быть отрицательным.');
+  if (!Number.isInteger(feet)) throw new Error('feet должен быть целым числом.');
+
   const participant = await encounterParticipantRepository.getById(participantId);
   if (!participant) throw new Error('Участник не найден.');
 

@@ -9,7 +9,14 @@ const formatParticipants = (ctx: ICombatAgentContext) => {
       const hpText = p.hp !== null ? `, HP: ${p.hp}` : '';
       const acText = p.ac !== null ? `, AC: ${p.ac}` : '';
       const outText = p.isOut ? ' [ВЫБЫЛ]' : '';
-      const distanceText = `, расстояние до игрока: ${p.feetFromPlayer} фт`;
+      const distance = Math.abs(p.positionFeet - (ctx.player.positionFeet ?? 0));
+      const direction =
+        p.positionFeet > (ctx.player.positionFeet ?? 0)
+          ? 'впереди'
+          : p.positionFeet < (ctx.player.positionFeet ?? 0)
+            ? 'позади'
+            : 'на месте';
+      const distanceText = `, позиция: ${p.positionFeet} фт (${direction}, дистанция: ${distance} фт)`;
       return `- ${p.name} (${p.kind}, инициатива: ${p.initiative}, порядок: ${p.order}${hpText}${acText}${distanceText})${outText}`;
     })
     .join('\n');
@@ -152,9 +159,9 @@ ${formatParticipants(ctx)}
 11. **Не описывай ход как Мастер** — ты агент валидации; коротко сообщи результат после tools.
 
 ## Доступные tools
-- **list_combat_targets** — список живых участников с HP/AC/дистанцией.
+- **list_combat_targets** — список живых участников с позицией на линии, дистанцией, направлением (впереди/позади) и HP/AC.
 - **get_player_combat_stats** — характеристики игрока, модификаторы, экипированное оружие.
-- **move_player_in_combat** — двигает игрока ближе к цели (уменьшает feetFromPlayer выбранного participant). Суммарное движение ≤ speed за ход.
+- **move_player_in_combat** — двигает игрока по линии боя: action='approach' (приближается к цели, останавливается в 5 фт), 'retreat'/'move_away' (отходит от цели или ближайшего врага). Параметр feet задаёт количество футов движения. Суммарное движение ≤ speed за ход.
 - **resolve_player_attack** — разрешает атаку: дистанция, d20+бонус vs AC, урон, обновление HP/isOut. Требует weaponItemId из списка оружия (или null для безоружки). Максимум 1 атака за ход.
 - **use_player_consumable** — использует расходник (зелье лечения) из инвентаря. Лечит HP, списывает quantity. Максимум 1 за ход (бонусное действие).
 - **roll_dice** — для проверок характеристик (не для атак — используй resolve_player_attack).

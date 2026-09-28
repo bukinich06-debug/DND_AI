@@ -40,6 +40,7 @@ export interface IMonsterCombatContext {
     reactionUsed: boolean;
     movementUsedFeet: number;
     movementLeftFeet: number;
+    positionFeet: number;
   };
   encounter: {
     id: string;
@@ -55,6 +56,7 @@ export interface IMonsterCombatContext {
     isOut: boolean;
     hp: number | null;
     feetFromPlayer: number;
+    positionFeet: number;
     playerId: string | null;
     npcId: string | null;
     monsterInstanceId: string | null;
@@ -143,6 +145,7 @@ export const loadMonsterCombatContext = async ({
         isOut: p.isOut,
         hp,
         feetFromPlayer: p.feetFromPlayer,
+        positionFeet: p.positionFeet,
         playerId: p.playerId,
         npcId: p.npcId,
         monsterInstanceId: p.monsterInstanceId,
@@ -172,6 +175,7 @@ export const loadMonsterCombatContext = async ({
       reactionUsed: monsterActionEconomy.reactionUsed,
       movementUsedFeet: monsterActionEconomy.movementUsedFeet,
       movementLeftFeet: monsterActionEconomy.movementLeftFeet,
+      positionFeet: monsterParticipant?.positionFeet ?? 0,
     },
     encounter: {
       id: encounter.id,
