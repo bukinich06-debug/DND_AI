@@ -196,8 +196,10 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
           !('errorCode' in tc.result && tc.result.errorCode)
       );
 
-      let loggedEventCount = 0;
       const sayPrefix = monsterResult.say ? `«${monsterResult.say}» — ` : '';
+      const messages: string[] = [];
+      const events: unknown[] = [];
+      let attackResultForMeta: Record<string, unknown> | null = null;
 
       for (const move of moveResults) {
         if (typeof move.result === 'object' && move.result !== null) {
@@ -223,18 +225,8 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                   : 'движется';
 
             const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})`;
-
-            const moveEntry = {
-              actorName,
-              message: loggedEventCount === 0 ? `${sayPrefix}${moveMessage}` : moveMessage,
-              meta: { ...move.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
-            };
-            await encounterLogRepository.create({
-              encounterId: encounter.id,
-              ...moveEntry,
-            });
-            newLogEntries.push(moveEntry);
-            loggedEventCount++;
+            messages.push(moveMessage);
+            events.push(move.result);
           }
         }
       }
@@ -283,18 +275,9 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                 : '';
 
             const attackMessage = `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
-
-            const attackEntry = {
-              actorName,
-              message: loggedEventCount === 0 ? `${sayPrefix}${attackMessage}` : attackMessage,
-              meta: { ...attack.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
-            };
-            await encounterLogRepository.create({
-              encounterId: encounter.id,
-              ...attackEntry,
-            });
-            newLogEntries.push(attackEntry);
-            loggedEventCount++;
+            messages.push(attackMessage);
+            events.push(attack.result);
+            attackResultForMeta = attack.result as Record<string, unknown>;
           } else if (res.hit === false && res.attackRoll !== undefined) {
             const nat1Text = res.isNatural1 ? ' [nat1]' : '';
 
@@ -304,23 +287,29 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                 : '';
 
             const missMessage = `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`;
-
-            const attackEntry = {
-              actorName,
-              message: loggedEventCount === 0 ? `${sayPrefix}${missMessage}` : missMessage,
-              meta: { ...attack.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
-            };
-            await encounterLogRepository.create({
-              encounterId: encounter.id,
-              ...attackEntry,
-            });
-            newLogEntries.push(attackEntry);
-            loggedEventCount++;
+            messages.push(missMessage);
+            events.push(attack.result);
+            attackResultForMeta = attack.result as Record<string, unknown>;
           }
         }
       }
 
-      if (loggedEventCount === 0 && monsterResult.say) {
+      if (messages.length > 0) {
+        const combinedEntry = {
+          actorName,
+          message: `${sayPrefix}${messages.join('; ')}`,
+          meta: {
+            say: monsterResult.say,
+            events,
+            ...(attackResultForMeta || {}),
+          },
+        };
+        await encounterLogRepository.create({
+          encounterId: encounter.id,
+          ...combinedEntry,
+        });
+        newLogEntries.push(combinedEntry);
+      } else if (monsterResult.say) {
         const sayEntry = {
           actorName,
           message: `«${monsterResult.say}»`,
