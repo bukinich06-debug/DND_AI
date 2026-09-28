@@ -67,6 +67,7 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
   const result = await advanceCombatTurn({
     campaignId: input.campaignId,
     playerId: input.playerId,
+    playerEndedTurn: true,
   });
 
   return result;
