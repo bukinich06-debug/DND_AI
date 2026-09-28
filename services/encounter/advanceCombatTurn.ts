@@ -137,12 +137,16 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       }
 
       if (deathSaveResult.isRevived) {
+        const revivedEncounter = await getActiveEncounter({
+          campaignId: input.campaignId,
+          playerId: input.playerId,
+        });
+
         return {
-          success: false,
-          error: 'Игрок восстал с 1 HP после натуральной 20 на спасброске от смерти и сохраняет свой ход.',
-          errorCode: 'PLAYER_REVIVED_KEEPS_TURN',
-          encounter: null,
+          success: true,
+          encounter: revivedEncounter.encounter,
           newLogEntries,
+          encounterEnded: false,
         };
       }
     } else if (player.hpCurrent === 0 && player.isStable) {

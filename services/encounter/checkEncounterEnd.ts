@@ -300,7 +300,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
         removeUnconscious: false,
       });
 
-      const resultMessage = `Все игроки выведены из строя. Захвачены противниками: ${capturedBy.join(', ')}.`;
+      const resultMessage = `${player.name} выведен из строя и захвачен противниками: ${capturedBy.join(', ')}.`;
 
       await encounterLogRepository.create({
         encounterId: input.encounterId,

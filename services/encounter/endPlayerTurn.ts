@@ -58,18 +58,16 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
     };
   }
 
+  await encounterLogRepository.create({
+    encounterId: encounter.id,
+    actorName: null,
+    message: 'Игрок завершил свой ход.',
+  });
+
   const result = await advanceCombatTurn({
     campaignId: input.campaignId,
     playerId: input.playerId,
   });
-
-  if (!result.encounterEnded) {
-    await encounterLogRepository.create({
-      encounterId: encounter.id,
-      actorName: null,
-      message: 'Игрок завершил свой ход.',
-    });
-  }
 
   return result;
 };
