@@ -186,31 +186,18 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         monsterInstanceId: currentParticipant.monsterInstanceId,
       });
 
-      if (monsterResult.say) {
-        const sayEntry = {
-          actorName,
-          message: `Говорит: ${monsterResult.say}`,
-        };
-        await encounterLogRepository.create({
-          encounterId: encounter.id,
-          ...sayEntry,
-        });
-        newLogEntries.push(sayEntry);
-      }
-
-      if (monsterResult.do) {
-        const doEntry = {
-          actorName,
-          message: `Действует: ${monsterResult.do}`,
-        };
-        await encounterLogRepository.create({
-          encounterId: encounter.id,
-          ...doEntry,
-        });
-        newLogEntries.push(doEntry);
-      }
-
       const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
+      const attackResults = monsterResult.toolCalls.filter(
+        (tc) =>
+          tc.name === 'resolve_monster_attack' &&
+          tc.result &&
+          typeof tc.result === 'object' &&
+          tc.result !== null &&
+          !('errorCode' in tc.result && tc.result.errorCode)
+      );
+
+      let loggedEventCount = 0;
+      const sayPrefix = monsterResult.say ? `«${monsterResult.say}» — ` : '';
 
       for (const move of moveResults) {
         if (typeof move.result === 'object' && move.result !== null) {
@@ -235,21 +222,22 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                   ? 'отступает'
                   : 'движется';
 
+            const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})`;
+
             const moveEntry = {
               actorName,
-              message: `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})`,
-              meta: move.result,
+              message: loggedEventCount === 0 ? `${sayPrefix}${moveMessage}` : moveMessage,
+              meta: { ...move.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
             };
             await encounterLogRepository.create({
               encounterId: encounter.id,
               ...moveEntry,
             });
             newLogEntries.push(moveEntry);
+            loggedEventCount++;
           }
         }
       }
-
-      const attackResults = monsterResult.toolCalls.filter((tc) => tc.name === 'resolve_monster_attack' && tc.result);
 
       for (const attack of attackResults) {
         if (typeof attack.result === 'object' && attack.result !== null) {
@@ -265,25 +253,13 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             damageBonus?: number;
             targetPreviousHp?: number;
             targetNewHp?: number;
-            errorCode?: string;
             isCritical?: boolean;
             isNatural20?: boolean;
             isNatural1?: boolean;
             deathSaveFailuresAdded?: number;
           };
 
-          if (res.errorCode === 'OUT_OF_REACH') {
-            const attackEntry = {
-              actorName,
-              message: `Атака невозможна: ${res.targetName || 'цель'} слишком далеко`,
-              meta: attack.result,
-            };
-            await encounterLogRepository.create({
-              encounterId: encounter.id,
-              ...attackEntry,
-            });
-            newLogEntries.push(attackEntry);
-          } else if (res.hit && res.damageTotal !== undefined) {
+          if (res.hit && res.damageTotal !== undefined) {
             const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
 
             const attackDetails =
@@ -306,17 +282,20 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                 ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
                 : '';
 
+            const attackMessage = `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
+
             const attackEntry = {
               actorName,
-              message: `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`,
-              meta: attack.result,
+              message: loggedEventCount === 0 ? `${sayPrefix}${attackMessage}` : attackMessage,
+              meta: { ...attack.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
             };
             await encounterLogRepository.create({
               encounterId: encounter.id,
               ...attackEntry,
             });
             newLogEntries.push(attackEntry);
-          } else if (res.hit === false) {
+            loggedEventCount++;
+          } else if (res.hit === false && res.attackRoll !== undefined) {
             const nat1Text = res.isNatural1 ? ' [nat1]' : '';
 
             const attackDetails =
@@ -324,18 +303,34 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                 ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
                 : '';
 
+            const missMessage = `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`;
+
             const attackEntry = {
               actorName,
-              message: `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`,
-              meta: attack.result,
+              message: loggedEventCount === 0 ? `${sayPrefix}${missMessage}` : missMessage,
+              meta: { ...attack.result, say: loggedEventCount === 0 ? monsterResult.say : undefined },
             };
             await encounterLogRepository.create({
               encounterId: encounter.id,
               ...attackEntry,
             });
             newLogEntries.push(attackEntry);
+            loggedEventCount++;
           }
         }
+      }
+
+      if (loggedEventCount === 0 && monsterResult.say) {
+        const sayEntry = {
+          actorName,
+          message: `«${monsterResult.say}»`,
+          meta: { say: monsterResult.say },
+        };
+        await encounterLogRepository.create({
+          encounterId: encounter.id,
+          ...sayEntry,
+        });
+        newLogEntries.push(sayEntry);
       }
     } catch (monsterError) {
       const errorEntry = {

@@ -32,6 +32,28 @@ const parseToolArgs = (raw: string): unknown => {
   }
 };
 
+const looksLikeAttack = (text: string): boolean => {
+  const lower = text.toLowerCase();
+  const attackKeywords = [
+    'атак',
+    'бью',
+    'удар',
+    'стреля',
+    'выстрел',
+    'рубл',
+    'наношу',
+    'нанесу',
+    'удари',
+    'бить',
+    'пораж',
+    'когт',
+    'укус',
+    'кус',
+    'бьёт',
+  ];
+  return attackKeywords.some((kw) => lower.includes(kw));
+};
+
 const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
   const name = call.function?.name?.trim() || '';
   let args: unknown = {};
@@ -58,6 +80,7 @@ export const runMonsterToolLoop = async ({
   const openAiTools = monsterTools.map(toOpenAiCompatibleTool);
   const history: ILlmMessage[] = [{ role: 'system', content: system }];
   const toolCalls: IToolCallLog[] = [];
+  let attackWithoutToolAttempts = 0;
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
     const assistant = await sendLlmChat({ messages: history, temperature: 0.7, tools: openAiTools });
@@ -67,6 +90,40 @@ export const runMonsterToolLoop = async ({
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
       if (!content) throw new Error('Пустой ответ LLM.');
       const reply = parseMonsterReply(content);
+
+      const replyText = `${reply.say || ''} ${reply.do || ''}`;
+      const attackCalled = toolCalls.some(
+        (tc) =>
+          tc.name === 'resolve_monster_attack' &&
+          tc.ok &&
+          !(typeof tc.result === 'object' && tc.result !== null && 'errorCode' in tc.result && tc.result.errorCode)
+      );
+
+      if (looksLikeAttack(replyText) && !attackCalled) {
+        attackWithoutToolAttempts++;
+
+        if (attackWithoutToolAttempts >= 2) {
+          return {
+            say: reply.say || '',
+            do: null,
+            toolCalls,
+          };
+        }
+
+        history.push({
+          role: 'assistant',
+          content: assistant.content ?? null,
+        });
+
+        history.push({
+          role: 'system',
+          content:
+            'Ты заявил атаку в say/do, но не вызвал resolve_monster_attack успешно. Вызови resolve_monster_attack с нужными аргументами (targetParticipantId из списка участников и опционально attackName из списка действий) или откажи от атаки (do: null).',
+        });
+
+        continue;
+      }
+
       return { ...reply, toolCalls };
     }
 
