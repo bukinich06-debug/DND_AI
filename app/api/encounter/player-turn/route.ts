@@ -35,12 +35,24 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
+    const startedAt = new Date();
+
     const result = await runPlayerCombatTurn({
       campaignId: body.campaignId,
       encounterId: body.encounterId,
       playerId: body.playerId,
       playerAction: body.playerAction,
     });
+
+    if (!result.actionRejected) {
+      await encounterLogRepository.create({
+        encounterId: body.encounterId,
+        actorName: result.playerName,
+        message: body.playerAction,
+        meta: { kind: 'player_input' },
+        createdAt: startedAt,
+      });
+    }
 
     if (result.encounterEnded) {
       return NextResponse.json({
@@ -53,14 +65,6 @@ export const POST = async (req: NextRequest) => {
         toolCalls: result.toolCalls,
         actionRejected: result.actionRejected,
         rejectionReason: result.rejectionReason,
-      });
-    }
-
-    if (result.say && !result.actionRejected) {
-      await encounterLogRepository.create({
-        encounterId: body.encounterId,
-        actorName: null,
-        message: result.say,
       });
     }
 

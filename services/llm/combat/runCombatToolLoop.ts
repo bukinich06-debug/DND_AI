@@ -103,8 +103,9 @@ export const runCombatToolLoop = async ({
 
         if (attackWithoutToolAttempts >= 2) {
           return {
-            say: 'Ты заявил атаку, но не вызвал resolve_player_attack. Действие отклонено.',
+            say: '',
             do: null,
+            rejection: { rejected: true, reason: 'Атака заявлена без броска — попробуй ещё раз' },
             toolCalls,
           };
         }

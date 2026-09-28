@@ -14,6 +14,7 @@ interface IRunPlayerCombatTurnParams {
 }
 
 export interface IRunPlayerCombatTurnResult {
+  playerName: string;
   say: string;
   do: string | null;
   toolCalls: IToolCallLog[];
@@ -30,6 +31,10 @@ export interface IRunPlayerCombatTurnResult {
   };
   encounter?: Awaited<ReturnType<typeof getActiveEncounter>>['encounter'];
 }
+
+const LEAKED_TOOL_SAY_RE = /resolve_|list_combat|move_player|use_player|tool|вызыва/i;
+
+const sanitizeSay = (say: string): string => (LEAKED_TOOL_SAY_RE.test(say) ? '' : say);
 
 export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Promise<IRunPlayerCombatTurnResult> => {
   if (!input.campaignId.trim()) throw new Error('campaignId обязателен.');
@@ -67,6 +72,9 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
     const gameCalls = reply.toolCalls.filter((tc) => gameTools.includes(tc.name));
 
     if (gameCalls.length === 0) {
+      if (reply.rejection?.rejected) {
+        return { rejected: true, reason: reply.rejection.reason ?? 'Действие отклонено' };
+      }
       return { rejected: false, reason: null };
     }
 
@@ -129,6 +137,7 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
   };
 
   const rejection = analyzeRejection();
+  const say = sanitizeSay(reply.say);
 
   const endCheck = await checkEncounterEnd({ encounterId: input.encounterId });
 
@@ -139,7 +148,8 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
     });
 
     return {
-      say: reply.say,
+      playerName: ctx.player.name,
+      say,
       do: reply.do,
       toolCalls: reply.toolCalls,
       actionRejected: rejection.rejected,
@@ -151,7 +161,8 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
   }
 
   return {
-    say: reply.say,
+    playerName: ctx.player.name,
+    say,
     do: reply.do,
     toolCalls: reply.toolCalls,
     actionRejected: rejection.rejected,
