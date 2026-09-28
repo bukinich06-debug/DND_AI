@@ -35,6 +35,8 @@ export const runMonsterCombatTurn = async (
     system,
     ctx: {
       campaignId: input.campaignId,
+      encounterId: input.encounterId,
+      monsterInstanceId: input.monsterInstanceId,
     },
   });
 
