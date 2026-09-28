@@ -24,6 +24,7 @@ export interface IEncounterRepository {
   updateConditional: (
     id: string,
     expectedTurnIndex: number,
+    expectedRound: number,
     input: IUpdateEncounter
   ) => Promise<{ success: boolean; encounter?: IEncounter }>;
   delete: (id: string) => Promise<void>;

@@ -100,6 +100,17 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     const player = await playerRepository.getById(currentParticipant.playerId);
     if (!player) throw new Error('Игрок не найден.');
 
+    const playerCanAct = player.hpCurrent > 0 && !player.dead && !player.isStable;
+    if (playerCanAct) {
+      return {
+        success: false,
+        error: 'Нельзя продвинуть ход во время хода игрока. Игрок должен совершить действия или явно завершить ход.',
+        errorCode: 'PLAYER_TURN_ACTIVE',
+        encounter: null,
+        newLogEntries: [],
+      };
+    }
+
     if (player.dead && !currentParticipant.isOut) {
       await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
     }
@@ -209,7 +220,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             fled?: boolean;
           };
 
-          if (res.movedFeet && res.movedFeet > 0 && !res.fled) {
+          if (res.movedFeet && res.movedFeet > 0) {
             const action =
               move.args && typeof move.args === 'object' && 'action' in move.args
                 ? (move.args as { action?: string }).action
@@ -386,10 +397,15 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     }
   }
 
-  const updateResult = await encounterRepository.updateConditional(encounter.id, encounter.currentTurnIndex, {
-    currentTurnIndex: nextTurnIndex,
-    round: nextRound,
-  });
+  const updateResult = await encounterRepository.updateConditional(
+    encounter.id,
+    encounter.currentTurnIndex,
+    encounter.round,
+    {
+      currentTurnIndex: nextTurnIndex,
+      round: nextRound,
+    }
+  );
 
   if (!updateResult.success) {
     return {

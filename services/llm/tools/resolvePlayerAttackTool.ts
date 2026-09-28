@@ -1,5 +1,5 @@
 import { DiceKind } from '@/domain/shared';
-import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository, encounterRepository } from '@/data/encounter';
 import { itemRepository } from '@/data/item';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
@@ -129,8 +129,26 @@ export const resolvePlayerAttackTool: ILlmTool = {
     const attackerParticipant = attackerParticipants.find((p) => p.playerId === parsed.attackerPlayerId);
     if (!attackerParticipant) throw new Error('Участник атакующего игрока не найден в боевой сцене.');
 
+    const encounter = await encounterRepository.getById(ctx.encounterId);
+    if (!encounter) throw new Error('Боевая сцена не найдена.');
+
+    const orderedParticipants = [...attackerParticipants].sort((a, b) => a.order - b.order);
+    const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
+
+    if (!currentParticipant || currentParticipant.id !== attackerParticipant.id || currentParticipant.isOut) {
+      throw new Error('NOT_PLAYER_TURN: Сейчас не ход игрока.');
+    }
+
     if (targetParticipant.playerId === parsed.attackerPlayerId)
       throw new Error('INVALID_TARGET: Нельзя атаковать самого себя.');
+
+    if (targetParticipant.npcId) {
+      return {
+        hit: false,
+        errorCode: 'ALLIED_TARGET',
+        message: 'Нельзя атаковать союзного NPC.',
+      };
+    }
 
     if (targetParticipant.isOut) throw new Error('INVALID_TARGET: Цель уже выбыла из боя.');
 

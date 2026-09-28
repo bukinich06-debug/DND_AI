@@ -50,6 +50,7 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
   const player = await playerRepository.getById(input.playerId);
   if (!player) throw new Error('Игрок не найден.');
   if (player.campaignId !== input.campaignId) throw new Error('Игрок не принадлежит этой кампании.');
+  if (player.hpCurrent <= 0) throw new Error('Нельзя начать бой, когда игрок находится без сознания (0 HP).');
 
   const effectiveLocationId = input.locationId ?? player.locationId;
 
