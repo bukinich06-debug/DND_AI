@@ -3,6 +3,8 @@
 import { buildCombatPrompt } from './buildCombatPrompt';
 import { loadCombatAgentContext } from './loadCombatAgentContext';
 import { runCombatToolLoop, type IToolCallLog } from './runCombatToolLoop';
+import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
+import { getActiveEncounter } from '@/services/encounter/getActiveEncounter';
 
 interface IRunPlayerCombatTurnParams {
   campaignId: string;
@@ -15,6 +17,16 @@ export interface IRunPlayerCombatTurnResult {
   say: string;
   do: string | null;
   toolCalls: IToolCallLog[];
+  encounterEnded?: boolean;
+  encounterResult?: {
+    victory: boolean;
+    outcome: 'victory' | 'captured' | 'defeat' | 'fled';
+    defeated: string[];
+    survivors: string[];
+    defeatedMonsters: Array<{ name: string; catalogKey: string }>;
+    capturedBy: string[];
+  };
+  encounter?: Awaited<ReturnType<typeof getActiveEncounter>>['encounter'];
 }
 
 export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Promise<IRunPlayerCombatTurnResult> => {
@@ -47,6 +59,24 @@ export const runPlayerCombatTurn = async (input: IRunPlayerCombatTurnParams): Pr
       encounterId: input.encounterId,
     },
   });
+
+  const endCheck = await checkEncounterEnd({ encounterId: input.encounterId });
+
+  if (endCheck.ended) {
+    const encounterState = await getActiveEncounter({
+      campaignId: input.campaignId,
+      playerId: input.playerId,
+    });
+
+    return {
+      say: reply.say,
+      do: reply.do,
+      toolCalls: reply.toolCalls,
+      encounterEnded: true,
+      encounterResult: endCheck.result ?? undefined,
+      encounter: encounterState.encounter,
+    };
+  }
 
   return {
     say: reply.say,

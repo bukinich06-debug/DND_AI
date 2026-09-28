@@ -8,6 +8,7 @@ import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import { getCatalogMonsterByKey } from '@/domain/monster';
 import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
+import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolveMonsterAttackArgs {
@@ -199,28 +200,12 @@ export const resolveMonsterAttackTool: ILlmTool = {
       targetIsUnconscious = player.conditions.includes('unconscious');
 
       if (targetHp === 0 && !isFinisher) {
-        const allParticipants = await encounterParticipantRepository.listByEncounterId(targetParticipant.encounterId);
-
-        const standingPlayers: typeof allParticipants = [];
-        for (const p of allParticipants) {
-          if (p.playerId && p.playerId !== targetParticipant.playerId) {
-            const otherPlayer = await playerRepository.getById(p.playerId);
-            if (otherPlayer && otherPlayer.hpCurrent > 0 && !otherPlayer.dead) {
-              standingPlayers.push(p);
-            }
-          } else if (p.npcId && !p.isOut) {
-            standingPlayers.push(p);
-          }
-        }
-
-        if (standingPlayers.length > 0) {
-          return {
-            hit: false,
-            errorCode: 'TARGET_DOWN',
-            targetName,
-            message: `${targetName} без сознания (0 HP). Монстр не добивает лежачих, пока есть стоящие противники.`,
-          };
-        }
+        return {
+          hit: false,
+          errorCode: 'TARGET_DOWN',
+          targetName,
+          message: `${targetName} без сознания (0 HP). Монстр ${attacker.name} не добивает лежачих (нет флага finishesDowned).`,
+        };
       }
     } else if (targetParticipant.npcId) {
       const npc = await npcRepository.getById(targetParticipant.npcId);
@@ -319,10 +304,25 @@ export const resolveMonsterAttackTool: ILlmTool = {
             const excessDamage = targetHp > 0 ? Math.max(0, damageTotal - targetHp) : 0;
             const instantDeath = newHp === 0 && excessDamage >= massiveDamageThreshold;
 
-            await playerRepository.update(targetParticipant.playerId, {
-              hpCurrent: newHp,
-              dead: instantDeath,
+            const syncedState = syncUnconscious(newHp, {
+              conditions: player.conditions,
+              exhaustionLevel: player.exhaustionLevel,
             });
+
+            if (player.isStable && newHp < player.hpCurrent) {
+              await playerRepository.update(targetParticipant.playerId, {
+                hpCurrent: newHp,
+                dead: instantDeath,
+                conditions: syncedState.conditions,
+                isStable: false,
+              });
+            } else {
+              await playerRepository.update(targetParticipant.playerId, {
+                hpCurrent: newHp,
+                dead: instantDeath,
+                conditions: syncedState.conditions,
+              });
+            }
 
             if (instantDeath) {
               await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });

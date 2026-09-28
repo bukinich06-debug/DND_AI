@@ -21,7 +21,7 @@ interface ILogEntry {
   meta?: unknown;
 }
 
-interface IAdvanceCombatTurnResult {
+export interface IAdvanceCombatTurnResult {
   success: boolean;
   error?: string;
   errorCode?: string;
@@ -135,6 +135,16 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       if (deathSaveResult.isDead) {
         await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
       }
+
+      if (deathSaveResult.isRevived) {
+        return {
+          success: false,
+          error: 'Игрок восстал с 1 HP после натуральной 20 на спасброске от смерти и сохраняет свой ход.',
+          errorCode: 'PLAYER_REVIVED_KEEPS_TURN',
+          encounter: null,
+          newLogEntries,
+        };
+      }
     } else if (player.hpCurrent === 0 && player.isStable) {
       const stableEntry = {
         actorName: player.name,
@@ -146,14 +156,6 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         ...stableEntry,
       });
       newLogEntries.push(stableEntry);
-    } else if (player.hpCurrent > 0) {
-      return {
-        success: false,
-        error: 'Сейчас ход игрока. Ход не был продвинут.',
-        errorCode: 'PLAYER_TURN',
-        encounter: null,
-        newLogEntries: [],
-      };
     }
   } else if (currentParticipant.monsterInstanceId) {
     const monsterInstance = await monsterInstanceRepository.getById(currentParticipant.monsterInstanceId);
@@ -344,18 +346,38 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     newLogEntries.push(skipEntry);
   }
 
+  const freshParticipants = await encounterParticipantRepository.listByEncounterId(encounter.id);
+  const freshOrdered = [...freshParticipants].sort((a, b) => a.order - b.order);
+
+  for (const p of freshOrdered) {
+    if (p.playerId) {
+      const player = await playerRepository.getById(p.playerId);
+      if (player?.dead && !p.isOut) {
+        await encounterParticipantRepository.update(p.id, { isOut: true });
+      }
+    } else if (p.monsterInstanceId) {
+      const monster = await monsterInstanceRepository.getById(p.monsterInstanceId);
+      if (monster && monster.hpCurrent <= 0 && !p.isOut) {
+        await encounterParticipantRepository.update(p.id, { isOut: true });
+      }
+    }
+  }
+
+  const finalParticipants = await encounterParticipantRepository.listByEncounterId(encounter.id);
+  const finalOrdered = [...finalParticipants].sort((a, b) => a.order - b.order);
+
   let nextTurnIndex = encounter.currentTurnIndex + 1;
   let nextRound = encounter.round;
 
-  while (nextTurnIndex < orderedParticipants.length && orderedParticipants[nextTurnIndex].isOut) {
+  while (nextTurnIndex < finalOrdered.length && finalOrdered[nextTurnIndex].isOut) {
     nextTurnIndex++;
   }
 
-  if (nextTurnIndex >= orderedParticipants.length) {
+  if (nextTurnIndex >= finalOrdered.length) {
     nextRound++;
     nextTurnIndex = 0;
 
-    while (nextTurnIndex < orderedParticipants.length && orderedParticipants[nextTurnIndex].isOut) {
+    while (nextTurnIndex < finalOrdered.length && finalOrdered[nextTurnIndex].isOut) {
       nextTurnIndex++;
     }
   }

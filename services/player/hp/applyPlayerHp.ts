@@ -29,11 +29,18 @@ export const applyPlayerHp = async (input: IApplyPlayerHp): Promise<IApplyPlayer
   });
   const dead = syncDeath(next.exhaustionLevel, player.dead);
 
+  const wasHealed = input.delta > 0 && hpCurrent > 0;
+
   const updated = await playerRepository.update(player.id, {
     hpCurrent,
     conditions: next.conditions,
     exhaustionLevel: next.exhaustionLevel,
     dead,
+    ...(wasHealed && {
+      deathSaveSuccess: 0,
+      deathSaveFail: 0,
+      isStable: false,
+    }),
   });
 
   return {
