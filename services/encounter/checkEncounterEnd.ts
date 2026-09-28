@@ -5,6 +5,7 @@ import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
 import { getCatalogMonsterByKey } from '@/domain/monster';
 import { stabilizePlayer } from '@/services/player/deathSaves/stabilizePlayer';
+import { db } from '@/data/shared';
 
 interface ICheckEncounterEndInput {
   encounterId: string;
@@ -52,9 +53,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
       await encounterParticipantRepository.update(playerParticipant.id, { isOut: true });
     }
 
-    await encounterRepository.update(input.encounterId, {
-      status: 'ended',
+    const updateResult = await db.encounter.updateMany({
+      where: {
+        id: input.encounterId,
+        status: 'active',
+      },
+      data: {
+        status: 'ended',
+      },
     });
+
+    if (updateResult.count === 0) {
+      return { ended: false, result: null };
+    }
 
     const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
     const defeated: string[] = [player.name];
@@ -106,9 +117,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
   if (playerParticipant.isOut && player.hpCurrent > 0 && !player.dead) {
     if (monstersAlive.length === 0) {
-      await encounterRepository.update(input.encounterId, {
-        status: 'ended',
+      const updateResult = await db.encounter.updateMany({
+        where: {
+          id: input.encounterId,
+          status: 'active',
+        },
+        data: {
+          status: 'ended',
+        },
       });
+
+      if (updateResult.count === 0) {
+        return { ended: false, result: null };
+      }
 
       const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
       const defeated: string[] = [];
@@ -123,14 +144,14 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
         });
       }
 
-      const resultMessage = `Победа! ${player.name} сбежал из боя. Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
+      const resultMessage = `${player.name} сбежал из боя. Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
 
       await encounterLogRepository.create({
         encounterId: input.encounterId,
         actorName: null,
         message: resultMessage,
         meta: {
-          victory: true,
+          victory: false,
           outcome: 'fled',
           defeated,
           survivors: [player.name],
@@ -142,7 +163,7 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
       return {
         ended: true,
         result: {
-          victory: true,
+          victory: false,
           outcome: 'fled',
           defeated,
           survivors: [player.name],
@@ -152,9 +173,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
       };
     }
 
-    await encounterRepository.update(input.encounterId, {
-      status: 'ended',
+    const updateResult = await db.encounter.updateMany({
+      where: {
+        id: input.encounterId,
+        status: 'active',
+      },
+      data: {
+        status: 'ended',
+      },
     });
+
+    if (updateResult.count === 0) {
+      return { ended: false, result: null };
+    }
 
     const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
     const defeated: string[] = [];
@@ -207,9 +238,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
   }
 
   if (monstersAlive.length === 0) {
-    await encounterRepository.update(input.encounterId, {
-      status: 'ended',
+    const updateResult = await db.encounter.updateMany({
+      where: {
+        id: input.encounterId,
+        status: 'active',
+      },
+      data: {
+        status: 'ended',
+      },
     });
+
+    if (updateResult.count === 0) {
+      return { ended: false, result: null };
+    }
 
     const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
     const defeated: string[] = [];
@@ -270,9 +311,19 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
     const finishingMonsters = monsterDetails.filter((m) => m && m.finishes);
 
     if (finishingMonsters.length === 0) {
-      await encounterRepository.update(input.encounterId, {
-        status: 'ended',
+      const updateResult = await db.encounter.updateMany({
+        where: {
+          id: input.encounterId,
+          status: 'active',
+        },
+        data: {
+          status: 'ended',
+        },
       });
+
+      if (updateResult.count === 0) {
+        return { ended: false, result: null };
+      }
 
       const capturedBy = monsterDetails.filter((m) => m).map((m) => m!.name);
       const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];

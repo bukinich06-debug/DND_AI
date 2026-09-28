@@ -76,9 +76,23 @@ export const spendMovement = async (
     };
   }
 
-  await encounterParticipantRepository.update(participantId, {
-    movementUsedFeet: newTotal,
+  const result = await db.encounterParticipant.updateMany({
+    where: {
+      id: participantId,
+      movementUsedFeet: participant.movementUsedFeet,
+    },
+    data: {
+      movementUsedFeet: newTotal,
+    },
   });
+
+  if (result.count === 0) {
+    return {
+      success: false,
+      errorCode: 'MOVEMENT_EXCEEDED',
+      movementLeft: 0,
+    };
+  }
 
   return { success: true };
 };

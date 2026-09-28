@@ -69,11 +69,12 @@ export const encounterRepository: IEncounterRepository = {
     await db.encounter.delete({ where: { id } });
   },
 
-  updateConditional: async (id, expectedTurnIndex, input: IUpdateEncounter) => {
+  updateConditional: async (id, expectedTurnIndex, expectedRound, input: IUpdateEncounter) => {
     const result = await db.encounter.updateMany({
       where: {
         id,
         currentTurnIndex: expectedTurnIndex,
+        round: expectedRound,
       },
       data: {
         ...(input.status !== undefined ? { status: input.status } : {}),

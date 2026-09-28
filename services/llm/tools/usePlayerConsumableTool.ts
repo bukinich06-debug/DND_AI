@@ -1,6 +1,6 @@
 import { itemRepository } from '@/data/item';
 import { playerRepository } from '@/data/player';
-import { encounterLogRepository, encounterParticipantRepository } from '@/data/encounter';
+import { encounterLogRepository, encounterParticipantRepository, encounterRepository } from '@/data/encounter';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { DiceKind } from '@/domain/shared';
 import { spendAction } from '@/services/encounter/actionEconomy';
@@ -91,6 +91,16 @@ export const usePlayerConsumableTool: ILlmTool = {
     const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
     const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
     if (!playerParticipant) throw new Error('Участник игрока не найден в боевой сцене.');
+
+    const encounter = await encounterRepository.getById(ctx.encounterId);
+    if (!encounter) throw new Error('Боевая сцена не найдена.');
+
+    const orderedParticipants = [...participants].sort((a, b) => a.order - b.order);
+    const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
+
+    if (!currentParticipant || currentParticipant.id !== playerParticipant.id || currentParticipant.isOut) {
+      throw new Error('NOT_PLAYER_TURN: Сейчас не ход игрока.');
+    }
 
     const item = await itemRepository.getById(parsed.itemId);
 

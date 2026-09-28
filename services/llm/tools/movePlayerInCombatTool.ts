@@ -1,4 +1,4 @@
-import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterLogRepository, encounterRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository } from '@/data/npc';
@@ -95,6 +95,16 @@ export const movePlayerInCombatTool: ILlmTool = {
     const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
     const playerParticipant = participants.find((p) => p.playerId === parsed.playerId);
     if (!playerParticipant) throw new Error('Участник игрока не найден в боевой сцене.');
+
+    const encounter = await encounterRepository.getById(ctx.encounterId);
+    if (!encounter) throw new Error('Боевая сцена не найдена.');
+
+    const orderedParticipants = [...participants].sort((a, b) => a.order - b.order);
+    const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
+
+    if (!currentParticipant || currentParticipant.id !== playerParticipant.id || currentParticipant.isOut) {
+      throw new Error('NOT_PLAYER_TURN: Сейчас не ход игрока.');
+    }
 
     const speed = player.speed;
     const positionBefore = playerParticipant.positionFeet;
