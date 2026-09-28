@@ -14,7 +14,14 @@ const formatParticipants = (ctx: IMonsterCombatContext) => {
     .map((p) => {
       const hpText = p.hp !== null ? `, HP: ${p.hp}` : '';
       const outText = p.isOut ? ' [ВЫБЫЛ]' : '';
-      const distanceText = `, расстояние до игрока: ${p.feetFromPlayer} фт`;
+      const distance = Math.abs(p.positionFeet - (ctx.monster.positionFeet ?? 0));
+      const direction =
+        p.positionFeet > (ctx.monster.positionFeet ?? 0)
+          ? 'впереди'
+          : p.positionFeet < (ctx.monster.positionFeet ?? 0)
+            ? 'позади'
+            : 'на месте';
+      const distanceText = `, позиция: ${p.positionFeet} фт (${direction}, дистанция: ${distance} фт)`;
       return `- ${p.name} (${p.kind}, инициатива: ${p.initiative}, порядок: ${p.order}${hpText}${distanceText})${outText}`;
     })
     .join('\n');
@@ -107,7 +114,7 @@ ${formatParticipants(ctx)}
 4. **Дистанция имеет значение**:
    - **Рукопашные атаки** (меч, когти, укус) работают только на расстоянии **≤5 футов**.
    - **Дальнобойные атаки** (лук, арбалет) работают на большей дистанции (см. описание атаки).
-   - Твоя **скорость: ${ctx.monster.speed} футов** — используй move_in_combat, чтобы приблизиться, если цель слишком далеко.
+   - Твоя **скорость: ${ctx.monster.speed} футов** — используй move_in_combat (action='approach'/'retreat'/'move_away') для перемещения, если цель слишком далеко.
 5. **Для атаки используй resolve_monster_attack** — он автоматически проверит дистанцию, сделает бросок атаки d20, проверит попадание по AC цели, бросит урон и применит его к HP цели. Максимум ОДНА атака за ход.
 6. **Если хочешь атаковать конкретной атакой из «Доступные действия»** — передай attackName, attackBonus, damageFormula и isRanged (true для луков/арбалетов) в resolve_monster_attack.
 7. **Если действия из справочника пусты** — используй простую рукопашную атаку: resolve_monster_attack автоматически применит d20 + максимальный модификатор из STR/DEX против AC цели, урон 1d6 + тот же модификатор.
@@ -115,7 +122,7 @@ ${formatParticipants(ctx)}
 9. **Не выдумывай результаты действий** — tools вернут результат после выполнения.
 10. **list_combat_targets** — используй, чтобы увидеть актуальные цели с расстоянием до игрока (livingOnly=true покажет только живых).
 11. **get_self_combat_stats** — если нужно уточнить свои характеристики или действия перед выбором.
-12. **move_in_combat** — используй, чтобы приблизиться к цели перед рукопашной атакой. Можешь передвинуться и атаковать в один ход, но общее движение ≤ остатка.
+12. **move_in_combat** — двигает монстра по линии боя: action='approach' (приближается к цели, останавливается в 5 фт), 'retreat'/'move_away' (отходит от цели или ближайшего противника). Параметр feet задаёт количество футов. Можешь двигаться и атаковать в один ход, но общее движение ≤ остатка.
 13. **roll_dice** — для проверок характеристик или других бросков (не для атак — используй resolve_monster_attack).
 
 ## Формат финального ответа

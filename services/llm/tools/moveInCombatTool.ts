@@ -21,11 +21,19 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
   if (typeof raw.action !== 'string' || !['approach', 'retreat', 'move_away'].includes(raw.action))
     throw new Error('action должен быть approach, retreat или move_away.');
 
+  let feet: number | null = null;
+  if (raw.feet !== undefined && raw.feet !== null) {
+    if (typeof raw.feet !== 'number') throw new Error('feet должен быть числом.');
+    if (!Number.isInteger(raw.feet)) throw new Error('feet должен быть целым числом.');
+    if (raw.feet <= 0) throw new Error('feet должен быть положительным (>0).');
+    feet = raw.feet;
+  }
+
   return {
     monsterInstanceId: raw.monsterInstanceId.trim(),
     action: raw.action as 'approach' | 'retreat' | 'move_away',
     targetParticipantId: (raw.targetParticipantId as string | null | undefined) ?? null,
-    feet: (raw.feet as number | null | undefined) ?? null,
+    feet,
     encounterId: (raw.encounterId as string | null | undefined) ?? null,
   };
 };
@@ -120,9 +128,9 @@ export const moveInCombatTool: ILlmTool = {
 
       await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
 
-      const playerPositions = allParticipants.filter((p) => p.playerId).map((p) => p.positionFeet);
-      const newFeetFromPlayer =
-        playerPositions.length > 0 ? Math.min(...playerPositions.map((pos) => Math.abs(positionAfter - pos))) : 0;
+      const playerParticipant = allParticipants.find((p) => p.playerId);
+      const playerPosition = playerParticipant?.positionFeet ?? 0;
+      const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
 
       await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
 
@@ -157,8 +165,8 @@ export const moveInCombatTool: ILlmTool = {
         if (!target) throw new Error('Цель не найдена.');
         targetPosition = target.positionFeet;
       } else {
-        const enemies = allParticipants.filter((p) => p.playerId || p.npcId);
-        if (enemies.length === 0) throw new Error('Нет врагов для отступления.');
+        const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
+        if (enemies.length === 0) throw new Error('Нет живых врагов для отступления.');
         const closest = enemies.reduce((prev, curr) =>
           Math.abs(curr.positionFeet - positionBefore) < Math.abs(prev.positionFeet - positionBefore) ? curr : prev
         );
@@ -167,11 +175,9 @@ export const moveInCombatTool: ILlmTool = {
 
       let direction: number;
       if (targetPosition === positionBefore) {
-        const enemies = allParticipants.filter((p) => p.playerId || p.npcId);
+        const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
         const centerOfEnemies =
-          enemies.length > 0
-            ? enemies.reduce((sum, e) => sum + e.positionFeet, 0) / enemies.length
-            : positionBefore;
+          enemies.length > 0 ? enemies.reduce((sum, e) => sum + e.positionFeet, 0) / enemies.length : positionBefore;
         direction = centerOfEnemies > positionBefore ? -1 : centerOfEnemies < positionBefore ? 1 : -1;
       } else {
         direction = targetPosition > positionBefore ? -1 : 1;
@@ -196,9 +202,9 @@ export const moveInCombatTool: ILlmTool = {
 
       await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
 
-      const playerPositions = allParticipants.filter((p) => p.playerId).map((p) => p.positionFeet);
-      const newFeetFromPlayer =
-        playerPositions.length > 0 ? Math.min(...playerPositions.map((pos) => Math.abs(positionAfter - pos))) : 0;
+      const playerParticipant = allParticipants.find((p) => p.playerId);
+      const playerPosition = playerParticipant?.positionFeet ?? 0;
+      const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
 
       await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
 

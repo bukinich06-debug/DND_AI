@@ -53,10 +53,11 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
 
   const effectiveLocationId = input.locationId ?? player.locationId;
 
-  const allPlayers = await playerRepository.listByCampaignId(input.campaignId);
-  const alivePlayers = allPlayers.filter((p) => !p.dead && p.hpCurrent > 0);
-
-  const allyNpcs: Array<{ npc: any; statBlock: any; positionFeet?: number }> = [];
+  const allyNpcs: Array<{
+    npc: NonNullable<Awaited<ReturnType<typeof npcRepository.getById>>>;
+    statBlock: NonNullable<Awaited<ReturnType<typeof npcStatBlockRepository.getByNpcId>>>;
+    positionFeet?: number;
+  }> = [];
   if (input.allyNpcs && input.allyNpcs.length > 0) {
     for (const allyInput of input.allyNpcs) {
       const npc = await npcRepository.getById(allyInput.npcId);
@@ -119,28 +120,21 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     kind: 'player' | 'npc' | 'monster';
   }> = [];
 
-  let playerOffset = 0;
-  for (const campaignPlayer of alivePlayers) {
-    const playerInitiativeRoll = await rollDice({
-      campaignId: input.campaignId,
-      die: 'd20',
-      note: 'инициатива',
-      playerId: campaignPlayer.id,
-    });
-    const playerInitiativeBonus = (campaignPlayer.initiativeBonus ?? 0) + abilityMod(campaignPlayer.dex);
-    
-    const isMainPlayer = campaignPlayer.id === input.playerId;
-    const position = isMainPlayer ? 0 : playerOffset === 0 ? 5 : -playerOffset;
-    if (!isMainPlayer) playerOffset += 5;
+  const playerInitiativeRoll = await rollDice({
+    campaignId: input.campaignId,
+    die: 'd20',
+    note: 'инициатива',
+    playerId: player.id,
+  });
+  const playerInitiativeBonus = (player.initiativeBonus ?? 0) + abilityMod(player.dex);
 
-    combatants.push({
-      name: campaignPlayer.name,
-      initiative: playerInitiativeRoll.value + playerInitiativeBonus,
-      positionFeet: position,
-      playerId: campaignPlayer.id,
-      kind: 'player',
-    });
-  }
+  combatants.push({
+    name: player.name,
+    initiative: playerInitiativeRoll.value + playerInitiativeBonus,
+    positionFeet: 0,
+    playerId: player.id,
+    kind: 'player',
+  });
 
   for (let i = 0; i < allyNpcs.length; i++) {
     const { npc, statBlock, positionFeet } = allyNpcs[i];
@@ -184,14 +178,11 @@ export const startCombat = async (input: IStartCombatInput): Promise<IStartComba
     locationId: effectiveLocationId,
   });
 
-  const playerPositions = combatants.filter((c) => c.playerId).map((c) => c.positionFeet);
-  const closestPlayerPosition = playerPositions.length > 0 ? Math.min(...playerPositions) : 0;
+  const playerPosition = 0;
 
   for (let i = 0; i < combatants.length; i++) {
     const combatant = combatants[i];
-    const feetFromPlayer = combatant.playerId
-      ? 0
-      : Math.min(...playerPositions.map((pos) => Math.abs(combatant.positionFeet - pos)));
+    const feetFromPlayer = combatant.playerId ? 0 : Math.abs(combatant.positionFeet - playerPosition);
 
     await encounterParticipantRepository.create({
       encounterId: encounter.id,

@@ -36,8 +36,7 @@ const parseArgs = (args: unknown): IArgs => {
 
     let feetFromPlayer: number | undefined;
     if (e.feetFromPlayer !== undefined) {
-      if (typeof e.feetFromPlayer !== 'number' || e.feetFromPlayer < 0)
-        throw new Error(`Враг ${index}: feetFromPlayer должен быть >= 0.`);
+      if (typeof e.feetFromPlayer !== 'number') throw new Error(`Враг ${index}: feetFromPlayer должен быть числом.`);
       feetFromPlayer = Math.floor(e.feetFromPlayer);
     }
 
@@ -55,8 +54,7 @@ const parseArgs = (args: unknown): IArgs => {
       if (!ally || typeof ally !== 'object') throw new Error(`allyNpcs[${index}] должен быть объектом.`);
       const a = ally as Record<string, unknown>;
 
-      if (typeof a.npcId !== 'string' || !a.npcId.trim())
-        throw new Error(`allyNpcs[${index}]: npcId обязателен.`);
+      if (typeof a.npcId !== 'string' || !a.npcId.trim()) throw new Error(`allyNpcs[${index}]: npcId обязателен.`);
 
       let positionFeet: number | undefined;
       if (a.positionFeet !== undefined) {
@@ -84,7 +82,7 @@ const parseArgs = (args: unknown): IArgs => {
 export const startCombatTool: ILlmTool = {
   name: 'start_combat',
   description:
-    'Начинает боевую сцену с указанными врагами из справочника монстров. Все живые игроки кампании вступают в бой. Основной игрок (для которого начинается бой) ВСЕГДА на позиции 0 на линии. Мастер расставляет остальных участников по линии относительно него: враги и союзники могут быть на положительных или отрицательных позициях в футах (например: гоблины на +30, лучник-союзник на -5, другой игрок на +5). Дистанция задаётся в футах, любое целое число. Если не указано — используй дефолт: ближний бой 5-15 ft, средняя дистанция 30-60 ft, дальняя 100+ ft.',
+    'Начинает боевую сцену с указанными врагами из справочника монстров. Игрок ВСЕГДА на позиции 0 на линии боя. Мастер расставляет врагов и союзников по линии относительно игрока: положительные позиции (перед игроком), отрицательные (позади игрока). Примеры: гоблины на +30, лучник-союзник на -5, засада сзади на -20. Позиция задаётся целым числом футов. Если не указано — дефолт: ближний бой 5-15 ft, средняя дистанция 30-60 ft, дальняя 100+ ft.',
   parameters: {
     type: 'object',
     properties: {
