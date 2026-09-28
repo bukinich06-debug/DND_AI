@@ -75,6 +75,8 @@ export const movePlayerInCombatTool: ILlmTool = {
 
     if (player.dead) throw new Error('PLAYER_DEAD: Игрок мёртв и не может двигаться.');
 
+    if (player.hpCurrent <= 0) throw new Error('PLAYER_UNCONSCIOUS: Игрок без сознания (0 HP) и не может двигаться.');
+
     const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
     const hasBlockingCondition = player.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
     if (hasBlockingCondition) throw new Error('PLAYER_INCAPACITATED: Игрок не может двигаться из-за состояния.');

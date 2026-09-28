@@ -42,6 +42,18 @@ export const POST = async (req: NextRequest) => {
       playerAction: body.playerAction,
     });
 
+    if (result.encounterEnded) {
+      return NextResponse.json({
+        success: true,
+        encounterEnded: true,
+        encounterResult: result.encounterResult,
+        encounter: result.encounter,
+        say: result.say,
+        do: result.do,
+        toolCalls: result.toolCalls,
+      });
+    }
+
     if (result.say) {
       await encounterLogRepository.create({
         encounterId: body.encounterId,
@@ -57,6 +69,7 @@ export const POST = async (req: NextRequest) => {
 
     return NextResponse.json({
       success: true,
+      encounterEnded: false,
       say: result.say,
       do: result.do,
       toolCalls: result.toolCalls,

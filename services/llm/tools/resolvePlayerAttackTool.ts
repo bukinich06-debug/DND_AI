@@ -9,6 +9,7 @@ import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/valida
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
+import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolvePlayerAttackArgs {
@@ -93,6 +94,8 @@ export const resolvePlayerAttackTool: ILlmTool = {
     if (!attacker) throw new Error('Атакующий игрок не найден.');
 
     if (attacker.dead) throw new Error('PLAYER_DEAD: Игрок мёртв и не может действовать.');
+
+    if (attacker.hpCurrent <= 0) throw new Error('PLAYER_UNCONSCIOUS: Игрок без сознания (0 HP) и не может атаковать.');
 
     const blockingConditions = ['unconscious', 'paralyzed', 'stunned', 'incapacitated', 'petrified'];
     const hasBlockingCondition = attacker.conditions.some((c) => blockingConditions.includes(c.toLowerCase()));
@@ -342,14 +345,32 @@ export const resolvePlayerAttackTool: ILlmTool = {
       const newHp = Math.max(0, targetHp - damageTotal);
 
       if (targetKind === 'player' && targetParticipant.playerId) {
+        const targetPlayer = await playerRepository.getById(targetParticipant.playerId);
+        if (!targetPlayer) throw new Error('Игрок-цель не найден.');
+
         const massiveDamageThreshold = targetMaxHp;
         const excessDamage = targetHp > 0 ? Math.max(0, damageTotal - targetHp) : 0;
         const instantDeath = newHp === 0 && excessDamage >= massiveDamageThreshold;
 
-        await playerRepository.update(targetParticipant.playerId, {
-          hpCurrent: newHp,
-          dead: instantDeath,
+        const syncedState = syncUnconscious(newHp, {
+          conditions: targetPlayer.conditions,
+          exhaustionLevel: targetPlayer.exhaustionLevel,
         });
+
+        if (targetPlayer.isStable && newHp < targetPlayer.hpCurrent) {
+          await playerRepository.update(targetParticipant.playerId, {
+            hpCurrent: newHp,
+            dead: instantDeath,
+            conditions: syncedState.conditions,
+            isStable: false,
+          });
+        } else {
+          await playerRepository.update(targetParticipant.playerId, {
+            hpCurrent: newHp,
+            dead: instantDeath,
+            conditions: syncedState.conditions,
+          });
+        }
 
         if (instantDeath) {
           await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });

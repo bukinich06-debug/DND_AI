@@ -3,7 +3,6 @@
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
-import { npcRepository } from '@/data/npc';
 import { getCatalogMonsterByKey } from '@/domain/monster';
 import { stabilizePlayer } from '@/services/player/deathSaves/stabilizePlayer';
 
@@ -34,170 +33,302 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
   const participants = await encounterParticipantRepository.listByEncounterId(input.encounterId);
 
-  const playerSide = participants.filter((p) => p.playerId || (p.npcId && p.npcId));
-  const monsterSide = participants.filter((p) => p.monsterInstanceId);
+  const playerParticipant = participants.find((p) => p.playerId);
+  const monsterParticipants = participants.filter((p) => p.monsterInstanceId);
 
-  const playersAlive: typeof participants = [];
-  for (const p of playerSide) {
-    if (p.playerId) {
-      const player = await playerRepository.getById(p.playerId);
-      if (player && player.hpCurrent > 0 && !player.dead && !p.isOut) {
-        playersAlive.push(p);
-      }
-    } else if (p.npcId && !p.isOut) {
-      playersAlive.push(p);
-    }
-  }
-
-  const monstersAlive = monsterSide.filter((p) => !p.isOut);
-
-  if (playersAlive.length > 0 && monstersAlive.length > 0) {
+  if (!playerParticipant) {
     return { ended: false, result: null };
   }
 
-  let victory = false;
-  let outcome: 'victory' | 'captured' | 'defeat' | 'fled' = 'defeat';
-  const capturedBy: string[] = [];
-
-  if (playersAlive.length > 0) {
-    victory = true;
-    outcome = 'victory';
-  } else {
-    const allPlayersDead = await Promise.all(
-      playerSide
-        .filter((p) => p.playerId)
-        .map(async (p) => {
-          const player = await playerRepository.getById(p.playerId!);
-          return player?.dead ?? false;
-        })
-    );
-
-    const anyPlayerAlive = !allPlayersDead.every((d) => d);
-
-    if (anyPlayerAlive && monstersAlive.length === 0) {
-      outcome = 'victory';
-      victory = true;
-    } else if (anyPlayerAlive) {
-      const allPlayersFled = await Promise.all(
-        playerSide
-          .filter((p) => p.playerId)
-          .map(async (p) => {
-            const player = await playerRepository.getById(p.playerId!);
-            return p.isOut && player && player.hpCurrent > 0 && !player.dead;
-          })
-      );
-
-      const allFled = allPlayersFled.every((f) => f) && allPlayersFled.length > 0;
-
-      if (allFled) {
-        outcome = 'fled';
-        victory = false;
-      } else {
-        const monsterDetails = await Promise.all(
-          monstersAlive.map(async (p) => {
-            const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-            if (!monster) return null;
-            const catalog = getCatalogMonsterByKey(monster.catalogKey);
-            return { name: monster.name, finishes: catalog?.finishesDowned ?? false };
-          })
-        );
-
-        const finishingMonsters = monsterDetails.filter((m) => m && m.finishes);
-
-        if (finishingMonsters.length === 0) {
-          outcome = 'captured';
-          victory = false;
-
-          for (const detail of monsterDetails) {
-            if (detail) capturedBy.push(detail.name);
-          }
-
-          for (const p of playerSide) {
-            if (p.playerId) {
-              const player = await playerRepository.getById(p.playerId);
-              if (player && !player.dead) {
-                await stabilizePlayer({
-                  playerId: p.playerId,
-                  restoreHp: 1,
-                  removeUnconscious: false,
-                });
-              }
-            }
-          }
-        } else {
-          outcome = 'defeat';
-          victory = false;
-        }
-      }
-    } else {
-      outcome = 'defeat';
-      victory = false;
-    }
+  const player = await playerRepository.getById(playerParticipant.playerId!);
+  if (!player) {
+    return { ended: false, result: null };
   }
 
-  const defeated: string[] = [];
-  const survivors: string[] = [];
-  const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+  const monstersAlive = monsterParticipants.filter((p) => !p.isOut);
 
-  for (const p of participants) {
-    let name = 'Unknown';
-    if (p.playerId) {
-      const player = await playerRepository.getById(p.playerId);
-      name = player?.name ?? 'Player';
-    } else if (p.npcId) {
-      const { npcRepository } = await import('@/data/npc');
-      const npc = await npcRepository.getById(p.npcId);
-      name = npc?.name ?? 'NPC';
-    } else if (p.monsterInstanceId) {
-      const monster = await monsterInstanceRepository.getById(p.monsterInstanceId);
-      name = monster?.name ?? 'Monster';
+  if (player.dead) {
+    if (!playerParticipant.isOut) {
+      await encounterParticipantRepository.update(playerParticipant.id, { isOut: true });
+    }
+
+    await encounterRepository.update(input.encounterId, {
+      status: 'ended',
+    });
+
+    const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+    const defeated: string[] = [player.name];
+    const survivors: string[] = [];
+
+    for (const p of monsterParticipants) {
+      const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+      const name = monster?.name ?? 'Monster';
 
       if (p.isOut) {
+        defeated.push(name);
+        defeatedMonsters.push({
+          name: monster?.name ?? 'Unknown Monster',
+          catalogKey: monster?.catalogKey ?? 'unknown',
+        });
+      } else {
+        survivors.push(name);
+      }
+    }
+
+    const resultMessage = `Поражение. ${player.name} мёртв.`;
+
+    await encounterLogRepository.create({
+      encounterId: input.encounterId,
+      actorName: null,
+      message: resultMessage,
+      meta: {
+        victory: false,
+        outcome: 'defeat',
+        defeated,
+        survivors,
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    });
+
+    return {
+      ended: true,
+      result: {
+        victory: false,
+        outcome: 'defeat',
+        defeated,
+        survivors,
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    };
+  }
+
+  if (playerParticipant.isOut && player.hpCurrent > 0 && !player.dead) {
+    if (monstersAlive.length === 0) {
+      await encounterRepository.update(input.encounterId, {
+        status: 'ended',
+      });
+
+      const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+      const defeated: string[] = [];
+
+      for (const p of monsterParticipants) {
+        const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+        const name = monster?.name ?? 'Monster';
+        defeated.push(name);
         defeatedMonsters.push({
           name: monster?.name ?? 'Unknown Monster',
           catalogKey: monster?.catalogKey ?? 'unknown',
         });
       }
+
+      const resultMessage = `Победа! ${player.name} сбежал из боя. Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
+
+      await encounterLogRepository.create({
+        encounterId: input.encounterId,
+        actorName: null,
+        message: resultMessage,
+        meta: {
+          victory: true,
+          outcome: 'fled',
+          defeated,
+          survivors: [player.name],
+          defeatedMonsters,
+          capturedBy: [],
+        },
+      });
+
+      return {
+        ended: true,
+        result: {
+          victory: true,
+          outcome: 'fled',
+          defeated,
+          survivors: [player.name],
+          defeatedMonsters,
+          capturedBy: [],
+        },
+      };
     }
 
-    if (p.isOut) {
+    await encounterRepository.update(input.encounterId, {
+      status: 'ended',
+    });
+
+    const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+    const defeated: string[] = [];
+    const survivors: string[] = [player.name];
+    const capturedBy: string[] = [];
+
+    for (const p of monsterParticipants) {
+      const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+      const name = monster?.name ?? 'Monster';
+
+      if (p.isOut) {
+        defeated.push(name);
+        defeatedMonsters.push({
+          name: monster?.name ?? 'Unknown Monster',
+          catalogKey: monster?.catalogKey ?? 'unknown',
+        });
+      } else {
+        survivors.push(name);
+        capturedBy.push(name);
+      }
+    }
+
+    const resultMessage = `${player.name} сбежал из боя.`;
+
+    await encounterLogRepository.create({
+      encounterId: input.encounterId,
+      actorName: null,
+      message: resultMessage,
+      meta: {
+        victory: false,
+        outcome: 'fled',
+        defeated,
+        survivors,
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    });
+
+    return {
+      ended: true,
+      result: {
+        victory: false,
+        outcome: 'fled',
+        defeated,
+        survivors,
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    };
+  }
+
+  if (monstersAlive.length === 0) {
+    await encounterRepository.update(input.encounterId, {
+      status: 'ended',
+    });
+
+    const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+    const defeated: string[] = [];
+
+    for (const p of monsterParticipants) {
+      const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+      const name = monster?.name ?? 'Monster';
       defeated.push(name);
-    } else {
-      survivors.push(name);
+      defeatedMonsters.push({
+        name: monster?.name ?? 'Unknown Monster',
+        catalogKey: monster?.catalogKey ?? 'unknown',
+      });
+    }
+
+    const resultMessage = `Победа! Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
+
+    await encounterLogRepository.create({
+      encounterId: input.encounterId,
+      actorName: null,
+      message: resultMessage,
+      meta: {
+        victory: true,
+        outcome: 'victory',
+        defeated,
+        survivors: [player.name],
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    });
+
+    return {
+      ended: true,
+      result: {
+        victory: true,
+        outcome: 'victory',
+        defeated,
+        survivors: [player.name],
+        defeatedMonsters,
+        capturedBy: [],
+      },
+    };
+  }
+
+  if (player.hpCurrent === 0 && !player.dead && !player.isStable) {
+    return { ended: false, result: null };
+  }
+
+  if (player.hpCurrent === 0 && player.isStable && monstersAlive.length > 0) {
+    const monsterDetails = await Promise.all(
+      monstersAlive.map(async (p) => {
+        const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+        if (!monster) return null;
+        const catalog = getCatalogMonsterByKey(monster.catalogKey);
+        return { name: monster.name, finishes: catalog?.finishesDowned ?? false };
+      })
+    );
+
+    const finishingMonsters = monsterDetails.filter((m) => m && m.finishes);
+
+    if (finishingMonsters.length === 0) {
+      await encounterRepository.update(input.encounterId, {
+        status: 'ended',
+      });
+
+      const capturedBy = monsterDetails.filter((m) => m).map((m) => m!.name);
+      const defeatedMonsters: Array<{ name: string; catalogKey: string }> = [];
+      const defeated: string[] = [];
+      const survivors: string[] = [player.name];
+
+      for (const p of monsterParticipants) {
+        const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
+        const name = monster?.name ?? 'Monster';
+
+        if (p.isOut) {
+          defeated.push(name);
+          defeatedMonsters.push({
+            name: monster?.name ?? 'Unknown Monster',
+            catalogKey: monster?.catalogKey ?? 'unknown',
+          });
+        } else {
+          survivors.push(name);
+        }
+      }
+
+      await stabilizePlayer({
+        playerId: player.id,
+        restoreHp: 1,
+        removeUnconscious: false,
+      });
+
+      const resultMessage = `${player.name} выведен из строя и захвачен противниками: ${capturedBy.join(', ')}.`;
+
+      await encounterLogRepository.create({
+        encounterId: input.encounterId,
+        actorName: null,
+        message: resultMessage,
+        meta: {
+          victory: false,
+          outcome: 'captured',
+          defeated,
+          survivors,
+          defeatedMonsters,
+          capturedBy,
+        },
+      });
+
+      return {
+        ended: true,
+        result: {
+          victory: false,
+          outcome: 'captured',
+          defeated,
+          survivors,
+          defeatedMonsters,
+          capturedBy,
+        },
+      };
     }
   }
 
-  await encounterRepository.update(input.encounterId, {
-    status: 'ended',
-  });
-
-  let resultMessage = '';
-  if (outcome === 'victory') {
-    resultMessage = `Победа! Побеждены: ${defeatedMonsters.map((m) => m.name).join(', ')}.`;
-  } else if (outcome === 'captured') {
-    resultMessage = `Все игроки выведены из строя. Захвачены противниками: ${capturedBy.join(', ')}.`;
-  } else if (outcome === 'fled') {
-    resultMessage = `Все игроки сбежали из боя.`;
-  } else {
-    resultMessage = `Поражение. Все игроки мертвы.`;
-  }
-
-  await encounterLogRepository.create({
-    encounterId: input.encounterId,
-    actorName: null,
-    message: resultMessage,
-    meta: { victory, outcome, defeated, survivors, defeatedMonsters, capturedBy },
-  });
-
-  return {
-    ended: true,
-    result: {
-      victory,
-      outcome,
-      defeated,
-      survivors,
-      defeatedMonsters,
-      capturedBy,
-    },
-  };
+  return { ended: false, result: null };
 };

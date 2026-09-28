@@ -2,17 +2,14 @@
 
 import { encounterRepository, encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
 import { advanceCombatTurn } from './advanceCombatTurn';
+import type { IAdvanceCombatTurnResult } from './advanceCombatTurn';
 
 interface IEndPlayerTurnInput {
   campaignId: string;
   playerId: string;
 }
 
-interface IEndPlayerTurnResult {
-  success: boolean;
-  error?: string;
-  errorCode?: string;
-}
+type IEndPlayerTurnResult = IAdvanceCombatTurnResult;
 
 export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPlayerTurnResult> => {
   const encounter = await encounterRepository.getActiveByCampaignId(input.campaignId);
@@ -22,6 +19,8 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
       success: false,
       error: 'Активная боевая сцена не найдена.',
       errorCode: 'NO_ACTIVE_ENCOUNTER',
+      encounter: null,
+      newLogEntries: [],
     };
   }
 
@@ -32,6 +31,8 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
       success: false,
       error: 'Нет участников боя.',
       errorCode: 'NO_PARTICIPANTS',
+      encounter: null,
+      newLogEntries: [],
     };
   }
 
@@ -42,6 +43,8 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
       success: false,
       error: 'Текущий участник не найден.',
       errorCode: 'CURRENT_PARTICIPANT_NOT_FOUND',
+      encounter: null,
+      newLogEntries: [],
     };
   }
 
@@ -50,6 +53,8 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
       success: false,
       error: 'Сейчас не ваш ход.',
       errorCode: 'NOT_PLAYER_TURN',
+      encounter: null,
+      newLogEntries: [],
     };
   }
 
@@ -59,12 +64,10 @@ export const endPlayerTurn = async (input: IEndPlayerTurnInput): Promise<IEndPla
     message: 'Игрок завершил свой ход.',
   });
 
-  await advanceCombatTurn({
+  const result = await advanceCombatTurn({
     campaignId: input.campaignId,
     playerId: input.playerId,
   });
 
-  return {
-    success: true,
-  };
+  return result;
 };

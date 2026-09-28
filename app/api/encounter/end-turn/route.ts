@@ -25,6 +25,15 @@ export const POST = async (req: Request) => {
       );
     }
 
+    if (result.encounterEnded) {
+      return ok({
+        success: true,
+        encounterEnded: true,
+        encounterResult: result.encounterResult,
+        encounter: result.encounter,
+      });
+    }
+
     const encounterState = await getActiveEncounter({
       campaignId,
       playerId,
@@ -32,6 +41,7 @@ export const POST = async (req: Request) => {
 
     return ok({
       success: true,
+      encounterEnded: false,
       encounter: encounterState.encounter,
     });
   } catch (e) {
