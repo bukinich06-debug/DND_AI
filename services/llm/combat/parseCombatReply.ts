@@ -1,6 +1,10 @@
 export interface ICombatReply {
   say: string;
   do: string | null;
+  rejection?: {
+    rejected: boolean;
+    reason: string | null;
+  };
 }
 
 const tryParseJson = (raw: string): unknown => {
@@ -30,7 +34,18 @@ const asReply = (value: unknown): ICombatReply | null => {
   else if (typeof obj.do === 'string') action = obj.do.trim() || null;
   else return null;
 
-  return { say: speech, do: action };
+  let rejection: { rejected: boolean; reason: string | null } | undefined;
+  if (obj.rejection && typeof obj.rejection === 'object') {
+    const rej = obj.rejection as Record<string, unknown>;
+    if (typeof rej.rejected === 'boolean') {
+      rejection = {
+        rejected: rej.rejected,
+        reason: typeof rej.reason === 'string' ? rej.reason.trim() : null,
+      };
+    }
+  }
+
+  return { say: speech, do: action, rejection };
 };
 
 export const parseCombatReply = (raw: string): ICombatReply => {

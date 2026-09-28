@@ -51,10 +51,12 @@ export const POST = async (req: NextRequest) => {
         say: result.say,
         do: result.do,
         toolCalls: result.toolCalls,
+        actionRejected: result.actionRejected,
+        rejectionReason: result.rejectionReason,
       });
     }
 
-    if (result.say) {
+    if (result.say && !result.actionRejected) {
       await encounterLogRepository.create({
         encounterId: body.encounterId,
         actorName: null,
@@ -74,19 +76,13 @@ export const POST = async (req: NextRequest) => {
       do: result.do,
       toolCalls: result.toolCalls,
       encounter: encounterState.encounter,
+      actionRejected: result.actionRejected,
+      rejectionReason: result.rejectionReason,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Неизвестная ошибка';
 
     if (message.startsWith('NOT_PLAYER_TURN:')) {
-      if (body?.encounterId) {
-        await encounterLogRepository.create({
-          encounterId: body.encounterId,
-          actorName: null,
-          message: message.replace('NOT_PLAYER_TURN: ', ''),
-        });
-      }
-
       return NextResponse.json(
         { error: message.replace('NOT_PLAYER_TURN: ', ''), errorCode: 'NOT_PLAYER_TURN' },
         { status: 400 }
@@ -95,16 +91,6 @@ export const POST = async (req: NextRequest) => {
 
     if (message === 'Боевая сцена не активна.') {
       return NextResponse.json({ error: message, errorCode: 'ENCOUNTER_NOT_ACTIVE' }, { status: 400 });
-    }
-
-    if (message.includes('Основное действие уже использовано') || message.includes('уже использовано')) {
-      if (body?.encounterId) {
-        await encounterLogRepository.create({
-          encounterId: body.encounterId,
-          actorName: null,
-          message,
-        });
-      }
     }
 
     return NextResponse.json({ error: message, errorCode: 'INTERNAL_ERROR' }, { status: 500 });
