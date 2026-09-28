@@ -130,25 +130,15 @@ export const usePlayerConsumableTool: ILlmTool = {
       };
     }
 
-    let consumeResult;
-    if (item.quantity > 1) {
-      consumeResult = await db.item.updateMany({
-        where: {
-          id: item.id,
-          quantity: { gte: 1 },
-        },
-        data: {
-          quantity: { decrement: 1 },
-        },
-      });
-    } else {
-      consumeResult = await db.item.deleteMany({
-        where: {
-          id: item.id,
-          quantity: { gte: 1 },
-        },
-      });
-    }
+    const consumeResult = await db.item.updateMany({
+      where: {
+        id: item.id,
+        quantity: { gte: 1 },
+      },
+      data: {
+        quantity: { decrement: 1 },
+      },
+    });
 
     if (consumeResult.count === 0) {
       return {
@@ -157,6 +147,13 @@ export const usePlayerConsumableTool: ILlmTool = {
         message: 'Предмет закончился (другой запрос уже использовал его).',
       };
     }
+
+    await db.item.deleteMany({
+      where: {
+        id: item.id,
+        quantity: { lte: 0 },
+      },
+    });
 
     const healFormula = healProp.dice;
     const parsed_heal = parseDiceFormula(healFormula);
