@@ -1,4 +1,6 @@
+import { isDevAppEnv } from '@/domain/shared/appEnv';
 import { sendDeepseekChat } from './sendDeepseekChat';
+import { sendDevStubChat } from './sendDevStubChat';
 import { sendOllamaChat } from './sendOllamaChat';
 import { sendGrokChat } from './sendGrokChat';
 import type { ILlmMessage, ISendChatParams } from './types';
@@ -15,8 +17,16 @@ const getProvider = (): LlmProvider => {
   throw new Error(`Неизвестный LLM_PROVIDER: ${provider}. Доступны: deepseek, ollama, grok.`);
 };
 
+const hasCloudApiKey = (provider: LlmProvider) => {
+  if (provider === 'deepseek') return Boolean(process.env.DEEPSEEK_API_KEY?.trim());
+  if (provider === 'grok') return Boolean(process.env.GROK_API_KEY?.trim());
+  return true;
+};
+
 export const sendLlmChat = async (params: ISendChatParams): Promise<ILlmMessage> => {
   const provider = getProvider();
+
+  if (isDevAppEnv() && !hasCloudApiKey(provider)) return sendDevStubChat(params);
 
   switch (provider) {
     case 'deepseek':

@@ -25,9 +25,10 @@ LLM_PROVIDER=grok
 
 | Переменная | Требуется | Умолчание | Описание |
 |------------|-----------|-----------|----------|
+| `APP_ENV` | нет | `production` | Окружение: `production`, `staging` или `development` |
 | `LLM_PROVIDER` | нет | `deepseek` | Провайдер: `deepseek`, `ollama` или `grok` |
 | **DeepSeek** |
-| `DEEPSEEK_API_KEY` | да (для deepseek) | — | API-ключ DeepSeek |
+| `DEEPSEEK_API_KEY` | да (для deepseek)* | — | API-ключ DeepSeek |
 | `DEEPSEEK_API_URL` | нет | `https://api.deepseek.com/v1/chat/completions` | URL DeepSeek API |
 | `DEEPSEEK_MODEL` | нет | `deepseek-chat` | Модель DeepSeek |
 | **Ollama** |
@@ -35,9 +36,18 @@ LLM_PROVIDER=grok
 | `OLLAMA_MODEL` | да (для ollama) | — | Название модели (например, `llama3.1`, `mistral`) |
 | `OLLAMA_API_KEY` | нет | — | API-ключ (если требуется; обычно не нужен локально) |
 | **Grok (xAI)** |
-| `GROK_API_KEY` | да (для grok) | — | API-ключ xAI (получить на https://console.x.ai) |
+| `GROK_API_KEY` | да (для grok)* | — | API-ключ xAI (получить на https://console.x.ai) |
 | `GROK_API_URL` | нет | `https://api.x.ai/v1/chat/completions` | URL Grok API |
 | `GROK_MODEL` | нет | `grok-2-latest` | Модель Grok |
+
+\* При `APP_ENV=development` и пустом ключе для `deepseek`/`grok` вместо ошибки вызывается `sendDevStubChat`. В `staging`/`production` ключ по-прежнему обязателен. Для реального локального LLM задайте `LLM_PROVIDER=ollama`.
+
+### Dev-команда stub (development без ключа)
+
+| Команда | Эффект |
+|---------|--------|
+| `/check` | master → `need_check` (perception DC 12), кнопка d20 |
+| без `/` | master `allowed` с пометкой `[dev]` |
 
 ---
 
@@ -103,6 +113,7 @@ Ollama использует OpenAI-совместимый endpoint `/v1/chat/com
 - `sendDeepseekChat` для DeepSeek
 - `sendOllamaChat` для Ollama
 - `sendGrokChat` для Grok (xAI)
+- `sendDevStubChat` при `APP_ENV=development` и отсутствии ключа у `deepseek`/`grok`
 
 Вызывающий код не знает о конкретном провайдере — использует только `sendLlmChat` и общие типы (`ILlmMessage`, `ILlmToolCall`).
 
@@ -110,10 +121,13 @@ Ollama использует OpenAI-совместимый endpoint `/v1/chat/com
 
 | Файл | Назначение |
 |------|------------|
-| `sendLlmChat.ts` | Роутер, выбирает провайдера по env |
+| `sendLlmChat.ts` | Роутер, выбирает провайдера по env; включает stub в development без ключа |
 | `sendDeepseekChat.ts` | Реализация DeepSeek API |
 | `sendOllamaChat.ts` | Реализация Ollama API (OpenAI-compatible) |
 | `sendGrokChat.ts` | Реализация Grok API (xAI, OpenAI-compatible) |
+| `sendDevStubChat.ts` | Stub / `/check` при development без ключа |
+| `helpers/parseDevCommand.ts` | Парсинг `/check` |
+| `helpers/buildDevStubReply.ts` | Содержимое plan/agent stub |
 | `types.ts` | Общие типы сообщений и tool calls |
 
 ### Использующие модули

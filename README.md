@@ -52,6 +52,8 @@ Tools дают мастеру доступ к состоянию кампани�
    ```
 5. Запустить сервер: `npm run dev`
 
+При `APP_ENV=development` и пустом `DEEPSEEK_API_KEY` / `GROK_API_KEY` LLM не вызывается: в чате UI работает `/check` (см. [`services/llm/providers/README.md`](services/llm/providers/README.md)).
+
 Остановить БД: `npm run db:down` (данные в Docker volume сохраняются).
 
 ## Стек
