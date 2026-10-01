@@ -33,6 +33,7 @@ const ALLOWED = new Set([
   'reactions',
   'legendaryActions',
   'lootCoinsCp',
+  'finishesDowned',
 ]);
 
 const validateAbility = (raw: unknown, where: string, field: string): IMonsterAbility => {
@@ -155,6 +156,9 @@ const parseEntry = (raw: unknown, index: number): IMonsterCatalogEntry => {
   if (typeof row.lootCoinsCp !== 'number' || !Number.isInteger(row.lootCoinsCp) || row.lootCoinsCp < 0)
     throw new Error(`${where}: lootCoinsCp — целое ≥ 0.`);
 
+  if (row.finishesDowned !== undefined && typeof row.finishesDowned !== 'boolean')
+    throw new Error(`${where}: finishesDowned — boolean.`);
+
   return {
     key: row.key,
     aliases,
@@ -186,6 +190,7 @@ const parseEntry = (raw: unknown, index: number): IMonsterCatalogEntry => {
     reactions,
     legendaryActions,
     lootCoinsCp: row.lootCoinsCp as number,
+    ...(typeof row.finishesDowned === 'boolean' ? { finishesDowned: row.finishesDowned } : {}),
   };
 };
 
