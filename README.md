@@ -46,7 +46,11 @@ Tools дают мастеру доступ к состоянию кампани�
    npm run db:generate
    npm run db:push
    ```
-4. Запустить сервер: `npm run dev`
+4. (Опционально) Заполнить стартовые данные — только по явной команде, `db:push` их не трогает:
+   ```bash
+   npm run db:seed
+   ```
+5. Запустить сервер: `npm run dev`
 
 Остановить БД: `npm run db:down` (данные в Docker volume сохраняются).
 
