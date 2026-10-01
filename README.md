@@ -34,7 +34,24 @@ Tools дают мастеру доступ к состоянию кампани�
 
 Слои `app` (тонкие route handlers) → `services` → `domain` ← `data`. Правила структуры — в [`AGENTS.md`](AGENTS.md). Стиль кода — [`.cursor/rules/code-style.mdc`](.cursor/rules/code-style.mdc).
 
+## Локальный запуск
+
+1. Скопировать env: `cp .env.example .env` (и при необходимости заполнить LLM-ключи).
+2. Поднять Postgres (image из AWS Public ECR, креды совпадают с `DATABASE_URL`):
+   ```bash
+   npm run db:up
+   ```
+3. Применить схему и сгенерировать клиент:
+   ```bash
+   npm run db:generate
+   npm run db:push
+   ```
+4. Запустить сервер: `npm run dev`
+
+Остановить БД: `npm run db:down` (данные в Docker volume сохраняются).
+
 ## Стек
 
 - Next.js (App Router) как API/server runtime, TypeScript
 - Prisma + PostgreSQL
+- Docker Compose — локальный PostgreSQL 16 (`public.ecr.aws/docker/library/postgres:16`)

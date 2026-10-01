@@ -1,0 +1,21 @@
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:16
+    container_name: dnd-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: dnd
+    volumes:
+      - dnd_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U user -d dnd']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dnd_pg_data:
