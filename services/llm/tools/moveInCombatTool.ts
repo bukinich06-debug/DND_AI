@@ -1,6 +1,8 @@
-import { encounterParticipantRepository } from '@/data/encounter';
+import { encounterParticipantRepository, encounterRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
+import { npcRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
+import type { IEncounterParticipant } from '@/domain/encounter';
 import { spendMovement } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
@@ -30,6 +32,22 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
     targetParticipantId: (raw.targetParticipantId as string | null | undefined) ?? null,
     feet,
   };
+};
+
+const resolveTargetName = async (target: IEncounterParticipant): Promise<string> => {
+  if (target.playerId) {
+    const player = await playerRepository.getById(target.playerId);
+    if (player) return player.name;
+  }
+  if (target.npcId) {
+    const npc = await npcRepository.getById(target.npcId);
+    if (npc) return npc.name;
+  }
+  if (target.monsterInstanceId) {
+    const monster = await monsterInstanceRepository.getById(target.monsterInstanceId);
+    if (monster) return monster.name;
+  }
+  return 'неизвестная цель';
 };
 
 export const moveInCombatTool: ILlmTool = {
@@ -70,6 +88,17 @@ export const moveInCombatTool: ILlmTool = {
     const participant = allParticipants.find((p) => p.monsterInstanceId === monster.id);
     if (!participant) throw new Error('Участник монстра не найден в боевой сцене.');
 
+    if (participant.isOut) throw new Error('MONSTER_OUT: Монстр выбыл из боя и не может двигаться.');
+    if (monster.hpCurrent <= 0) throw new Error('MONSTER_DOWN: Монстр без сознания (0 HP) и не может двигаться.');
+
+    const encounter = await encounterRepository.getById(ctx.encounterId);
+    if (!encounter) throw new Error('Боевая сцена не найдена.');
+
+    const orderedParticipants = [...allParticipants].sort((a, b) => a.order - b.order);
+    const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
+    if (!currentParticipant || currentParticipant.id !== participant.id || currentParticipant.isOut)
+      throw new Error('NOT_MONSTER_TURN: Сейчас не ход этого участника.');
+
     const speed = monster.speed;
     const leftover = Math.max(0, speed - participant.movementUsedFeet);
     const positionBefore = participant.positionFeet;
@@ -83,15 +112,23 @@ export const moveInCombatTool: ILlmTool = {
       const target = allParticipants.find((p) => p.id === parsed.targetParticipantId);
       if (!target) throw new Error('Цель не найдена.');
       targetPosition = target.positionFeet;
-
-      if (target.playerId) {
-        const player = await playerRepository.getById(target.playerId);
-        if (player) targetName = player.name;
-      }
+      targetName = await resolveTargetName(target);
 
       const distance = Math.abs(targetPosition - positionBefore);
       const maxMoveToStop = Math.max(0, distance - 5);
       const actualMove = Math.min(requestedFeet, maxMoveToStop);
+
+      if (actualMove === 0) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          distanceToTarget: distance,
+          speed,
+          monsterName: monster.name,
+          targetName,
+        };
+      }
 
       const direction = targetPosition === positionBefore ? 0 : targetPosition > positionBefore ? 1 : -1;
 
@@ -134,6 +171,7 @@ export const moveInCombatTool: ILlmTool = {
         const target = allParticipants.find((p) => p.id === parsed.targetParticipantId);
         if (!target) throw new Error('Цель не найдена.');
         targetPosition = target.positionFeet;
+        targetName = await resolveTargetName(target);
       } else {
         const enemies = allParticipants.filter((p) => (p.playerId || p.npcId) && !p.isOut);
         if (enemies.length === 0) throw new Error('Нет живых врагов для отступления.');
@@ -141,6 +179,7 @@ export const moveInCombatTool: ILlmTool = {
           Math.abs(curr.positionFeet - positionBefore) < Math.abs(prev.positionFeet - positionBefore) ? curr : prev
         );
         targetPosition = closest.positionFeet;
+        targetName = await resolveTargetName(closest);
       }
 
       let direction: number;
@@ -153,6 +192,18 @@ export const moveInCombatTool: ILlmTool = {
         direction = targetPosition > positionBefore ? -1 : 1;
       }
       const actualMove = Math.min(requestedFeet, speed);
+
+      if (actualMove === 0) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          speed,
+          monsterName: monster.name,
+          targetName,
+          fled: false,
+        };
+      }
 
       const movementResult = await spendMovement(participant.id, actualMove, speed);
       if (!movementResult.success) {
@@ -201,6 +252,7 @@ export const moveInCombatTool: ILlmTool = {
         positionAfter,
         speed,
         monsterName: monster.name,
+        targetName,
         fled,
       };
     }

@@ -1,4 +1,6 @@
-import type { IMonsterAbility, IMonsterAction, IMonsterCatalogEntry } from './types';
+import type { IMonsterAbility, IMonsterAction, IMonsterCatalogEntry, TMonsterAttackType } from './types';
+
+const ATTACK_TYPES = new Set<TMonsterAttackType>(['melee', 'ranged', 'thrown']);
 
 const KEY_RE = /^[a-z][a-zA-Z0-9]*$/;
 
@@ -67,12 +69,31 @@ const validateAction = (raw: unknown, where: string, field: string): IMonsterAct
   if (obj.damageType !== undefined && typeof obj.damageType !== 'string')
     throw new Error(`${where}.${field}: damageType должен быть строкой.`);
 
+  if (obj.attackType !== undefined) {
+    if (typeof obj.attackType !== 'string' || !ATTACK_TYPES.has(obj.attackType as TMonsterAttackType))
+      throw new Error(`${where}.${field}: attackType — melee, ranged или thrown.`);
+  }
+
+  if (obj.rangeNormal !== undefined) {
+    if (typeof obj.rangeNormal !== 'number' || !Number.isFinite(obj.rangeNormal) || obj.rangeNormal < 0)
+      throw new Error(`${where}.${field}: rangeNormal должен быть числом ≥ 0.`);
+  }
+  if (obj.rangeLong !== undefined) {
+    if (typeof obj.rangeLong !== 'number' || !Number.isFinite(obj.rangeLong) || obj.rangeLong < 0)
+      throw new Error(`${where}.${field}: rangeLong должен быть числом ≥ 0.`);
+    if (typeof obj.rangeNormal === 'number' && obj.rangeLong < obj.rangeNormal)
+      throw new Error(`${where}.${field}: rangeLong не может быть меньше rangeNormal.`);
+  }
+
   return {
     name: obj.name.trim(),
     description: obj.description.trim(),
     ...(obj.attackBonus !== undefined ? { attackBonus: obj.attackBonus as number } : {}),
     ...(obj.damage !== undefined ? { damage: (obj.damage as string).trim() } : {}),
     ...(obj.damageType !== undefined ? { damageType: (obj.damageType as string).trim() } : {}),
+    ...(obj.attackType !== undefined ? { attackType: obj.attackType as TMonsterAttackType } : {}),
+    ...(obj.rangeNormal !== undefined ? { rangeNormal: obj.rangeNormal as number } : {}),
+    ...(obj.rangeLong !== undefined ? { rangeLong: obj.rangeLong as number } : {}),
   };
 };
 

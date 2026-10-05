@@ -36,7 +36,14 @@ export const looksLikeAttack = (text: string): boolean => {
   return ATTACK_KEYWORDS.some((kw) => lower.includes(kw));
 };
 
-const sanitizeSay = (say: string): string => (LEAKED_TOOL_SAY_RE.test(say) ? '' : say);
+const CYRILLIC_RE = /[а-яё]/i;
+
+const sanitizeSay = (say: string): string => {
+  if (!say.trim()) return '';
+  if (LEAKED_TOOL_SAY_RE.test(say)) return '';
+  if (!CYRILLIC_RE.test(say)) return '';
+  return say;
+};
 
 const tryParseJson = (raw: string): unknown => {
   try {

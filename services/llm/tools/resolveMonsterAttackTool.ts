@@ -6,7 +6,13 @@ import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
-import { getCatalogMonsterByKey } from '@/domain/monster';
+import {
+  getCatalogMonsterByKey,
+  matchCatalogAction,
+  isActionInRange,
+  isRangedAtDistance,
+  type IMonsterAction,
+} from '@/domain/monster';
 import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
 import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 import type { ILlmTool, IToolContext } from './types';
@@ -25,7 +31,7 @@ const parseArgs = (args: unknown): IResolveMonsterAttackArgs => {
 
   return {
     targetParticipantId: raw.targetParticipantId.trim(),
-    attackName: (raw.attackName as string | null | undefined) ?? null,
+    attackName: typeof raw.attackName === 'string' ? raw.attackName.trim() || null : null,
   };
 };
 
@@ -68,35 +74,10 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind 
   return { dieCount, die, bonus };
 };
 
-interface ICatalogAttack {
-  name: string;
-  description?: string;
-  attackBonus?: number;
-  damage?: string;
-}
-
-const isRangedAction = (action: ICatalogAttack): boolean => {
-  const desc = action.description?.toLowerCase() ?? '';
-  return desc.includes('дальнобойн') || desc.includes('дистанц');
-};
-
-const getNormalRange = (action: ICatalogAttack): number | null => {
-  const rangeMatch = action.description?.match(/(\d+)\/(\d+)\s*фут/);
-  if (!rangeMatch) return null;
-  return parseInt(rangeMatch[1], 10);
-};
-
-const isActionInRange = (action: ICatalogAttack, distance: number): boolean => {
-  if (!isRangedAction(action)) return distance <= 5;
-  const normalRange = getNormalRange(action);
-  if (normalRange === null) return true;
-  return distance <= normalRange;
-};
-
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Нельзя атаковать себя или других монстров (союзников). НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке. Если не указано и в каталоге есть действия — берётся первая атака, которая достаёт до цели (иначе первая в каталоге). Если каталог пуст — простая рукопашная 1d6 + модификатор. Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция, метательная — рукопашная ≤5 или ≤нормальная), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Нельзя атаковать себя или других монстров (союзников). НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке (допускается короткое имя вроде «лук»). Если не указано и в каталоге есть действия — берётся первая атака, которая достаёт до цели; если ни одна не достаёт — OUT_OF_REACH. Если каталог пуст — простая рукопашная 1d6 + модификатор. Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
   parameters: {
     type: 'object',
     properties: {
@@ -107,7 +88,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
       attackName: {
         type: 'string',
         description:
-          'Название атаки из списка доступных действий монстра на русском языке (например, "Короткий меч", "Укус", "Когти"). Если не указано и в каталоге есть действия — первая атака в пределах дистанции; если каталог пуст — простая рукопашная атака.',
+          'Название атаки из списка доступных действий монстра на русском языке (например, "Короткий меч", "Укус", "лук"). Если не указано и в каталоге есть действия — первая атака в пределах дистанции; если ни одна не достаёт — ошибка дистанции; если каталог пуст — простая рукопашная атака.',
       },
     },
     required: ['targetParticipantId'],
@@ -217,29 +198,26 @@ export const resolveMonsterAttackTool: ILlmTool = {
 
     const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
 
-    let attackBonus: number;
-    let damageFormula: string;
-    let isRangedAttack = false;
-    let normalRange: number | null = null;
-    let chosenAttackName: string | null = parsed.attackName ?? null;
-
     const strMod = calculateAbilityMod(attacker.str);
     const dexMod = calculateAbilityMod(attacker.dex);
     const attackMod = Math.max(strMod, dexMod);
     const catalogActions = catalog.actions ?? [];
-    attackBonus = attackMod;
-    damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+    let attackBonus = attackMod;
+    let damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+    let isRangedAttack = false;
+    let normalRange: number | null = null;
+    let chosenAttackName: string | null = null;
 
-    const applyCatalogAction = (action: ICatalogAttack) => {
+    const applyCatalogAction = (action: IMonsterAction) => {
       attackBonus = action.attackBonus ?? attackMod;
       damageFormula = action.damage ?? `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
-      isRangedAttack = isRangedAction(action);
-      normalRange = getNormalRange(action);
+      isRangedAttack = isRangedAtDistance(action, distance);
+      normalRange = action.rangeNormal ?? null;
       chosenAttackName = action.name;
     };
 
     if (parsed.attackName) {
-      const action = catalogActions.find((a) => a.name.toLowerCase() === parsed.attackName!.toLowerCase());
+      const action = matchCatalogAction(parsed.attackName, catalogActions);
 
       if (!action) {
         return {
@@ -252,10 +230,16 @@ export const resolveMonsterAttackTool: ILlmTool = {
       applyCatalogAction(action);
     } else if (catalogActions.length > 0) {
       const inRange = catalogActions.find((a) => isActionInRange(a, distance));
-      applyCatalogAction(inRange ?? catalogActions[0]);
-    } else {
-      attackBonus = attackMod;
-      damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+      if (!inRange) {
+        return {
+          hit: false,
+          errorCode: 'OUT_OF_REACH',
+          targetName,
+          distance,
+          message: `${targetName} находится слишком далеко ни для одной атаки из каталога (${distance} футов).`,
+        };
+      }
+      applyCatalogAction(inRange);
     }
 
     if (!isRangedAttack && distance > 5) {

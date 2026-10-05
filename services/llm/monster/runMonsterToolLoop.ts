@@ -69,7 +69,7 @@ export const runMonsterToolLoop = async ({
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
     let assistant;
     try {
-      assistant = await sendLlmChat({ messages: history, temperature: 0.7, tools: openAiTools });
+      assistant = await sendLlmChat({ messages: history, temperature: 0.3, tools: openAiTools });
     } catch (e) {
       if (toolCalls.length > 0) return finishWithTools(toolCalls);
       throw e;

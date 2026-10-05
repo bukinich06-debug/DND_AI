@@ -350,8 +350,9 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
       }
 
       const say = monsterResult.say.trim();
+      const sayIsRussian = /[а-яё]/i.test(say);
       const sayIsAttack = looksLikeAttack(say);
-      const sayPrefix = say && (!sayIsAttack || hasAttackRoll) ? `«${say}» — ` : '';
+      const sayPrefix = say && sayIsRussian && (!sayIsAttack || hasAttackRoll) ? `«${say}» — ` : '';
 
       if (messages.length > 0) {
         const combinedEntry = {
@@ -379,7 +380,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
           ...errorEntry,
         });
         newLogEntries.push(errorEntry);
-      } else if (say && !sayIsAttack) {
+      } else if (say && sayIsRussian && !sayIsAttack) {
         const sayEntry = {
           actorName,
           message: `«${say}»`,
