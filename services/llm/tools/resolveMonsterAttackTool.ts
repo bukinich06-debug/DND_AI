@@ -113,14 +113,14 @@ export const resolveMonsterAttackTool: ILlmTool = {
     const encounter = await encounterRepository.getById(ctx.encounterId);
     if (!encounter) throw new Error('Боевая сцена не найдена.');
 
-    const currentParticipant = allParticipants.find((p) => p.order === encounter.currentTurnIndex);
-    if (!currentParticipant || currentParticipant.id !== attackerParticipant.id) {
+    const orderedParticipants = [...allParticipants].sort((a, b) => a.order - b.order);
+    const currentParticipant = orderedParticipants[encounter.currentTurnIndex];
+    if (!currentParticipant || currentParticipant.id !== attackerParticipant.id || currentParticipant.isOut)
       throw new Error('FORBIDDEN: Монстр может атаковать только в свой ход.');
-    }
 
-    if (attackerParticipant.isOut) {
+    if (attackerParticipant.isOut)
       throw new Error('MONSTER_OUT: Атакующий монстр выбыл из боя и не может действовать.');
-    }
+    if (attacker.hpCurrent <= 0) throw new Error('MONSTER_DOWN: Монстр без сознания (0 HP) и не может атаковать.');
 
     const targetParticipant = await encounterParticipantRepository.getById(parsed.targetParticipantId);
     if (!targetParticipant) throw new Error('Участник боя не найден.');
