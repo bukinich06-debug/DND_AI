@@ -38,7 +38,13 @@ const formatActions = (ctx: IMonsterCombatContext) => {
       const bonus = a.attackBonus !== undefined ? `, бонус атаки: +${a.attackBonus}` : '';
       const damage = a.damage ? `, урон: ${a.damage}` : '';
       const damageType = a.damageType ? ` ${a.damageType}` : '';
-      return `- ${a.name}: ${a.description}${bonus}${damage}${damageType}`;
+      const range =
+        a.attackType === 'ranged' && a.rangeNormal != null
+          ? `, дальность: ${a.rangeNormal}${a.rangeLong != null ? `/${a.rangeLong}` : ''} фт`
+          : a.attackType === 'thrown' && a.rangeNormal != null
+            ? `, метательное (≤5 фт или ${a.rangeNormal}${a.rangeLong != null ? `/${a.rangeLong}` : ''} фт)`
+            : ', рукопашная ≤5 фт';
+      return `- ${a.name}: ${a.description}${bonus}${damage}${damageType}${range}`;
     })
     .join('\n');
 };
@@ -107,7 +113,7 @@ ${formatParticipants(ctx)}
 4. **Не сочиняй HP, AC или броски** — используй tools для получения информации и разрешения действий.
 5. **Дистанция имеет значение**:
    - **Рукопашные атаки** (меч, когти, укус) работают только на расстоянии **≤5 футов**.
-   - **Дальнобойные атаки** (лук, арбалет) работают на большей дистанции (см. описание атаки).
+   - **Дальнобойные атаки** (лук, арбалет) работают на нормальной дальности из списка действий; дальше — вне досягаемости.
    - Твоя **скорость: ${ctx.monster.speed} футов** — используй move_in_combat (action='approach'/'retreat'/'move_away') для перемещения, если цель слишком далеко.
 6. **Для атаки используй resolve_monster_attack** — он автоматически проверит дистанцию, сделает бросок атаки d20, проверит попадание по AC цели, бросит урон и применит его к HP цели. Максимум ОДНА атака за ход.
 7. **Передай targetParticipantId точно из списка участников** — используй id из списка выше (например, если участник указан как «id: abc123», передай targetParticipantId: "abc123").

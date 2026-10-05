@@ -37,14 +37,18 @@
         "description": "Рукопашная атака оружием",
         "attackBonus": 4,
         "damage": "1d6+2",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "melee"
       },
       {
         "name": "Короткий лук",
         "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
         "attackBonus": 4,
         "damage": "1d6+2",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "ranged",
+        "rangeNormal": 80,
+        "rangeLong": 320
       }
     ],
     "reactions": null,
@@ -94,7 +98,8 @@
         "description": "Рукопашная атака оружием",
         "attackBonus": 4,
         "damage": "2d4+2",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "melee"
       }
     ],
     "reactions": null,
@@ -135,14 +140,18 @@
         "description": "Рукопашная атака оружием",
         "attackBonus": 3,
         "damage": "1d6+1",
-        "damageType": "рубящий"
+        "damageType": "рубящий",
+        "attackType": "melee"
       },
       {
         "name": "Лёгкий арбалет",
         "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
         "attackBonus": 3,
         "damage": "1d8+1",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "ranged",
+        "rangeNormal": 80,
+        "rangeLong": 320
       }
     ],
     "reactions": null,
@@ -188,14 +197,18 @@
         "description": "Рукопашная атака оружием",
         "attackBonus": 5,
         "damage": "1d12+3",
-        "damageType": "рубящий"
+        "damageType": "рубящий",
+        "attackType": "melee"
       },
       {
         "name": "Метательное копьё",
         "description": "Рукопашная или дальнобойная атака оружием (дистанция 30/120 футов)",
         "attackBonus": 5,
         "damage": "1d6+3",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "thrown",
+        "rangeNormal": 30,
+        "rangeLong": 120
       }
     ],
     "reactions": null,
@@ -236,14 +249,18 @@
         "description": "Рукопашная атака оружием",
         "attackBonus": 4,
         "damage": "1d6+2",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "melee"
       },
       {
         "name": "Короткий лук",
         "description": "Дальнобойная атака оружием (дистанция 80/320 футов)",
         "attackBonus": 4,
         "damage": "1d6+2",
-        "damageType": "колющий"
+        "damageType": "колющий",
+        "attackType": "ranged",
+        "rangeNormal": 80,
+        "rangeLong": 320
       }
     ],
     "reactions": null,

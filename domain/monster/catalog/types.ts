@@ -3,12 +3,17 @@ export interface IMonsterAbility {
   description: string;
 }
 
+export type TMonsterAttackType = 'melee' | 'ranged' | 'thrown';
+
 export interface IMonsterAction {
   name: string;
   description: string;
   attackBonus?: number;
   damage?: string;
   damageType?: string;
+  attackType?: TMonsterAttackType;
+  rangeNormal?: number;
+  rangeLong?: number;
 }
 
 export interface IMonsterCatalogEntry {
