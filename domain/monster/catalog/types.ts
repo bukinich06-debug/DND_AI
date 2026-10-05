@@ -5,6 +5,11 @@ export interface IMonsterAbility {
 
 export type TMonsterAttackType = 'melee' | 'ranged' | 'thrown';
 
+export interface IMultiattackPart {
+  attack: string;
+  count?: number;
+}
+
 export interface IMonsterAction {
   name: string;
   description: string;
@@ -14,6 +19,7 @@ export interface IMonsterAction {
   attackType?: TMonsterAttackType;
   rangeNormal?: number;
   rangeLong?: number;
+  multiattack?: IMultiattackPart[];
 }
 
 export interface IMonsterCatalogEntry {

@@ -3,6 +3,8 @@ import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository } from '@/data/npc';
 import { spendMovement } from '@/services/encounter/actionEconomy';
+import { formatStrikeMessage } from '@/services/encounter/helpers/formatStrikeMessage';
+import { resolveOpportunityAttacks } from '@/services/encounter/helpers/resolveOpportunityAttacks';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMovePlayerInCombatArgs {
@@ -132,6 +134,44 @@ export const movePlayerInCombatTool: ILlmTool = {
       const actualMove = Math.min(requestedFeet, maxMoveToStop);
 
       const direction = targetPosition === positionBefore ? 0 : targetPosition > positionBefore ? 1 : -1;
+      const positionAfter = positionBefore + direction * actualMove;
+
+      const opportunityAttacks =
+        actualMove > 0
+          ? await resolveOpportunityAttacks({
+              campaignId: ctx.campaignId,
+              encounterId: ctx.encounterId,
+              mover: playerParticipant,
+              from: positionBefore,
+              to: positionAfter,
+              allParticipants: participants,
+            })
+          : [];
+      const opportunityNotes = opportunityAttacks.map(formatStrikeMessage);
+      const interruptedByOpportunity = opportunityAttacks.some((s) => s.targetIsOut);
+
+      if (interruptedByOpportunity) {
+        if (ctx.encounterId) {
+          await encounterLogRepository.create({
+            encounterId: ctx.encounterId,
+            actorName: player.name,
+            message: `пытался двинуться к ${targetName}, но провокация остановила его; ${opportunityNotes.join('; ')}`,
+            meta: { action: 'approach', interruptedByOpportunity: true, opportunityAttacks },
+          });
+        }
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          distanceToTarget: distance,
+          speed,
+          playerName: player.name,
+          targetName,
+          interruptedByOpportunity: true,
+          opportunityAttacks,
+          opportunityNotes,
+        };
+      }
 
       const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
       if (!movementResult.success) {
@@ -148,8 +188,6 @@ export const movePlayerInCombatTool: ILlmTool = {
         };
       }
 
-      const positionAfter = positionBefore + direction * actualMove;
-
       await encounterParticipantRepository.update(playerParticipant.id, { positionFeet: positionAfter });
 
       for (const p of participants) {
@@ -162,7 +200,7 @@ export const movePlayerInCombatTool: ILlmTool = {
         await encounterLogRepository.create({
           encounterId: ctx.encounterId,
           actorName: player.name,
-          message: `движется к ${targetName} на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}, дистанция до цели: ${distance} → ${Math.abs(positionAfter - targetPosition)} фт)`,
+          message: `движется к ${targetName} на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}, дистанция до цели: ${distance} → ${Math.abs(positionAfter - targetPosition)} фт)${opportunityNotes.length ? `; ${opportunityNotes.join('; ')}` : ''}`,
           meta: {
             action: 'approach',
             movedFeet: actualMove,
@@ -170,6 +208,7 @@ export const movePlayerInCombatTool: ILlmTool = {
             positionAfter,
             distanceToTarget: Math.abs(positionAfter - targetPosition),
             speed,
+            opportunityAttacks,
           },
         });
       }
@@ -182,6 +221,8 @@ export const movePlayerInCombatTool: ILlmTool = {
         speed,
         playerName: player.name,
         targetName,
+        opportunityAttacks,
+        opportunityNotes,
       };
     } else {
       if (parsed.targetParticipantId) {
@@ -207,6 +248,43 @@ export const movePlayerInCombatTool: ILlmTool = {
         direction = targetPosition > positionBefore ? -1 : 1;
       }
       const actualMove = Math.min(requestedFeet, speed);
+      const positionAfter = positionBefore + direction * actualMove;
+
+      const opportunityAttacks =
+        actualMove > 0
+          ? await resolveOpportunityAttacks({
+              campaignId: ctx.campaignId,
+              encounterId: ctx.encounterId,
+              mover: playerParticipant,
+              from: positionBefore,
+              to: positionAfter,
+              allParticipants: participants,
+            })
+          : [];
+      const opportunityNotes = opportunityAttacks.map(formatStrikeMessage);
+      const interruptedByOpportunity = opportunityAttacks.some((s) => s.targetIsOut);
+
+      if (interruptedByOpportunity) {
+        if (ctx.encounterId) {
+          await encounterLogRepository.create({
+            encounterId: ctx.encounterId,
+            actorName: player.name,
+            message: `пытался отступить, но провокация остановила его; ${opportunityNotes.join('; ')}`,
+            meta: { action: 'retreat', interruptedByOpportunity: true, opportunityAttacks },
+          });
+        }
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          speed,
+          playerName: player.name,
+          fled: false,
+          interruptedByOpportunity: true,
+          opportunityAttacks,
+          opportunityNotes,
+        };
+      }
 
       const movementResult = await spendMovement(playerParticipant.id, actualMove, speed);
       if (!movementResult.success) {
@@ -221,8 +299,6 @@ export const movePlayerInCombatTool: ILlmTool = {
           message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
         };
       }
-
-      const positionAfter = positionBefore + direction * actualMove;
 
       await encounterParticipantRepository.update(playerParticipant.id, { positionFeet: positionAfter });
 
@@ -250,10 +326,20 @@ export const movePlayerInCombatTool: ILlmTool = {
         await encounterLogRepository.create({
           encounterId: ctx.encounterId,
           actorName: player.name,
-          message: fled
-            ? `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}) и сбегает из боя (дистанция >120 фт от всех противников)`
-            : `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
-          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed, fled },
+          message: `${
+            fled
+              ? `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}) и сбегает из боя (дистанция >120 фт от всех противников)`
+              : `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`
+          }${opportunityNotes.length ? `; ${opportunityNotes.join('; ')}` : ''}`,
+          meta: {
+            action: 'retreat',
+            movedFeet: actualMove,
+            positionBefore,
+            positionAfter,
+            speed,
+            fled,
+            opportunityAttacks,
+          },
         });
 
         if (fled) {
@@ -268,6 +354,8 @@ export const movePlayerInCombatTool: ILlmTool = {
         speed,
         playerName: player.name,
         fled,
+        opportunityAttacks,
+        opportunityNotes,
       };
     }
   },

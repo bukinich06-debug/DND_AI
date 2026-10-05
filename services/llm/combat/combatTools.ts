@@ -4,6 +4,7 @@ import { movePlayerInCombatTool } from '@/services/llm/tools/movePlayerInCombatT
 import { resolvePlayerAttackTool } from '@/services/llm/tools/resolvePlayerAttackTool';
 import { rollDiceTool } from '@/services/llm/tools/rollDiceTool';
 import { usePlayerConsumableTool } from '@/services/llm/tools/usePlayerConsumableTool';
+import { usePlayerDisengageTool } from '@/services/llm/tools/usePlayerDisengageTool';
 import type { ILlmTool } from '@/services/llm/tools/types';
 
 export const combatTools: ILlmTool[] = [
@@ -13,6 +14,7 @@ export const combatTools: ILlmTool[] = [
   movePlayerInCombatTool,
   resolvePlayerAttackTool,
   usePlayerConsumableTool,
+  usePlayerDisengageTool,
 ];
 
 export const combatToolByName = new Map(combatTools.map((tool) => [tool.name, tool]));

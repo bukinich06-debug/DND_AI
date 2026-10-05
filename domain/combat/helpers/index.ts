@@ -7,3 +7,4 @@ export type { TCombatSide } from './sides';
 export { hasPackTacticsAdvantage } from './packTactics';
 export type { IPackFighter } from './packTactics';
 export { approachOnLine } from './approachOnLine';
+export { MELEE_REACH_FEET, isInMeleeReach, leavesReachOnPath, opportunityAttackerIds } from './opportunityAttack';

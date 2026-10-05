@@ -1,4 +1,5 @@
 import { playerRepository } from '@/data/player';
+import { CombatFlag, hasFlag } from '@/domain/combat';
 import { searchPlayerItems } from '@/services/item/search/searchPlayerItems';
 import { encounterParticipantRepository } from '@/data/encounter';
 import { getActionEconomy } from '@/services/encounter/actionEconomy';
@@ -107,6 +108,7 @@ export const getPlayerCombatStatsTool: ILlmTool = {
       reactionUsed: actionEconomy.reactionUsed,
       movementUsedFeet: actionEconomy.movementUsedFeet,
       movementLeftFeet: actionEconomy.movementLeftFeet,
+      disengaged: hasFlag(player.conditions, CombatFlag.disengaged),
     };
   },
 };

@@ -143,12 +143,22 @@ export const resetActionEconomy = async (participantId: string): Promise<void> =
   });
 
   const participant = await encounterParticipantRepository.getById(participantId);
-  if (!participant?.monsterInstanceId) return;
+  if (!participant) return;
 
-  const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
-  if (!monster) return;
+  if (participant.monsterInstanceId) {
+    const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
+    if (!monster) return;
+    const next = monster.conditions.filter((c) => c.toLowerCase() !== CombatFlag.disengaged);
+    if (next.length === monster.conditions.length) return;
+    await monsterInstanceRepository.update(monster.id, { conditions: next });
+    return;
+  }
 
-  const next = monster.conditions.filter((c) => c.toLowerCase() !== CombatFlag.disengaged);
-  if (next.length === monster.conditions.length) return;
-  await monsterInstanceRepository.update(monster.id, { conditions: next });
+  if (participant.playerId) {
+    const player = await playerRepository.getById(participant.playerId);
+    if (!player) return;
+    const next = player.conditions.filter((c) => c.toLowerCase() !== CombatFlag.disengaged);
+    if (next.length === player.conditions.length) return;
+    await playerRepository.update(player.id, { conditions: next });
+  }
 };
