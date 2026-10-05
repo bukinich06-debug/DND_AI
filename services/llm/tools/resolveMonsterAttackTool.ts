@@ -68,10 +68,35 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind 
   return { dieCount, die, bonus };
 };
 
+interface ICatalogAttack {
+  name: string;
+  description?: string;
+  attackBonus?: number;
+  damage?: string;
+}
+
+const isRangedAction = (action: ICatalogAttack): boolean => {
+  const desc = action.description?.toLowerCase() ?? '';
+  return desc.includes('дальнобойн') || desc.includes('дистанц');
+};
+
+const getNormalRange = (action: ICatalogAttack): number | null => {
+  const rangeMatch = action.description?.match(/(\d+)\/(\d+)\s*фут/);
+  if (!rangeMatch) return null;
+  return parseInt(rangeMatch[1], 10);
+};
+
+const isActionInRange = (action: ICatalogAttack, distance: number): boolean => {
+  if (!isRangedAction(action)) return distance <= 5;
+  const normalRange = getNormalRange(action);
+  if (normalRange === null) return true;
+  return distance <= normalRange;
+};
+
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке (если не указано, используется простая рукопашная атака 1d6 + модификатор). Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Нельзя атаковать себя или других монстров (союзников). НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке. Если не указано и в каталоге есть действия — берётся первая атака, которая достаёт до цели (иначе первая в каталоге). Если каталог пуст — простая рукопашная 1d6 + модификатор. Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
   parameters: {
     type: 'object',
     properties: {
@@ -82,7 +107,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
       attackName: {
         type: 'string',
         description:
-          'Название атаки из списка доступных действий монстра на русском языке (например, "Короткий меч", "Укус", "Когти"). Если не указано, используется простая рукопашная атака.',
+          'Название атаки из списка доступных действий монстра на русском языке (например, "Короткий меч", "Укус", "Когти"). Если не указано и в каталоге есть действия — первая атака в пределах дистанции; если каталог пуст — простая рукопашная атака.',
       },
     },
     required: ['targetParticipantId'],
@@ -127,17 +152,93 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
+    if (targetParticipant.id === attackerParticipant.id || targetParticipant.monsterInstanceId === attacker.id) {
+      return {
+        hit: false,
+        errorCode: 'INVALID_TARGET',
+        message: 'Нельзя атаковать самого себя.',
+      };
+    }
+
+    if (targetParticipant.monsterInstanceId) {
+      return {
+        hit: false,
+        errorCode: 'ALLIED_TARGET',
+        message: 'Нельзя атаковать союзного монстра.',
+      };
+    }
+
+    let targetAc = 10;
+    let targetHp = 0;
+    let targetMaxHp = 0;
+    let targetKind: 'player' | 'npc' | 'monster' = 'monster';
+    let targetIsUnconscious = false;
+    let targetName = 'Неизвестный';
+
+    if (targetParticipant.playerId) {
+      const player = await playerRepository.getById(targetParticipant.playerId);
+      if (!player) throw new Error('Игрок не найден.');
+      targetAc = player.ac;
+      targetHp = player.hpCurrent;
+      targetMaxHp = player.hpMax;
+      targetName = player.name;
+      targetKind = 'player';
+      targetIsUnconscious = player.conditions.includes('unconscious');
+    } else if (targetParticipant.npcId) {
+      const npc = await npcRepository.getById(targetParticipant.npcId);
+      if (!npc) throw new Error('NPC не найден.');
+      const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
+      if (!statBlock) throw new Error('NPC статблок не найден.');
+      targetAc = statBlock.ac;
+      targetHp = statBlock.hpCurrent;
+      targetMaxHp = statBlock.hpMax;
+      targetName = npc.name;
+      targetKind = 'npc';
+    } else if (targetParticipant.monsterInstanceId) {
+      const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
+      if (!monster) throw new Error('Монстр-цель не найден.');
+      targetAc = monster.ac;
+      targetHp = monster.hpCurrent;
+      targetMaxHp = monster.hpMax;
+      targetName = monster.name;
+      targetKind = 'monster';
+    } else {
+      throw new Error('Участник боя не имеет привязанной сущности.');
+    }
+
+    if (targetHp <= 0 && !isFinisher) {
+      return {
+        hit: false,
+        errorCode: 'TARGET_DOWN',
+        targetName,
+        message: `${targetName} без сознания (0 HP). Монстр ${attacker.name} не добивает лежачих (нет флага finishesDowned).`,
+      };
+    }
+
+    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
+
     let attackBonus: number;
     let damageFormula: string;
     let isRangedAttack = false;
     let normalRange: number | null = null;
+    let chosenAttackName: string | null = parsed.attackName ?? null;
 
     const strMod = calculateAbilityMod(attacker.str);
     const dexMod = calculateAbilityMod(attacker.dex);
     const attackMod = Math.max(strMod, dexMod);
+    const catalogActions = catalog.actions ?? [];
+    attackBonus = attackMod;
+    damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+
+    const applyCatalogAction = (action: ICatalogAttack) => {
+      attackBonus = action.attackBonus ?? attackMod;
+      damageFormula = action.damage ?? `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
+      isRangedAttack = isRangedAction(action);
+      normalRange = getNormalRange(action);
+      chosenAttackName = action.name;
+    };
 
     if (parsed.attackName) {
-      const catalogActions = catalog.actions ?? [];
       const action = catalogActions.find((a) => a.name.toLowerCase() === parsed.attackName!.toLowerCase());
 
       if (!action) {
@@ -148,34 +249,13 @@ export const resolveMonsterAttackTool: ILlmTool = {
         };
       }
 
-      attackBonus = action.attackBonus ?? attackMod;
-      damageFormula = action.damage ?? `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
-
-      const desc = action.description?.toLowerCase() ?? '';
-      isRangedAttack = desc.includes('дальнобойн') || desc.includes('дистанц');
-
-      const rangeMatch = action.description?.match(/(\d+)\/(\d+)\s*фут/);
-      if (rangeMatch) {
-        normalRange = parseInt(rangeMatch[1], 10);
-      }
+      applyCatalogAction(action);
+    } else if (catalogActions.length > 0) {
+      const inRange = catalogActions.find((a) => isActionInRange(a, distance));
+      applyCatalogAction(inRange ?? catalogActions[0]);
     } else {
       attackBonus = attackMod;
       damageFormula = `1d6${attackMod >= 0 ? '+' : ''}${attackMod}`;
-    }
-
-    const distance = Math.abs(attackerParticipant.positionFeet - targetParticipant.positionFeet);
-
-    let targetName = 'Неизвестный';
-
-    if (targetParticipant.playerId) {
-      const player = await playerRepository.getById(targetParticipant.playerId);
-      if (player) targetName = player.name;
-    } else if (targetParticipant.npcId) {
-      const npc = await npcRepository.getById(targetParticipant.npcId);
-      if (npc) targetName = npc.name;
-    } else if (targetParticipant.monsterInstanceId) {
-      const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
-      if (monster) targetName = monster.name;
     }
 
     if (!isRangedAttack && distance > 5) {
@@ -207,56 +287,10 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
-    let targetAc = 10;
-    let targetHp = 0;
-    let targetMaxHp = 0;
-    let targetKind: 'player' | 'npc' | 'monster' = 'monster';
-    let targetIsUnconscious = false;
-
-    if (targetParticipant.playerId) {
-      const player = await playerRepository.getById(targetParticipant.playerId);
-      if (!player) throw new Error('Игрок не найден.');
-      targetAc = player.ac;
-      targetHp = player.hpCurrent;
-      targetMaxHp = player.hpMax;
-      targetName = player.name;
-      targetKind = 'player';
-      targetIsUnconscious = player.conditions.includes('unconscious');
-
-      if (targetHp === 0 && !isFinisher) {
-        return {
-          hit: false,
-          errorCode: 'TARGET_DOWN',
-          targetName,
-          message: `${targetName} без сознания (0 HP). Монстр ${attacker.name} не добивает лежачих (нет флага finishesDowned).`,
-        };
-      }
-    } else if (targetParticipant.npcId) {
-      const npc = await npcRepository.getById(targetParticipant.npcId);
-      if (!npc) throw new Error('NPC не найден.');
-      const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
-      if (!statBlock) throw new Error('NPC статблок не найден.');
-      targetAc = statBlock.ac;
-      targetHp = statBlock.hpCurrent;
-      targetMaxHp = statBlock.hpMax;
-      targetName = npc.name;
-      targetKind = 'npc';
-    } else if (targetParticipant.monsterInstanceId) {
-      const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
-      if (!monster) throw new Error('Монстр-цель не найден.');
-      targetAc = monster.ac;
-      targetHp = monster.hpCurrent;
-      targetMaxHp = monster.hpMax;
-      targetName = monster.name;
-      targetKind = 'monster';
-    } else {
-      throw new Error('Участник боя не имеет привязанной сущности.');
-    }
-
     const attackRoll = await rollDice({
       campaignId: ctx.campaignId,
       die: DiceKind.d20,
-      note: `Атака монстра ${attacker.name} по ${targetName}${parsed.attackName ? ` (${parsed.attackName})` : ''}`,
+      note: `Атака монстра ${attacker.name} по ${targetName}${chosenAttackName ? ` (${chosenAttackName})` : ''}`,
       npcId: null,
       playerId: null,
     });
@@ -415,7 +449,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
         targetMaxHp,
         targetIsOut: newHp <= 0,
         deathSaveFailuresAdded,
-        attackName: parsed.attackName,
+        attackName: chosenAttackName,
       };
     }
 
@@ -429,7 +463,7 @@ export const resolveMonsterAttackTool: ILlmTool = {
       attackTotal,
       targetAc,
       targetName,
-      attackName: parsed.attackName,
+      attackName: chosenAttackName,
     };
   },
 };

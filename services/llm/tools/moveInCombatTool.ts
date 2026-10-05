@@ -1,4 +1,4 @@
-import { encounterParticipantRepository, encounterLogRepository } from '@/data/encounter';
+import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { playerRepository } from '@/data/player';
 import { spendMovement } from '@/services/encounter/actionEconomy';
@@ -35,7 +35,7 @@ const parseArgs = (args: unknown): IMoveInCombatArgs => {
 export const moveInCombatTool: ILlmTool = {
   name: 'move_in_combat',
   description:
-    'Перемещает монстра по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию вся скорость). КОД определяет направление и останавливает в 5 футах при approach. monsterInstanceId и encounterId берутся из контекста хода.',
+    'Перемещает монстра по линии боя. action=approach (приблизиться к цели, остановиться в 5 футах), action=retreat или move_away (отступить от цели или ближайшего врага). feet - желаемое расстояние (по умолчанию остаток движения). КОД определяет направление и останавливает в 5 футах при approach. monsterInstanceId и encounterId берутся из контекста хода. Журнал боя пишет вызывающий ход, не этот tool.',
   parameters: {
     type: 'object',
     properties: {
@@ -50,7 +50,7 @@ export const moveInCombatTool: ILlmTool = {
       },
       feet: {
         type: 'number',
-        description: 'Желаемое расстояние движения (по умолчанию = вся доступная скорость)',
+        description: 'Желаемое расстояние движения (по умолчанию = остаток движения)',
       },
     },
     required: ['action'],
@@ -71,8 +71,9 @@ export const moveInCombatTool: ILlmTool = {
     if (!participant) throw new Error('Участник монстра не найден в боевой сцене.');
 
     const speed = monster.speed;
+    const leftover = Math.max(0, speed - participant.movementUsedFeet);
     const positionBefore = participant.positionFeet;
-    const requestedFeet = parsed.feet ?? speed;
+    const requestedFeet = parsed.feet ?? leftover;
 
     let targetPosition: number;
     let targetName = 'неизвестная цель';
@@ -118,22 +119,6 @@ export const moveInCombatTool: ILlmTool = {
       const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
 
       await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
-
-      if (ctx.encounterId) {
-        await encounterLogRepository.create({
-          encounterId: ctx.encounterId,
-          actorName: monster.name,
-          message: `движется к ${targetName} на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}, дистанция до цели: ${distance} → ${Math.abs(positionAfter - targetPosition)} фт)`,
-          meta: {
-            action: 'approach',
-            movedFeet: actualMove,
-            positionBefore,
-            positionAfter,
-            distanceToTarget: Math.abs(positionAfter - targetPosition),
-            speed,
-          },
-        });
-      }
 
       return {
         movedFeet: actualMove,
@@ -205,21 +190,9 @@ export const moveInCombatTool: ILlmTool = {
         fled = true;
       }
 
-      if (ctx.encounterId) {
+      if (fled) {
         const { checkEncounterEnd } = await import('@/services/encounter/checkEncounterEnd');
-
-        await encounterLogRepository.create({
-          encounterId: ctx.encounterId,
-          actorName: monster.name,
-          message: fled
-            ? `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter}) и сбегает из боя (дистанция >120 фт от всех противников)`
-            : `отступает на ${actualMove} фт (позиция: ${positionBefore} → ${positionAfter})`,
-          meta: { action: 'retreat', movedFeet: actualMove, positionBefore, positionAfter, speed, fled },
-        });
-
-        if (fled) {
-          await checkEncounterEnd({ encounterId: ctx.encounterId });
-        }
+        await checkEncounterEnd({ encounterId: ctx.encounterId });
       }
 
       return {

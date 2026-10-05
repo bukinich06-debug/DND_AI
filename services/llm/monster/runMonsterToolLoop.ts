@@ -2,7 +2,7 @@ import { sendLlmChat, type ILlmMessage, type ILlmToolCall } from '@/services/llm
 import { toOpenAiCompatibleTool } from '@/services/llm/tools/toOpenAiCompatibleTool';
 import type { IToolContext } from '@/services/llm/tools/types';
 import { monsterToolByName, monsterTools } from './monsterTools';
-import { parseMonsterReply, type IMonsterReply } from './parseMonsterReply';
+import { looksLikeAttack, parseMonsterReply, type IMonsterReply } from './parseMonsterReply';
 
 const MAX_ROUNDS = 5;
 
@@ -32,28 +32,6 @@ const parseToolArgs = (raw: string): unknown => {
   }
 };
 
-const looksLikeAttack = (text: string): boolean => {
-  const lower = text.toLowerCase();
-  const attackKeywords = [
-    'атак',
-    'бью',
-    'удар',
-    'стреля',
-    'выстрел',
-    'рубл',
-    'наношу',
-    'нанесу',
-    'удари',
-    'бить',
-    'пораж',
-    'когт',
-    'укус',
-    'кус',
-    'бьёт',
-  ];
-  return attackKeywords.some((kw) => lower.includes(kw));
-};
-
 const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolCallLog> => {
   const name = call.function?.name?.trim() || '';
   let args: unknown = {};
@@ -73,6 +51,12 @@ const runOneTool = async (call: ILlmToolCall, ctx: IToolContext): Promise<IToolC
   }
 };
 
+const finishWithTools = (toolCalls: IToolCallLog[]): IRunMonsterToolLoopResult => ({
+  say: '',
+  do: null,
+  toolCalls,
+});
+
 export const runMonsterToolLoop = async ({
   system,
   ctx,
@@ -83,12 +67,22 @@ export const runMonsterToolLoop = async ({
   let attackWithoutToolAttempts = 0;
 
   for (let round = 0; round < MAX_ROUNDS; round += 1) {
-    const assistant = await sendLlmChat({ messages: history, temperature: 0.7, tools: openAiTools });
+    let assistant;
+    try {
+      assistant = await sendLlmChat({ messages: history, temperature: 0.7, tools: openAiTools });
+    } catch (e) {
+      if (toolCalls.length > 0) return finishWithTools(toolCalls);
+      throw e;
+    }
+
     const calls = assistant.tool_calls;
 
     if (!calls || calls.length === 0) {
       const content = typeof assistant.content === 'string' ? assistant.content.trim() : '';
-      if (!content) throw new Error('Пустой ответ LLM.');
+      if (!content) {
+        if (toolCalls.length > 0) return finishWithTools(toolCalls);
+        throw new Error('Пустой ответ LLM.');
+      }
       const reply = parseMonsterReply(content);
 
       const replyText = `${reply.say || ''} ${reply.do || ''}`;
@@ -99,12 +93,12 @@ export const runMonsterToolLoop = async ({
           !(typeof tc.result === 'object' && tc.result !== null && 'errorCode' in tc.result && tc.result.errorCode)
       );
 
-      if (looksLikeAttack(replyText) && !attackCalled) {
+      if ((looksLikeAttack(replyText) || looksLikeAttack(content)) && !attackCalled) {
         attackWithoutToolAttempts++;
 
         if (attackWithoutToolAttempts >= 2) {
           return {
-            say: reply.say || '',
+            say: '',
             do: null,
             toolCalls,
           };
@@ -144,5 +138,6 @@ export const runMonsterToolLoop = async ({
     }
   }
 
+  if (toolCalls.length > 0) return finishWithTools(toolCalls);
   throw new Error('Превышен лимит вызовов tools за один ход монстра.');
 };
