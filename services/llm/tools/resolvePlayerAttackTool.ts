@@ -9,6 +9,8 @@ import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/valida
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
 import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
+import { rollAttackD20 } from '@/services/encounter/helpers/rollAttackD20';
+import { CombatFlag, combineRollModes, hasFlag } from '@/domain/combat';
 import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 import type { ILlmTool, IToolContext } from './types';
 
@@ -297,6 +299,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
     let targetMaxHp = 0;
     let targetKind: 'player' | 'npc' | 'monster' = 'monster';
     let targetIsUnconscious = false;
+    let targetHidden = false;
 
     if (targetParticipant.playerId) {
       const player = await playerRepository.getById(targetParticipant.playerId);
@@ -325,15 +328,16 @@ export const resolvePlayerAttackTool: ILlmTool = {
       targetMaxHp = monster.hpMax;
       targetName = monster.name;
       targetKind = 'monster';
+      targetHidden = hasFlag(monster.conditions, CombatFlag.hidden);
     } else {
       throw new Error('Участник боя не имеет привязанной сущности.');
     }
 
-    const attackRoll = await rollDice({
+    const rollMode = combineRollModes(false, targetHidden);
+    const attackRoll = await rollAttackD20({
       campaignId: ctx.campaignId,
-      die: DiceKind.d20,
       note: `Атака игрока ${attacker.name} по ${targetName} (${weaponName})`,
-      npcId: null,
+      mode: rollMode,
       playerId: attacker.id,
     });
 
@@ -463,6 +467,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
           message: `атакует ${targetName} (${weaponName}): попадание${critText}! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}`,
           meta: {
             attackRoll: attackRoll.value,
+            attackRolls: attackRoll.rolls,
+            rollMode,
+            targetHidden,
             attackBonus,
             attackTotal,
             targetAc,
@@ -484,6 +491,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
         isNatural20,
         isNatural1: false,
         attackRoll: attackRoll.value,
+        attackRolls: attackRoll.rolls,
+        rollMode,
+        targetHidden,
         attackBonus,
         attackTotal,
         targetAc,
@@ -508,6 +518,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
         message: `атакует ${targetName} (${weaponName}): ${missText} (${attackTotal} vs AC ${targetAc})`,
         meta: {
           attackRoll: attackRoll.value,
+          attackRolls: attackRoll.rolls,
+          rollMode,
+          targetHidden,
           attackBonus,
           attackTotal,
           targetAc,
@@ -524,6 +537,9 @@ export const resolvePlayerAttackTool: ILlmTool = {
       isNatural20: false,
       isNatural1,
       attackRoll: attackRoll.value,
+      attackRolls: attackRoll.rolls,
+      rollMode,
+      targetHidden,
       attackBonus,
       attackTotal,
       targetAc,

@@ -46,6 +46,10 @@ const formatMonsterErrorNote = (result: unknown, fallback?: string): string => {
     if (res.errorCode === 'ALLIED_TARGET') return 'нельзя атаковать союзника';
     if (res.errorCode === 'INVALID_TARGET') return 'нельзя атаковать эту цель';
     if (res.errorCode === 'ACTION_ALREADY_USED') return 'действие уже использовано';
+    if (res.errorCode === 'BONUS_ACTION_ALREADY_USED') return 'бонусное действие уже использовано';
+    if (res.errorCode === 'TRAIT_UNAVAILABLE') return 'нет такой черты';
+    if (res.errorCode === 'ALREADY_IN_REACH') return 'уже вплотную, Агрессивный не нужен';
+    if (res.errorCode === 'TARGET_REQUIRED') return 'нужна цель для Агрессивного';
     if (res.errorCode === 'UNKNOWN_ACTION') return 'действие невозможно';
     if (res.errorCode === 'TARGET_OUT') return 'цель уже выбыла из боя';
     if (res.errorCode === 'MOVEMENT_EXCEEDED') return 'не может двигаться дальше';
@@ -224,6 +228,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         });
 
         const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
+        const bonusResults = monsterResult.toolCalls.filter((tc) => tc.name === 'use_monster_bonus' && tc.result);
         const attackResults = monsterResult.toolCalls.filter(
           (tc) =>
             tc.name === 'resolve_monster_attack' &&
@@ -279,6 +284,32 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
           }
         }
 
+        for (const bonus of bonusResults) {
+          if (typeof bonus.result === 'object' && bonus.result !== null) {
+            const res = bonus.result as {
+              ok?: boolean;
+              kind?: string;
+              message?: string;
+              errorCode?: string;
+              movedFeet?: number;
+              positionBefore?: number;
+              positionAfter?: number;
+              distanceToTarget?: number;
+              hidden?: boolean;
+            };
+
+            if (hasErrorCode(bonus.result) && !res.message) {
+              errorNotes.push(formatMonsterErrorNote(bonus.result));
+              continue;
+            }
+
+            if (res.message) {
+              messages.push(res.message);
+              events.push(bonus.result);
+            }
+          }
+        }
+
         for (const attack of attackResults) {
           if (typeof attack.result === 'object' && attack.result !== null) {
             const res = attack.result as {
@@ -286,6 +317,9 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
               damageTotal?: number;
               targetName?: string;
               attackRoll?: number;
+              attackRolls?: number[];
+              rollMode?: string;
+              advantageReasons?: string[];
               attackBonus?: number;
               attackTotal?: number;
               targetAc?: number;
@@ -302,9 +336,16 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
             if (res.hit && res.damageTotal !== undefined) {
               const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
 
+              const rollModeText =
+                res.rollMode === 'advantage' ? ' преимущество' : res.rollMode === 'disadvantage' ? ' помеха' : '';
+              const rollsText =
+                res.attackRolls && res.attackRolls.length === 2 ? ` ${res.attackRolls[0]}/${res.attackRolls[1]}` : '';
+              const traitText =
+                res.advantageReasons && res.advantageReasons.length > 0 ? ` [${res.advantageReasons.join(', ')}]` : '';
+
               const attackDetails =
                 res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-                  ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
+                  ? `d20${rollsText}${rollModeText} ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}${traitText}, `
                   : '';
 
               const damageDetails =
@@ -345,6 +386,10 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         }
 
         for (const tc of monsterResult.toolCalls as IToolCallLike[]) {
+          if (tc.name === 'use_monster_bonus') {
+            if (!tc.ok) errorNotes.push(formatMonsterErrorNote(tc.result, tc.error || 'действие невозможно'));
+            continue;
+          }
           if (tc.name !== 'resolve_monster_attack' && tc.name !== 'move_in_combat') continue;
           if (tc.ok && hasErrorCode(tc.result)) {
             if (tc.name === 'move_in_combat') continue;

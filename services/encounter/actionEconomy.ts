@@ -5,6 +5,7 @@ import { playerRepository } from '@/data/player';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcStatBlockRepository } from '@/data/npc';
 import { db } from '@/data/shared';
+import { CombatFlag } from '@/domain/combat';
 
 export type ActionKind = 'action' | 'bonus' | 'reaction';
 
@@ -140,4 +141,14 @@ export const resetActionEconomy = async (participantId: string): Promise<void> =
     reactionUsed: false,
     movementUsedFeet: 0,
   });
+
+  const participant = await encounterParticipantRepository.getById(participantId);
+  if (!participant?.monsterInstanceId) return;
+
+  const monster = await monsterInstanceRepository.getById(participant.monsterInstanceId);
+  if (!monster) return;
+
+  const next = monster.conditions.filter((c) => c.toLowerCase() !== CombatFlag.disengaged);
+  if (next.length === monster.conditions.length) return;
+  await monsterInstanceRepository.update(monster.id, { conditions: next });
 };
