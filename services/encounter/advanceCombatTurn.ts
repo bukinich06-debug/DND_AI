@@ -118,7 +118,7 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
     };
   }
 
-  if (currentParticipant.isOut) {
+  if (currentParticipant.isOut && !currentParticipant.monsterInstanceId) {
     return {
       success: false,
       error: 'Текущий участник выведен из боя.',
@@ -210,199 +210,205 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
   } else if (currentParticipant.monsterInstanceId) {
     const monsterInstance = await monsterInstanceRepository.getById(currentParticipant.monsterInstanceId);
     const actorName = monsterInstance?.name ?? 'Монстр';
+    const monsterCannotAct = currentParticipant.isOut || !monsterInstance || monsterInstance.hpCurrent <= 0;
 
-    try {
-      const monsterResult = await runMonsterCombatTurn({
-        campaignId: input.campaignId,
-        encounterId: encounter.id,
-        monsterInstanceId: currentParticipant.monsterInstanceId,
-      });
-
-      const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
-      const attackResults = monsterResult.toolCalls.filter(
-        (tc) =>
-          tc.name === 'resolve_monster_attack' &&
-          tc.result &&
-          typeof tc.result === 'object' &&
-          tc.result !== null &&
-          !hasErrorCode(tc.result)
-      );
-
-      const messages: string[] = [];
-      const events: unknown[] = [];
-      const errorNotes: string[] = [];
-      let attackResultForMeta: Record<string, unknown> | null = null;
-      let hasAttackRoll = false;
-
-      for (const move of moveResults) {
-        if (typeof move.result === 'object' && move.result !== null) {
-          const res = move.result as {
-            movedFeet?: number;
-            positionBefore?: number;
-            positionAfter?: number;
-            distanceToTarget?: number;
-            monsterName?: string;
-            fled?: boolean;
-            errorCode?: string;
-          };
-
-          if (hasErrorCode(move.result)) {
-            errorNotes.push(formatMonsterErrorNote(move.result));
-            continue;
-          }
-
-          if (res.movedFeet && res.movedFeet > 0) {
-            const action =
-              move.args && typeof move.args === 'object' && 'action' in move.args
-                ? (move.args as { action?: string }).action
-                : 'движется';
-            const actionText =
-              action === 'approach'
-                ? 'приближается'
-                : action === 'retreat' || action === 'move_away'
-                  ? 'отступает'
-                  : 'движется';
-
-            const fledText = res.fled ? ' и сбегает из боя' : '';
-            const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})${fledText}`;
-            messages.push(moveMessage);
-            events.push(move.result);
-          } else if (res.fled) {
-            messages.push(`${res.monsterName || actorName} сбегает из боя`);
-            events.push(move.result);
-          }
-        }
-      }
-
-      for (const attack of attackResults) {
-        if (typeof attack.result === 'object' && attack.result !== null) {
-          const res = attack.result as {
-            hit?: boolean;
-            damageTotal?: number;
-            targetName?: string;
-            attackRoll?: number;
-            attackBonus?: number;
-            attackTotal?: number;
-            targetAc?: number;
-            damageRolls?: number[];
-            damageBonus?: number;
-            targetPreviousHp?: number;
-            targetNewHp?: number;
-            isCritical?: boolean;
-            isNatural20?: boolean;
-            isNatural1?: boolean;
-            deathSaveFailuresAdded?: number;
-          };
-
-          if (res.hit && res.damageTotal !== undefined) {
-            const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
-
-            const attackDetails =
-              res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-                ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
-                : '';
-
-            const damageDetails =
-              res.damageRolls && res.damageBonus !== undefined
-                ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
-                : `${res.damageTotal}`;
-
-            const hpDetails =
-              res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
-                ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
-                : '';
-
-            const deathSaveDetails =
-              res.deathSaveFailuresAdded && res.deathSaveFailuresAdded > 0
-                ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
-                : '';
-
-            const attackMessage = `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
-            messages.push(attackMessage);
-            events.push(attack.result);
-            attackResultForMeta = attack.result as Record<string, unknown>;
-            if (res.attackRoll !== undefined) hasAttackRoll = true;
-          } else if (res.hit === false && res.attackRoll !== undefined) {
-            const nat1Text = res.isNatural1 ? ' [nat1]' : '';
-
-            const attackDetails =
-              res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-                ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
-                : '';
-
-            const missMessage = `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`;
-            messages.push(missMessage);
-            events.push(attack.result);
-            attackResultForMeta = attack.result as Record<string, unknown>;
-            hasAttackRoll = true;
-          }
-        }
-      }
-
-      for (const tc of monsterResult.toolCalls as IToolCallLike[]) {
-        if (tc.name !== 'resolve_monster_attack' && tc.name !== 'move_in_combat') continue;
-        if (tc.ok && hasErrorCode(tc.result)) {
-          if (tc.name === 'move_in_combat') continue;
-          errorNotes.push(formatMonsterErrorNote(tc.result));
-        } else if (!tc.ok) {
-          errorNotes.push(formatMonsterErrorNote(tc.result, tc.error || 'действие невозможно'));
-        }
-      }
-
-      const say = monsterResult.say.trim();
-      const sayIsRussian = /[а-яё]/i.test(say);
-      const sayIsAttack = looksLikeAttack(say);
-      const sayPrefix = say && sayIsRussian && (!sayIsAttack || hasAttackRoll) ? `«${say}» — ` : '';
-
-      if (messages.length > 0) {
-        const combinedEntry = {
-          actorName,
-          message: `${sayPrefix}${messages.join('; ')}`,
-          meta: {
-            say: monsterResult.say,
-            events,
-            ...(attackResultForMeta || {}),
-          },
-        };
-        await encounterLogRepository.create({
+    if (monsterCannotAct) {
+      if (!currentParticipant.isOut)
+        await encounterParticipantRepository.update(currentParticipant.id, { isOut: true });
+    } else {
+      try {
+        const monsterResult = await runMonsterCombatTurn({
+          campaignId: input.campaignId,
           encounterId: encounter.id,
-          ...combinedEntry,
+          monsterInstanceId: currentParticipant.monsterInstanceId,
         });
-        newLogEntries.push(combinedEntry);
-      } else if (errorNotes.length > 0) {
+
+        const moveResults = monsterResult.toolCalls.filter((tc) => tc.name === 'move_in_combat' && tc.result);
+        const attackResults = monsterResult.toolCalls.filter(
+          (tc) =>
+            tc.name === 'resolve_monster_attack' &&
+            tc.result &&
+            typeof tc.result === 'object' &&
+            tc.result !== null &&
+            !hasErrorCode(tc.result)
+        );
+
+        const messages: string[] = [];
+        const events: unknown[] = [];
+        const errorNotes: string[] = [];
+        let attackResultForMeta: Record<string, unknown> | null = null;
+        let hasAttackRoll = false;
+
+        for (const move of moveResults) {
+          if (typeof move.result === 'object' && move.result !== null) {
+            const res = move.result as {
+              movedFeet?: number;
+              positionBefore?: number;
+              positionAfter?: number;
+              distanceToTarget?: number;
+              monsterName?: string;
+              fled?: boolean;
+              errorCode?: string;
+            };
+
+            if (hasErrorCode(move.result)) {
+              errorNotes.push(formatMonsterErrorNote(move.result));
+              continue;
+            }
+
+            if (res.movedFeet && res.movedFeet > 0) {
+              const action =
+                move.args && typeof move.args === 'object' && 'action' in move.args
+                  ? (move.args as { action?: string }).action
+                  : 'движется';
+              const actionText =
+                action === 'approach'
+                  ? 'приближается'
+                  : action === 'retreat' || action === 'move_away'
+                    ? 'отступает'
+                    : 'движется';
+
+              const fledText = res.fled ? ' и сбегает из боя' : '';
+              const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})${fledText}`;
+              messages.push(moveMessage);
+              events.push(move.result);
+            } else if (res.fled) {
+              messages.push(`${res.monsterName || actorName} сбегает из боя`);
+              events.push(move.result);
+            }
+          }
+        }
+
+        for (const attack of attackResults) {
+          if (typeof attack.result === 'object' && attack.result !== null) {
+            const res = attack.result as {
+              hit?: boolean;
+              damageTotal?: number;
+              targetName?: string;
+              attackRoll?: number;
+              attackBonus?: number;
+              attackTotal?: number;
+              targetAc?: number;
+              damageRolls?: number[];
+              damageBonus?: number;
+              targetPreviousHp?: number;
+              targetNewHp?: number;
+              isCritical?: boolean;
+              isNatural20?: boolean;
+              isNatural1?: boolean;
+              deathSaveFailuresAdded?: number;
+            };
+
+            if (res.hit && res.damageTotal !== undefined) {
+              const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
+
+              const attackDetails =
+                res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+                  ? `d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}, `
+                  : '';
+
+              const damageDetails =
+                res.damageRolls && res.damageBonus !== undefined
+                  ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
+                  : `${res.damageTotal}`;
+
+              const hpDetails =
+                res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
+                  ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
+                  : '';
+
+              const deathSaveDetails =
+                res.deathSaveFailuresAdded && res.deathSaveFailuresAdded > 0
+                  ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
+                  : '';
+
+              const attackMessage = `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
+              messages.push(attackMessage);
+              events.push(attack.result);
+              attackResultForMeta = attack.result as Record<string, unknown>;
+              if (res.attackRoll !== undefined) hasAttackRoll = true;
+            } else if (res.hit === false && res.attackRoll !== undefined) {
+              const nat1Text = res.isNatural1 ? ' [nat1]' : '';
+
+              const attackDetails =
+                res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
+                  ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
+                  : '';
+
+              const missMessage = `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`;
+              messages.push(missMessage);
+              events.push(attack.result);
+              attackResultForMeta = attack.result as Record<string, unknown>;
+              hasAttackRoll = true;
+            }
+          }
+        }
+
+        for (const tc of monsterResult.toolCalls as IToolCallLike[]) {
+          if (tc.name !== 'resolve_monster_attack' && tc.name !== 'move_in_combat') continue;
+          if (tc.ok && hasErrorCode(tc.result)) {
+            if (tc.name === 'move_in_combat') continue;
+            errorNotes.push(formatMonsterErrorNote(tc.result));
+          } else if (!tc.ok) {
+            errorNotes.push(formatMonsterErrorNote(tc.result, tc.error || 'действие невозможно'));
+          }
+        }
+
+        const say = monsterResult.say.trim();
+        const sayIsRussian = /[а-яё]/i.test(say);
+        const sayIsAttack = looksLikeAttack(say);
+        const sayPrefix = say && sayIsRussian && (!sayIsAttack || hasAttackRoll) ? `«${say}» — ` : '';
+
+        if (messages.length > 0) {
+          const combinedEntry = {
+            actorName,
+            message: `${sayPrefix}${messages.join('; ')}`,
+            meta: {
+              say: monsterResult.say,
+              events,
+              ...(attackResultForMeta || {}),
+            },
+          };
+          await encounterLogRepository.create({
+            encounterId: encounter.id,
+            ...combinedEntry,
+          });
+          newLogEntries.push(combinedEntry);
+        } else if (errorNotes.length > 0) {
+          const errorEntry = {
+            actorName,
+            message: errorNotes.join('; '),
+            meta: { errorCodes: true, say: monsterResult.say },
+          };
+          await encounterLogRepository.create({
+            encounterId: encounter.id,
+            ...errorEntry,
+          });
+          newLogEntries.push(errorEntry);
+        } else if (say && sayIsRussian && !sayIsAttack) {
+          const sayEntry = {
+            actorName,
+            message: `«${say}»`,
+            meta: { say },
+          };
+          await encounterLogRepository.create({
+            encounterId: encounter.id,
+            ...sayEntry,
+          });
+          newLogEntries.push(sayEntry);
+        }
+      } catch (monsterError) {
         const errorEntry = {
           actorName,
-          message: errorNotes.join('; '),
-          meta: { errorCodes: true, say: monsterResult.say },
+          message: `${actorName} медлит (ошибка хода монстра).`,
+          meta: { error: monsterError instanceof Error ? monsterError.message : String(monsterError) },
         };
         await encounterLogRepository.create({
           encounterId: encounter.id,
           ...errorEntry,
         });
         newLogEntries.push(errorEntry);
-      } else if (say && sayIsRussian && !sayIsAttack) {
-        const sayEntry = {
-          actorName,
-          message: `«${say}»`,
-          meta: { say },
-        };
-        await encounterLogRepository.create({
-          encounterId: encounter.id,
-          ...sayEntry,
-        });
-        newLogEntries.push(sayEntry);
       }
-    } catch (monsterError) {
-      const errorEntry = {
-        actorName,
-        message: `${actorName} медлит (ошибка хода монстра).`,
-        meta: { error: monsterError instanceof Error ? monsterError.message : String(monsterError) },
-      };
-      await encounterLogRepository.create({
-        encounterId: encounter.id,
-        ...errorEntry,
-      });
-      newLogEntries.push(errorEntry);
     }
   } else if (currentParticipant.npcId) {
     const npc = await npcRepository.getById(currentParticipant.npcId);

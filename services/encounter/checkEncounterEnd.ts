@@ -73,12 +73,12 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
     for (const p of monsterParticipants) {
       const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-      const name = monster?.name ?? 'Monster';
+      const name = monster?.name ?? 'Монстр';
 
       if (p.isOut) {
         defeated.push(name);
         defeatedMonsters.push({
-          name: monster?.name ?? 'Unknown Monster',
+          name: monster?.name ?? 'Неизвестный монстр',
           catalogKey: monster?.catalogKey ?? 'unknown',
         });
       } else {
@@ -136,10 +136,10 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
       for (const p of monsterParticipants) {
         const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-        const name = monster?.name ?? 'Monster';
+        const name = monster?.name ?? 'Монстр';
         defeated.push(name);
         defeatedMonsters.push({
-          name: monster?.name ?? 'Unknown Monster',
+          name: monster?.name ?? 'Неизвестный монстр',
           catalogKey: monster?.catalogKey ?? 'unknown',
         });
       }
@@ -194,12 +194,12 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
     for (const p of monsterParticipants) {
       const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-      const name = monster?.name ?? 'Monster';
+      const name = monster?.name ?? 'Монстр';
 
       if (p.isOut) {
         defeated.push(name);
         defeatedMonsters.push({
-          name: monster?.name ?? 'Unknown Monster',
+          name: monster?.name ?? 'Неизвестный монстр',
           catalogKey: monster?.catalogKey ?? 'unknown',
         });
       } else {
@@ -257,10 +257,10 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
     for (const p of monsterParticipants) {
       const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-      const name = monster?.name ?? 'Monster';
+      const name = monster?.name ?? 'Монстр';
       defeated.push(name);
       defeatedMonsters.push({
-        name: monster?.name ?? 'Unknown Monster',
+        name: monster?.name ?? 'Неизвестный монстр',
         catalogKey: monster?.catalogKey ?? 'unknown',
       });
     }
@@ -332,12 +332,12 @@ export const checkEncounterEnd = async (input: ICheckEncounterEndInput): Promise
 
       for (const p of monsterParticipants) {
         const monster = await monsterInstanceRepository.getById(p.monsterInstanceId!);
-        const name = monster?.name ?? 'Monster';
+        const name = monster?.name ?? 'Монстр';
 
         if (p.isOut) {
           defeated.push(name);
           defeatedMonsters.push({
-            name: monster?.name ?? 'Unknown Monster',
+            name: monster?.name ?? 'Неизвестный монстр',
             catalogKey: monster?.catalogKey ?? 'unknown',
           });
         } else {

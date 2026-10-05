@@ -9,19 +9,19 @@ const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
 };
 
 interface IGetSelfCombatStatsArgs {
-  monsterInstanceId: string;
+  monsterInstanceId?: string;
 }
 
 const parseArgs = (args: unknown): IGetSelfCombatStatsArgs => {
-  if (!args || typeof args !== 'object') throw new Error('Аргументы getSelfCombatStats обязательны.');
+  if (args == null) return {};
+  if (typeof args !== 'object') throw new Error('Аргументы getSelfCombatStats должны быть объектом.');
 
   const raw = args as Record<string, unknown>;
+  if (raw.monsterInstanceId === undefined || raw.monsterInstanceId === null) return {};
   if (typeof raw.monsterInstanceId !== 'string' || !raw.monsterInstanceId.trim())
-    throw new Error('monsterInstanceId обязателен.');
+    throw new Error('monsterInstanceId должен быть непустой строкой.');
 
-  return {
-    monsterInstanceId: raw.monsterInstanceId.trim(),
-  };
+  return { monsterInstanceId: raw.monsterInstanceId.trim() };
 };
 
 const calculateAbilityMod = (score: number): number => Math.floor((score - 10) / 2);
@@ -29,22 +29,26 @@ const calculateAbilityMod = (score: number): number => Math.floor((score - 10) /
 export const getSelfCombatStatsTool: ILlmTool = {
   name: 'get_self_combat_stats',
   description:
-    'Возвращает боевые характеристики этого монстра: HP, AC, модификаторы характеристик, доступные атаки из справочника (actions), черты (traits) и способности. Используй, чтобы узнать свои возможности атаки и урон.',
+    'Возвращает боевые характеристики этого монстра: HP, AC, модификаторы характеристик, доступные атаки из справочника (actions), черты (traits) и способности. Используй, чтобы узнать свои возможности атаки и урон. monsterInstanceId берётся из контекста хода; не передавай id участника или чужого монстра.',
   parameters: {
     type: 'object',
     properties: {
       monsterInstanceId: {
         type: 'string',
-        description: 'ID экземпляра монстра',
+        description:
+          'ID экземпляра монстра. Необязателен: по умолчанию из контекста хода. Если передан и не совпадает с контекстом — отказ.',
       },
     },
-    required: ['monsterInstanceId'],
     additionalProperties: false,
   },
-  execute: async (args: unknown, _ctx: IToolContext) => {
-    const parsed = parseArgs(args);
+  execute: async (args: unknown, ctx: IToolContext) => {
+    if (!ctx.monsterInstanceId) throw new Error('monsterInstanceId отсутствует в контексте.');
 
-    const instance = await monsterInstanceRepository.getById(parsed.monsterInstanceId);
+    const parsed = parseArgs(args);
+    if (parsed.monsterInstanceId && parsed.monsterInstanceId !== ctx.monsterInstanceId)
+      throw new Error('FORBIDDEN: Нельзя читать характеристики другого экземпляра монстра.');
+
+    const instance = await monsterInstanceRepository.getById(ctx.monsterInstanceId);
     if (!instance) throw new Error('Монстр не найден.');
 
     let catalogEntry = null;
