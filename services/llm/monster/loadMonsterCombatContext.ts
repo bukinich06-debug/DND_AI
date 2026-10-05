@@ -1,5 +1,11 @@
-import { getCatalogMonsterByKey } from '@/domain/monster/catalog';
-import type { IMonsterAction, IMonsterAbility } from '@/domain/monster/catalog/types';
+import {
+  bonusKindsFromTraits,
+  getCatalogMonsterByKey,
+  type IMonsterAction,
+  type IMonsterAbility,
+  type TMonsterBonusKind,
+} from '@/domain/monster';
+import { CombatFlag, hasFlag } from '@/domain/combat';
 import { encounterRepository, encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
@@ -35,6 +41,9 @@ export interface IMonsterCombatContext {
     cha: number;
     traits: IMonsterAbility[] | null;
     actions: IMonsterAction[] | null;
+    bonusKinds: TMonsterBonusKind[];
+    hidden: boolean;
+    disengaged: boolean;
     actionUsed: boolean;
     bonusActionUsed: boolean;
     reactionUsed: boolean;
@@ -82,10 +91,12 @@ export const loadMonsterCombatContext = async ({
 
   let catalogActions: IMonsterAction[] | null = null;
   let catalogTraits: IMonsterAbility[] | null = null;
+  let bonusKinds: TMonsterBonusKind[] = [];
   try {
     const catalogEntry = getCatalogMonsterByKey(monster.catalogKey);
     catalogActions = normalizeToArray(catalogEntry.actions);
     catalogTraits = normalizeToArray(catalogEntry.traits);
+    bonusKinds = bonusKindsFromTraits(catalogEntry.traits);
   } catch {
     // Справочная запись отсутствует — продолжаем без неё
   }
@@ -170,6 +181,9 @@ export const loadMonsterCombatContext = async ({
       cha: monster.cha,
       traits: catalogTraits,
       actions: catalogActions,
+      bonusKinds,
+      hidden: hasFlag(monster.conditions, CombatFlag.hidden),
+      disengaged: hasFlag(monster.conditions, CombatFlag.disengaged),
       actionUsed: monsterActionEconomy.actionUsed,
       bonusActionUsed: monsterActionEconomy.bonusActionUsed,
       reactionUsed: monsterActionEconomy.reactionUsed,

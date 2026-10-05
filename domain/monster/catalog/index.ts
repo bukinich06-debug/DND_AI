@@ -8,4 +8,14 @@ export type {
 export { getCatalogMonsterByKey } from './getByKey';
 export { searchMonsterCatalog } from './searchCatalog';
 export { loadCatalog } from './loadCatalog';
-export { matchCatalogAction, getAttackType, isActionInRange, isRangedAtDistance } from './helpers';
+export {
+  matchCatalogAction,
+  getAttackType,
+  isActionInRange,
+  isRangedAtDistance,
+  CATALOG_TRAIT,
+  hasCatalogTrait,
+  bonusKindsFromTraits,
+  bonusKindAllowed,
+} from './helpers';
+export type { TMonsterBonusKind } from './helpers';

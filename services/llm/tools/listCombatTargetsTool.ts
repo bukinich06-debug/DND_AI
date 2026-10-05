@@ -2,6 +2,9 @@ import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
+import { CATALOG_TRAIT, getCatalogMonsterByKey, hasCatalogTrait } from '@/domain/monster';
+import { CombatFlag, combatSideOf, hasFlag, hasPackTacticsAdvantage } from '@/domain/combat';
+import { loadPackFighters } from '@/services/encounter/helpers/loadPackFighters';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IListCombatTargetsArgs {
@@ -56,6 +59,8 @@ export const listCombatTargetsTool: ILlmTool = {
         let hp: number | null = null;
         let ac: number | null = null;
 
+        let conditions: string[] = [];
+
         if (p.playerId) {
           const player = await playerRepository.getById(p.playerId);
           if (player) {
@@ -63,6 +68,7 @@ export const listCombatTargetsTool: ILlmTool = {
             kind = 'player';
             hp = player.hpCurrent;
             ac = player.ac;
+            conditions = player.conditions;
           }
         } else if (p.npcId) {
           const npc = await npcRepository.getById(p.npcId);
@@ -80,6 +86,7 @@ export const listCombatTargetsTool: ILlmTool = {
             kind = 'monster';
             hp = monster.hpCurrent;
             ac = monster.ac;
+            conditions = monster.conditions;
           }
         }
 
@@ -96,15 +103,45 @@ export const listCombatTargetsTool: ILlmTool = {
           isOut: p.isOut,
           hp,
           ac,
+          conditions,
+          hidden: hasFlag(conditions, CombatFlag.hidden),
           positionFeet: p.positionFeet,
           distance,
           direction,
           playerId: p.playerId,
           npcId: p.npcId,
           monsterInstanceId: p.monsterInstanceId,
+          packTactics: false,
         };
       })
     );
+
+    if (ctx.monsterInstanceId) {
+      const self = participants.find((p) => p.monsterInstanceId === ctx.monsterInstanceId);
+      const selfMonster = await monsterInstanceRepository.getById(ctx.monsterInstanceId);
+      let hasPackTrait = false;
+      if (selfMonster) {
+        try {
+          const catalog = getCatalogMonsterByKey(selfMonster.catalogKey);
+          hasPackTrait = hasCatalogTrait(catalog.traits, CATALOG_TRAIT.packTactics);
+        } catch {
+          hasPackTrait = false;
+        }
+      }
+
+      if (self && hasPackTrait) {
+        const fighters = await loadPackFighters(participants);
+        for (const row of result) {
+          row.packTactics = hasPackTacticsAdvantage({
+            attackerId: self.id,
+            attackerSide: combatSideOf(self),
+            targetId: row.participantId,
+            targetPositionFeet: row.positionFeet,
+            fighters,
+          });
+        }
+      }
+    }
 
     return result;
   },

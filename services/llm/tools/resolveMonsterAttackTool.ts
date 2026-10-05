@@ -6,8 +6,20 @@ import { playerRepository } from '@/data/player';
 import { rollDice } from '@/services/dice/roll/rollDice';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
+import { rollAttackD20 } from '@/services/encounter/helpers/rollAttackD20';
+import { loadPackFighters } from '@/services/encounter/helpers/loadPackFighters';
 import {
+  CombatFlag,
+  combatSideOf,
+  combineRollModes,
+  hasFlag,
+  hasPackTacticsAdvantage,
+  withoutFlag,
+} from '@/domain/combat';
+import {
+  CATALOG_TRAIT,
   getCatalogMonsterByKey,
+  hasCatalogTrait,
   matchCatalogAction,
   isActionInRange,
   isRangedAtDistance,
@@ -77,7 +89,7 @@ const parseDamageFormula = (formula: string): { dieCount: number; die: DiceKind 
 export const resolveMonsterAttackTool: ILlmTool = {
   name: 'resolve_monster_attack',
   description:
-    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция, метательная — рукопашная ≤5 или ≤нормальная), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Нельзя атаковать себя или других монстров (союзников). НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке (допускается короткое имя вроде «лук»). Если не указано и в каталоге есть действия — берётся первая атака, которая достаёт до цели; если ни одна не достаёт — OUT_OF_REACH. Если каталог пуст — простая рукопашная 1d6 + модификатор. Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
+    'Разрешает атаку монстра против цели: проверяет дистанцию (рукопашная ≤5 футов, дальнобойная ≤нормальная дистанция, метательная — рукопашная ≤5 или ≤нормальная), бросок атаки d20+бонус против AC цели; при попадании — бросок урона и применение к HP. Черта «Тактика стаи» и скрытие дают преимущество автоматически (два d20, берётся высший). Нельзя атаковать себя или других монстров (союзников). НЕ АТАКУЕТ цели с 0 HP, если монстр не имеет флага finishesDowned (добивающий). Атака по бессознательной цели в 5 футах = автоматический крит, попадание даёт +1 провал спасброска от смерти (крит +2). Автоматически помечает участника isOut, если HP<=0. Вернёт hit/miss, броски, новый HP цели или errorCode. attackName — название атаки из списка доступных действий монстра на русском языке (допускается короткое имя вроде «лук»). Если не указано и в каталоге есть действия — берётся первая атака, которая достаёт до цели; если ни одна не достаёт — OUT_OF_REACH. Если каталог пуст — простая рукопашная 1d6 + модификатор. Все параметры атаки (урон, бонус, дальность) берутся из каталога монстра по attackName. Монстр действует только от своего имени (monsterInstanceId берётся из контекста хода).',
   parameters: {
     type: 'object',
     properties: {
@@ -271,13 +283,32 @@ export const resolveMonsterAttackTool: ILlmTool = {
       };
     }
 
-    const attackRoll = await rollDice({
+    const packTactics =
+      hasCatalogTrait(catalog.traits, CATALOG_TRAIT.packTactics) &&
+      hasPackTacticsAdvantage({
+        attackerId: attackerParticipant.id,
+        attackerSide: combatSideOf(attackerParticipant),
+        targetId: targetParticipant.id,
+        targetPositionFeet: targetParticipant.positionFeet,
+        fighters: await loadPackFighters(allParticipants),
+      });
+    const attackerHidden = hasFlag(attacker.conditions, CombatFlag.hidden);
+    const rollMode = combineRollModes(packTactics || attackerHidden, false);
+    const advantageReasons: string[] = [];
+    if (packTactics) advantageReasons.push('Тактика стаи');
+    if (attackerHidden) advantageReasons.push('скрыт');
+
+    const attackRoll = await rollAttackD20({
       campaignId: ctx.campaignId,
-      die: DiceKind.d20,
       note: `Атака монстра ${attacker.name} по ${targetName}${chosenAttackName ? ` (${chosenAttackName})` : ''}`,
-      npcId: null,
-      playerId: null,
+      mode: rollMode,
     });
+
+    if (attackerHidden) {
+      await monsterInstanceRepository.update(attacker.id, {
+        conditions: withoutFlag(attacker.conditions, CombatFlag.hidden),
+      });
+    }
 
     const attackTotal = attackRoll.value + attackBonus;
 
@@ -420,6 +451,11 @@ export const resolveMonsterAttackTool: ILlmTool = {
         isNatural20,
         isNatural1: false,
         attackRoll: attackRoll.value,
+        attackRolls: attackRoll.rolls,
+        rollMode,
+        advantageReasons,
+        packTactics,
+        revealedFromHide: attackerHidden,
         attackBonus,
         attackTotal,
         targetAc,
@@ -443,6 +479,11 @@ export const resolveMonsterAttackTool: ILlmTool = {
       isNatural20: false,
       isNatural1,
       attackRoll: attackRoll.value,
+      attackRolls: attackRoll.rolls,
+      rollMode,
+      advantageReasons,
+      packTactics,
+      revealedFromHide: attackerHidden,
       attackBonus,
       attackTotal,
       targetAc,

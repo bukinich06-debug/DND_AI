@@ -3,6 +3,7 @@ import { listCombatTargetsTool } from '@/services/llm/tools/listCombatTargetsToo
 import { moveInCombatTool } from '@/services/llm/tools/moveInCombatTool';
 import { resolveMonsterAttackTool } from '@/services/llm/tools/resolveMonsterAttackTool';
 import { rollDiceTool } from '@/services/llm/tools/rollDiceTool';
+import { useMonsterBonusTool } from '@/services/llm/tools/useMonsterBonusTool';
 import type { ILlmTool } from '@/services/llm/tools/types';
 
 export const monsterTools: ILlmTool[] = [
@@ -11,6 +12,7 @@ export const monsterTools: ILlmTool[] = [
   rollDiceTool,
   moveInCombatTool,
   resolveMonsterAttackTool,
+  useMonsterBonusTool,
 ];
 
 export const monsterToolByName = new Map(monsterTools.map((tool) => [tool.name, tool]));

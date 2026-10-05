@@ -1,5 +1,8 @@
-import { getCatalogMonsterByKey } from '@/domain/monster/catalog';
+import { bonusKindsFromTraits, getCatalogMonsterByKey } from '@/domain/monster';
+import { CombatFlag, hasFlag } from '@/domain/combat';
+import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
+import { getActionEconomy } from '@/services/encounter/actionEconomy';
 import type { ILlmTool, IToolContext } from './types';
 
 const normalizeToArray = <T>(value: T[] | null | undefined | object): T[] => {
@@ -29,7 +32,7 @@ const calculateAbilityMod = (score: number): number => Math.floor((score - 10) /
 export const getSelfCombatStatsTool: ILlmTool = {
   name: 'get_self_combat_stats',
   description:
-    'Возвращает боевые характеристики этого монстра: HP, AC, модификаторы характеристик, доступные атаки из справочника (actions), черты (traits) и способности. Используй, чтобы узнать свои возможности атаки и урон. monsterInstanceId берётся из контекста хода; не передавай id участника или чужого монстра.',
+    'Возвращает боевые характеристики этого монстра: HP, AC, модификаторы, атаки, черты, бонусные действия из черт (bonusKinds) и экономию действий. monsterInstanceId берётся из контекста хода; не передавай id участника или чужого монстра.',
   parameters: {
     type: 'object',
     properties: {
@@ -65,6 +68,21 @@ export const getSelfCombatStatsTool: ILlmTool = {
     const wisMod = calculateAbilityMod(instance.wis);
     const chaMod = calculateAbilityMod(instance.cha);
 
+    const bonusKinds = catalogEntry ? bonusKindsFromTraits(catalogEntry.traits) : [];
+
+    let actionEconomy = {
+      actionUsed: false,
+      bonusActionUsed: false,
+      reactionUsed: false,
+      movementUsedFeet: 0,
+      movementLeftFeet: instance.speed,
+    };
+    if (ctx.encounterId) {
+      const participants = await encounterParticipantRepository.listByEncounterId(ctx.encounterId);
+      const participant = participants.find((p) => p.monsterInstanceId === instance.id);
+      if (participant) actionEconomy = await getActionEconomy(participant.id);
+    }
+
     return {
       id: instance.id,
       name: instance.name,
@@ -91,10 +109,18 @@ export const getSelfCombatStatsTool: ILlmTool = {
       vulnerabilities: instance.vulnerabilities,
       conditionImmunities: instance.conditionImmunities,
       conditions: instance.conditions,
+      hidden: hasFlag(instance.conditions, CombatFlag.hidden),
+      disengaged: hasFlag(instance.conditions, CombatFlag.disengaged),
       traits: catalogEntry ? normalizeToArray(catalogEntry.traits) : null,
       actions: catalogEntry ? normalizeToArray(catalogEntry.actions) : null,
       reactions: catalogEntry ? normalizeToArray(catalogEntry.reactions) : null,
       legendaryActions: catalogEntry ? normalizeToArray(catalogEntry.legendaryActions) : null,
+      bonusKinds,
+      actionUsed: actionEconomy.actionUsed,
+      bonusActionUsed: actionEconomy.bonusActionUsed,
+      reactionUsed: actionEconomy.reactionUsed,
+      movementUsedFeet: actionEconomy.movementUsedFeet,
+      movementLeftFeet: actionEconomy.movementLeftFeet,
     };
   },
 };
