@@ -4,6 +4,8 @@ import { npcRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
 import type { IEncounterParticipant } from '@/domain/encounter';
 import { spendMovement } from '@/services/encounter/actionEconomy';
+import { formatStrikeMessage } from '@/services/encounter/helpers/formatStrikeMessage';
+import { resolveOpportunityAttacks } from '@/services/encounter/helpers/resolveOpportunityAttacks';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IMoveInCombatArgs {
@@ -131,6 +133,32 @@ export const moveInCombatTool: ILlmTool = {
       }
 
       const direction = targetPosition === positionBefore ? 0 : targetPosition > positionBefore ? 1 : -1;
+      const positionAfter = positionBefore + direction * actualMove;
+
+      const opportunityAttacks = await resolveOpportunityAttacks({
+        campaignId: ctx.campaignId,
+        encounterId: ctx.encounterId,
+        mover: participant,
+        from: positionBefore,
+        to: positionAfter,
+        allParticipants,
+      });
+      const interruptedByOpportunity = opportunityAttacks.some((s) => s.targetIsOut);
+
+      if (interruptedByOpportunity) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          distanceToTarget: distance,
+          speed,
+          monsterName: monster.name,
+          targetName,
+          interruptedByOpportunity: true,
+          opportunityAttacks,
+          opportunityNotes: opportunityAttacks.map(formatStrikeMessage),
+        };
+      }
 
       const movementResult = await spendMovement(participant.id, actualMove, speed);
       if (!movementResult.success) {
@@ -147,14 +175,11 @@ export const moveInCombatTool: ILlmTool = {
         };
       }
 
-      const positionAfter = positionBefore + direction * actualMove;
-
       await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
 
       const playerParticipant = allParticipants.find((p) => p.playerId);
       const playerPosition = playerParticipant?.positionFeet ?? 0;
       const newFeetFromPlayer = Math.abs(positionAfter - playerPosition);
-
       await encounterParticipantRepository.update(participant.id, { feetFromPlayer: newFeetFromPlayer });
 
       return {
@@ -165,6 +190,8 @@ export const moveInCombatTool: ILlmTool = {
         speed,
         monsterName: monster.name,
         targetName,
+        opportunityAttacks,
+        opportunityNotes: opportunityAttacks.map(formatStrikeMessage),
       };
     } else {
       if (parsed.targetParticipantId) {
@@ -205,6 +232,33 @@ export const moveInCombatTool: ILlmTool = {
         };
       }
 
+      const positionAfter = positionBefore + direction * actualMove;
+
+      const opportunityAttacks = await resolveOpportunityAttacks({
+        campaignId: ctx.campaignId,
+        encounterId: ctx.encounterId,
+        mover: participant,
+        from: positionBefore,
+        to: positionAfter,
+        allParticipants,
+      });
+      const interruptedByOpportunity = opportunityAttacks.some((s) => s.targetIsOut);
+
+      if (interruptedByOpportunity) {
+        return {
+          movedFeet: 0,
+          positionBefore,
+          positionAfter: positionBefore,
+          speed,
+          monsterName: monster.name,
+          targetName,
+          fled: false,
+          interruptedByOpportunity: true,
+          opportunityAttacks,
+          opportunityNotes: opportunityAttacks.map(formatStrikeMessage),
+        };
+      }
+
       const movementResult = await spendMovement(participant.id, actualMove, speed);
       if (!movementResult.success) {
         return {
@@ -218,8 +272,6 @@ export const moveInCombatTool: ILlmTool = {
           message: `Превышен лимит движения (осталось ${movementResult.movementLeft} фт из ${speed} фт)`,
         };
       }
-
-      const positionAfter = positionBefore + direction * actualMove;
 
       await encounterParticipantRepository.update(participant.id, { positionFeet: positionAfter });
 
@@ -254,6 +306,8 @@ export const moveInCombatTool: ILlmTool = {
         monsterName: monster.name,
         targetName,
         fled,
+        opportunityAttacks,
+        opportunityNotes: opportunityAttacks.map(formatStrikeMessage),
       };
     }
   },

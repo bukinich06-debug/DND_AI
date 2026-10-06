@@ -25,6 +25,7 @@ const expectedToolNames = [
   'roll_dice',
   'move_player_in_combat',
   'resolve_player_attack',
+  'use_player_disengage',
 ];
 
 const checkTools = () => {

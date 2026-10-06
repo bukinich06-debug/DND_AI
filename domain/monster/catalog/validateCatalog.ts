@@ -1,4 +1,11 @@
-import type { IMonsterAbility, IMonsterAction, IMonsterCatalogEntry, TMonsterAttackType } from './types';
+import type {
+  IMonsterAbility,
+  IMonsterAction,
+  IMonsterCatalogEntry,
+  IMultiattackPart,
+  TMonsterAttackType,
+} from './types';
+import { isMultiattackAction, isMultiattackName } from './helpers/multiattack';
 
 const ATTACK_TYPES = new Set<TMonsterAttackType>(['melee', 'ranged', 'thrown']);
 
@@ -85,6 +92,28 @@ const validateAction = (raw: unknown, where: string, field: string): IMonsterAct
       throw new Error(`${where}.${field}: rangeLong не может быть меньше rangeNormal.`);
   }
 
+  let multiattack: IMultiattackPart[] | undefined;
+  if (obj.multiattack !== undefined) {
+    if (!Array.isArray(obj.multiattack) || obj.multiattack.length < 1)
+      throw new Error(`${where}.${field}: multiattack — непустой массив частей.`);
+    multiattack = obj.multiattack.map((part, index) => {
+      if (!part || typeof part !== 'object' || Array.isArray(part))
+        throw new Error(`${where}.${field}.multiattack[${index}]: объект { attack, count? }.`);
+      const row = part as Record<string, unknown>;
+      if (typeof row.attack !== 'string' || !row.attack.trim())
+        throw new Error(`${where}.${field}.multiattack[${index}]: attack — непустое имя атаки.`);
+      if (isMultiattackName(row.attack))
+        throw new Error(`${where}.${field}.multiattack[${index}]: нельзя ссылаться на другую мультиатаку.`);
+      let count: number | undefined;
+      if (row.count !== undefined) {
+        if (typeof row.count !== 'number' || !Number.isInteger(row.count) || row.count < 1 || row.count > 8)
+          throw new Error(`${where}.${field}.multiattack[${index}]: count — целое от 1 до 8.`);
+        count = row.count;
+      }
+      return { attack: row.attack.trim(), ...(count !== undefined ? { count } : {}) };
+    });
+  }
+
   return {
     name: obj.name.trim(),
     description: obj.description.trim(),
@@ -94,7 +123,21 @@ const validateAction = (raw: unknown, where: string, field: string): IMonsterAct
     ...(obj.attackType !== undefined ? { attackType: obj.attackType as TMonsterAttackType } : {}),
     ...(obj.rangeNormal !== undefined ? { rangeNormal: obj.rangeNormal as number } : {}),
     ...(obj.rangeLong !== undefined ? { rangeLong: obj.rangeLong as number } : {}),
+    ...(multiattack ? { multiattack } : {}),
   };
+};
+
+const assertMultiattackRefs = (actions: IMonsterAction[], where: string) => {
+  const strikeNames = new Set(actions.filter((a) => !isMultiattackAction(a)).map((a) => a.name));
+  for (const action of actions) {
+    if (!isMultiattackAction(action)) continue;
+    if (!action.multiattack || action.multiattack.length === 0)
+      throw new Error(`${where}: «${action.name}» — укажи multiattack с атаками из этого статблока.`);
+    for (const part of action.multiattack) {
+      if (!strikeNames.has(part.attack))
+        throw new Error(`${where}: мультиатака ссылается на неизвестную атаку «${part.attack}».`);
+    }
+  }
 };
 
 const parseEntry = (raw: unknown, index: number): IMonsterCatalogEntry => {
@@ -160,6 +203,7 @@ const parseEntry = (raw: unknown, index: number): IMonsterCatalogEntry => {
   if (row.actions !== null) {
     if (!Array.isArray(row.actions)) throw new Error(`${where}: actions — массив объектов или null.`);
     actions = row.actions.map((a) => validateAction(a, where, 'actions'));
+    assertMultiattackRefs(actions, `${where}.actions`);
   }
 
   let reactions: IMonsterAbility[] | null = null;

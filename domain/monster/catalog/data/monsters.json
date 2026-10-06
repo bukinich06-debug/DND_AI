@@ -267,5 +267,62 @@
     "legendaryActions": null,
     "lootCoinsCp": 0,
     "finishesDowned": true
+  },
+  {
+    "key": "hobgoblin",
+    "aliases": ["hobgoblin", "хобгоблин"],
+    "name": "Хобгоблин",
+    "summary": "Дисциплинированный гоблиноид-солдат.",
+    "size": "Средний",
+    "creatureType": "Гуманоид",
+    "challengeRating": "1/2",
+    "proficiencyBonus": 2,
+    "str": 13,
+    "dex": 12,
+    "con": 12,
+    "int": 10,
+    "wis": 10,
+    "cha": 9,
+    "hpMax": 11,
+    "ac": 18,
+    "speed": 30,
+    "initiativeBonus": 1,
+    "saveProf": [],
+    "resistances": [],
+    "immunities": [],
+    "vulnerabilities": [],
+    "conditionImmunities": [],
+    "senses": ["Тёмное зрение 60 футов"],
+    "languages": ["Общий", "Гоблинский"],
+    "traits": null,
+    "actions": [
+      {
+        "name": "Мультиатака",
+        "description": "Хобгоблин совершает две атаки длинным мечом.",
+        "multiattack": [{ "attack": "Длинный меч", "count": 2 }]
+      },
+      {
+        "name": "Длинный меч",
+        "description": "Рукопашная атака оружием",
+        "attackBonus": 3,
+        "damage": "1d8+1",
+        "damageType": "рубящий",
+        "attackType": "melee"
+      },
+      {
+        "name": "Длинный лук",
+        "description": "Дальнобойная атака оружием (дистанция 150/600 футов)",
+        "attackBonus": 3,
+        "damage": "1d8+1",
+        "damageType": "колющий",
+        "attackType": "ranged",
+        "rangeNormal": 150,
+        "rangeLong": 600
+      }
+    ],
+    "reactions": null,
+    "legendaryActions": null,
+    "lootCoinsCp": 100,
+    "finishesDowned": true
   }
 ]

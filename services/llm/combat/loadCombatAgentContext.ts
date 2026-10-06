@@ -2,6 +2,7 @@ import { encounterRepository, encounterParticipantRepository } from '@/data/enco
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
+import { CombatFlag, hasFlag } from '@/domain/combat';
 import { searchPlayerItems } from '@/services/item/search/searchPlayerItems';
 import { getActionEconomy } from '@/services/encounter/actionEconomy';
 
@@ -40,6 +41,7 @@ export interface ICombatAgentContext {
     movementUsedFeet: number;
     movementLeftFeet: number;
     positionFeet: number;
+    disengaged: boolean;
   };
   encounter: {
     id: string;
@@ -186,6 +188,7 @@ export const loadCombatAgentContext = async ({
       movementUsedFeet: playerActionEconomy.movementUsedFeet,
       movementLeftFeet: playerActionEconomy.movementLeftFeet,
       positionFeet: playerParticipant?.positionFeet ?? 0,
+      disengaged: hasFlag(player.conditions, CombatFlag.disengaged),
     },
     encounter: {
       id: encounter.id,

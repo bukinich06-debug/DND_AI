@@ -12,5 +12,9 @@ export {
   isAllyOf,
   hasPackTacticsAdvantage,
   approachOnLine,
+  MELEE_REACH_FEET,
+  isInMeleeReach,
+  leavesReachOnPath,
+  opportunityAttackerIds,
 } from './helpers';
 export type { TRollMode, TCombatSide, IPackFighter } from './helpers';

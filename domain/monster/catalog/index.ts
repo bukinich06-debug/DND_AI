@@ -3,6 +3,7 @@ export type {
   ISearchMonsterCatalogResult,
   IMonsterAbility,
   IMonsterAction,
+  IMultiattackPart,
   TMonsterAttackType,
 } from './types';
 export { getCatalogMonsterByKey } from './getByKey';
@@ -17,5 +18,9 @@ export {
   hasCatalogTrait,
   bonusKindsFromTraits,
   bonusKindAllowed,
+  isMultiattackName,
+  isMultiattackAction,
+  expandMultiattack,
+  pickDefaultAttack,
 } from './helpers';
 export type { TMonsterBonusKind } from './helpers';

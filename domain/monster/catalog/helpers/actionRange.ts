@@ -1,8 +1,10 @@
 import type { IMonsterAction, TMonsterAttackType } from '../types';
+import { isMultiattackAction } from './multiattack';
 
 export const getAttackType = (action: IMonsterAction): TMonsterAttackType => action.attackType ?? 'melee';
 
 export const isActionInRange = (action: IMonsterAction, distance: number): boolean => {
+  if (isMultiattackAction(action)) return false;
   const type = getAttackType(action);
   if (type === 'melee') return distance <= 5;
   if (type === 'thrown') {

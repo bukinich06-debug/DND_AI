@@ -10,6 +10,8 @@ import { getActiveEncounter } from './getActiveEncounter';
 import { resetActionEconomy } from './actionEconomy';
 import { checkEncounterEnd } from './checkEncounterEnd';
 import { makeDeathSave } from '@/services/player/deathSaves/makeDeathSave';
+import { formatStrikeMessage } from '@/services/encounter/helpers/formatStrikeMessage';
+import type { IStrikeResult } from '@/services/encounter/helpers/strikeTypes';
 
 interface IAdvanceCombatTurnInput {
   campaignId: string;
@@ -254,10 +256,20 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
               monsterName?: string;
               fled?: boolean;
               errorCode?: string;
+              interruptedByOpportunity?: boolean;
+              opportunityNotes?: string[];
             };
 
             if (hasErrorCode(move.result)) {
               errorNotes.push(formatMonsterErrorNote(move.result));
+              continue;
+            }
+
+            if (res.interruptedByOpportunity && res.opportunityNotes && res.opportunityNotes.length > 0) {
+              messages.push(
+                `${res.monsterName || actorName} не смог отойти — провокация остановила его; ${res.opportunityNotes.join('; ')}`
+              );
+              events.push(move.result);
               continue;
             }
 
@@ -274,11 +286,16 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
                     : 'движется';
 
               const fledText = res.fled ? ' и сбегает из боя' : '';
-              const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})${fledText}`;
+              const oaText =
+                res.opportunityNotes && res.opportunityNotes.length > 0 ? `; ${res.opportunityNotes.join('; ')}` : '';
+              const moveMessage = `${res.monsterName || actorName} ${actionText} на ${res.movedFeet} фт (позиция: ${res.positionBefore} → ${res.positionAfter}${res.distanceToTarget !== undefined ? `, дистанция до цели: ${res.distanceToTarget} фт` : ''})${fledText}${oaText}`;
               messages.push(moveMessage);
               events.push(move.result);
             } else if (res.fled) {
               messages.push(`${res.monsterName || actorName} сбегает из боя`);
+              events.push(move.result);
+            } else if (res.opportunityNotes && res.opportunityNotes.length > 0) {
+              messages.push(res.opportunityNotes.join('; '));
               events.push(move.result);
             }
           }
@@ -313,74 +330,28 @@ export const advanceCombatTurn = async (input: IAdvanceCombatTurnInput): Promise
         for (const attack of attackResults) {
           if (typeof attack.result === 'object' && attack.result !== null) {
             const res = attack.result as {
+              multiattack?: boolean;
+              strikes?: IStrikeResult[];
               hit?: boolean;
-              damageTotal?: number;
-              targetName?: string;
               attackRoll?: number;
-              attackRolls?: number[];
-              rollMode?: string;
-              advantageReasons?: string[];
-              attackBonus?: number;
-              attackTotal?: number;
-              targetAc?: number;
-              damageRolls?: number[];
-              damageBonus?: number;
-              targetPreviousHp?: number;
-              targetNewHp?: number;
-              isCritical?: boolean;
-              isNatural20?: boolean;
-              isNatural1?: boolean;
-              deathSaveFailuresAdded?: number;
             };
 
-            if (res.hit && res.damageTotal !== undefined) {
-              const critText = res.isCritical ? (res.isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
+            const strikes =
+              res.strikes && res.strikes.length > 0
+                ? res.strikes
+                : res.attackRoll !== undefined
+                  ? [res as IStrikeResult]
+                  : [];
 
-              const rollModeText =
-                res.rollMode === 'advantage' ? ' преимущество' : res.rollMode === 'disadvantage' ? ' помеха' : '';
-              const rollsText =
-                res.attackRolls && res.attackRolls.length === 2 ? ` ${res.attackRolls[0]}/${res.attackRolls[1]}` : '';
-              const traitText =
-                res.advantageReasons && res.advantageReasons.length > 0 ? ` [${res.advantageReasons.join(', ')}]` : '';
+            for (const strike of strikes) {
+              if (strike.hit === undefined && strike.attackRoll === undefined) continue;
+              messages.push(formatStrikeMessage(strike));
+              if (strike.attackRoll !== undefined) hasAttackRoll = true;
+            }
 
-              const attackDetails =
-                res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-                  ? `d20${rollsText}${rollModeText} ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}${traitText}, `
-                  : '';
-
-              const damageDetails =
-                res.damageRolls && res.damageBonus !== undefined
-                  ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
-                  : `${res.damageTotal}`;
-
-              const hpDetails =
-                res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
-                  ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
-                  : '';
-
-              const deathSaveDetails =
-                res.deathSaveFailuresAdded && res.deathSaveFailuresAdded > 0
-                  ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
-                  : '';
-
-              const attackMessage = `Попадание по ${res.targetName || 'цель'}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
-              messages.push(attackMessage);
+            if (strikes.length > 0) {
               events.push(attack.result);
               attackResultForMeta = attack.result as Record<string, unknown>;
-              if (res.attackRoll !== undefined) hasAttackRoll = true;
-            } else if (res.hit === false && res.attackRoll !== undefined) {
-              const nat1Text = res.isNatural1 ? ' [nat1]' : '';
-
-              const attackDetails =
-                res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
-                  ? ` (d20 ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc})`
-                  : '';
-
-              const missMessage = `Атака по ${res.targetName || 'цели'} промахнулась${nat1Text}${attackDetails}`;
-              messages.push(missMessage);
-              events.push(attack.result);
-              attackResultForMeta = attack.result as Record<string, unknown>;
-              hasAttackRoll = true;
             }
           }
         }
