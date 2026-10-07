@@ -1,3 +1,4 @@
+import { formatDamageTypeNote } from '@/domain/combat';
 import type { IStrikeResult } from './strikeTypes';
 
 export const formatStrikeMessage = (res: IStrikeResult): string => {
@@ -16,10 +17,14 @@ export const formatStrikeMessage = (res: IStrikeResult): string => {
       res.attackRoll !== undefined && res.attackBonus !== undefined && res.targetAc !== undefined
         ? `d20${rollsText}${rollModeText} ${res.attackRoll}+${res.attackBonus}=${res.attackTotal} vs AC ${res.targetAc}${traitText}, `
         : '';
+    const raw = res.damageRaw ?? res.damageTotal;
     const damageDetails =
       res.damageRolls && res.damageBonus !== undefined
-        ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${res.damageTotal}`
-        : `${res.damageTotal}`;
+        ? `${res.damageRolls.join('+')}${res.damageBonus >= 0 ? '+' : ''}${res.damageBonus} → ${raw}`
+        : `${raw}`;
+    const typeNote = formatDamageTypeNote(res.damageType, res.damageModifiers ?? []);
+    const appliedNote =
+      (res.damageModifiers?.length ?? 0) > 0 && res.damageTotal !== raw ? ` → ${res.damageTotal}` : '';
     const hpDetails =
       res.targetPreviousHp !== undefined && res.targetNewHp !== undefined
         ? ` (HP ${res.targetPreviousHp}→${res.targetNewHp})`
@@ -28,7 +33,7 @@ export const formatStrikeMessage = (res: IStrikeResult): string => {
       res.deathSaveFailuresAdded && res.deathSaveFailuresAdded > 0
         ? ` [провалы спасброска +${res.deathSaveFailuresAdded}]`
         : '';
-    return `${oaPrefix}Попадание по ${res.targetName}${nameText}${critText}: ${attackDetails}урон ${damageDetails}${hpDetails}${deathSaveDetails}`;
+    return `${oaPrefix}Попадание по ${res.targetName}${nameText}${critText}: ${attackDetails}урон ${damageDetails}${typeNote}${appliedNote}${hpDetails}${deathSaveDetails}`;
   }
 
   if (res.attackRoll !== undefined) {

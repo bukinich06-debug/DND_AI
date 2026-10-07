@@ -5,6 +5,7 @@ import {
   combineRollModes,
   hasFlag,
   hasPackTacticsAdvantage,
+  resolveStrikeDamageType,
   withoutFlag,
 } from '@/domain/combat';
 import type { IEncounterParticipant } from '@/domain/encounter';
@@ -155,6 +156,7 @@ export const performMonsterStrike = async ({
     targetParticipant,
     target,
     damageTotal,
+    damageType: resolveStrikeDamageType(action?.damageType),
     isCritical: critResult.isCritical,
   });
 
@@ -165,7 +167,10 @@ export const performMonsterStrike = async ({
     damageFormula,
     damageRolls,
     damageBonus: bonus,
-    damageTotal,
+    damageRaw: applied.damageRaw,
+    damageTotal: applied.damageTotal,
+    damageType: applied.damageType,
+    damageModifiers: applied.damageModifiers,
     targetPreviousHp: target.hp,
     targetNewHp: applied.newHp,
     targetMaxHp: target.maxHp,

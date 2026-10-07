@@ -1,4 +1,4 @@
-import type { TRollMode } from '@/domain/combat';
+import type { TDamageModifierKind, TRollMode } from '@/domain/combat';
 
 export interface IStrikeResult {
   hit: boolean;
@@ -17,7 +17,10 @@ export interface IStrikeResult {
   damageFormula?: string;
   damageRolls?: number[];
   damageBonus?: number;
+  damageRaw?: number;
   damageTotal?: number;
+  damageType?: string | null;
+  damageModifiers?: TDamageModifierKind[];
   attackerName: string;
   targetName: string;
   targetPreviousHp?: number;

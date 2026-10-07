@@ -16,5 +16,22 @@ export {
   isInMeleeReach,
   leavesReachOnPath,
   opportunityAttackerIds,
+  UNARMED_DAMAGE_TYPE,
+  DEFAULT_DAMAGE_TYPE,
+  DAMAGE_TYPE_LABEL,
+  DAMAGE_MODIFIER_LABEL,
+  parseDamageType,
+  damageTypeLabel,
+  resolveStrikeDamageType,
+  sameDamageType,
+  formatDamageTypeNote,
+  applyDamageModifiers,
 } from './helpers';
-export type { TRollMode, TCombatSide, IPackFighter } from './helpers';
+export type {
+  TRollMode,
+  TCombatSide,
+  IPackFighter,
+  TDamageType,
+  TDamageModifierKind,
+  IApplyDamageModifiersResult,
+} from './helpers';

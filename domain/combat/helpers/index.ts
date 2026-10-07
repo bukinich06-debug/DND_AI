@@ -8,3 +8,17 @@ export { hasPackTacticsAdvantage } from './packTactics';
 export type { IPackFighter } from './packTactics';
 export { approachOnLine } from './approachOnLine';
 export { MELEE_REACH_FEET, isInMeleeReach, leavesReachOnPath, opportunityAttackerIds } from './opportunityAttack';
+export {
+  UNARMED_DAMAGE_TYPE,
+  DEFAULT_DAMAGE_TYPE,
+  DAMAGE_TYPE_LABEL,
+  DAMAGE_MODIFIER_LABEL,
+  parseDamageType,
+  damageTypeLabel,
+  resolveStrikeDamageType,
+  sameDamageType,
+  formatDamageTypeNote,
+} from './damageType';
+export type { TDamageType, TDamageModifierKind } from './damageType';
+export { applyDamageModifiers } from './applyDamageModifiers';
+export type { IApplyDamageModifiersResult } from './applyDamageModifiers';

@@ -8,10 +8,17 @@ import { rollDice } from '@/services/dice/roll/rollDice';
 import { isRangedWeapon, isFinesseWeapon } from '@/domain/item/validation/validateProperties';
 import { spendAction } from '@/services/encounter/actionEconomy';
 import { checkEncounterEnd } from '@/services/encounter/checkEncounterEnd';
+import { applyStrikeDamage, loadCombatTarget } from '@/services/encounter/helpers/applyStrikeDamage';
 import { resolveCritical } from '@/services/encounter/helpers/resolveCritical';
 import { rollAttackD20 } from '@/services/encounter/helpers/rollAttackD20';
-import { CombatFlag, combineRollModes, hasFlag } from '@/domain/combat';
-import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
+import {
+  CombatFlag,
+  combineRollModes,
+  formatDamageTypeNote,
+  hasFlag,
+  resolveStrikeDamageType,
+  UNARMED_DAMAGE_TYPE,
+} from '@/domain/combat';
 import type { ILlmTool, IToolContext } from './types';
 
 interface IResolvePlayerAttackArgs {
@@ -181,6 +188,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
     let normalRange: number | null = null;
     let damageFormula = `1${calculateAbilityMod(attacker.str) >= 0 ? '+' : ''}${calculateAbilityMod(attacker.str)}`;
     let attackBonus = calculateAbilityMod(attacker.str) + attacker.proficiencyBonus;
+    let damageType = UNARMED_DAMAGE_TYPE;
 
     if (parsed.weaponItemId) {
       const item = await itemRepository.getById(parsed.weaponItemId);
@@ -249,6 +257,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
           abilityMod = calculateAbilityMod(attacker.str);
         }
         damageFormula = `${damageProp.dice}${abilityMod >= 0 ? '+' : ''}${abilityMod}`;
+        damageType = resolveStrikeDamageType(damageProp.damageType);
       }
     }
 
@@ -295,9 +304,6 @@ export const resolvePlayerAttackTool: ILlmTool = {
     }
 
     let targetAc = 10;
-    let targetHp = 0;
-    let targetMaxHp = 0;
-    let targetKind: 'player' | 'npc' | 'monster' = 'monster';
     let targetIsUnconscious = false;
     let targetHidden = false;
 
@@ -305,10 +311,7 @@ export const resolvePlayerAttackTool: ILlmTool = {
       const player = await playerRepository.getById(targetParticipant.playerId);
       if (!player) throw new Error('Игрок не найден.');
       targetAc = player.ac;
-      targetHp = player.hpCurrent;
-      targetMaxHp = player.hpMax;
       targetName = player.name;
-      targetKind = 'player';
       targetIsUnconscious = player.conditions.includes('unconscious');
     } else if (targetParticipant.npcId) {
       const npc = await npcRepository.getById(targetParticipant.npcId);
@@ -316,18 +319,12 @@ export const resolvePlayerAttackTool: ILlmTool = {
       const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
       if (!statBlock) throw new Error('NPC статблок не найден.');
       targetAc = statBlock.ac;
-      targetHp = statBlock.hpCurrent;
-      targetMaxHp = statBlock.hpMax;
       targetName = npc.name;
-      targetKind = 'npc';
     } else if (targetParticipant.monsterInstanceId) {
       const monster = await monsterInstanceRepository.getById(targetParticipant.monsterInstanceId);
       if (!monster) throw new Error('Монстр-цель не найден.');
       targetAc = monster.ac;
-      targetHp = monster.hpCurrent;
-      targetMaxHp = monster.hpMax;
       targetName = monster.name;
-      targetKind = 'monster';
       targetHidden = hasFlag(monster.conditions, CombatFlag.hidden);
     } else {
       throw new Error('Участник боя не имеет привязанной сущности.');
@@ -383,88 +380,28 @@ export const resolvePlayerAttackTool: ILlmTool = {
         damageTotal = damageRolls.reduce((sum, val) => sum + val, 0) + bonus;
       }
 
-      const newHp = Math.max(0, targetHp - damageTotal);
-
-      if (targetKind === 'player' && targetParticipant.playerId) {
-        const targetPlayer = await playerRepository.getById(targetParticipant.playerId);
-        if (!targetPlayer) throw new Error('Игрок-цель не найден.');
-
-        const massiveDamageThreshold = targetMaxHp;
-        const excessDamage = targetHp > 0 ? Math.max(0, damageTotal - targetHp) : 0;
-        const instantDeath = newHp === 0 && excessDamage >= massiveDamageThreshold;
-
-        const syncedState = syncUnconscious(newHp, {
-          conditions: targetPlayer.conditions,
-          exhaustionLevel: targetPlayer.exhaustionLevel,
-        });
-
-        if (targetPlayer.isStable && newHp < targetPlayer.hpCurrent) {
-          await playerRepository.update(targetParticipant.playerId, {
-            hpCurrent: newHp,
-            dead: instantDeath,
-            conditions: syncedState.conditions,
-            isStable: false,
-          });
-        } else {
-          await playerRepository.update(targetParticipant.playerId, {
-            hpCurrent: newHp,
-            dead: instantDeath,
-            conditions: syncedState.conditions,
-          });
-        }
-
-        if (instantDeath) {
-          await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
-        }
-      } else if (targetKind === 'npc' && targetParticipant.npcId) {
-        const statBlock = await npcStatBlockRepository.getByNpcId(targetParticipant.npcId);
-        if (statBlock) {
-          await npcStatBlockRepository.upsert({
-            npcId: targetParticipant.npcId,
-            size: statBlock.size,
-            creatureType: statBlock.creatureType,
-            challengeRating: statBlock.challengeRating,
-            proficiencyBonus: statBlock.proficiencyBonus,
-            str: statBlock.str,
-            dex: statBlock.dex,
-            con: statBlock.con,
-            int: statBlock.int,
-            wis: statBlock.wis,
-            cha: statBlock.cha,
-            hpMax: statBlock.hpMax,
-            hpCurrent: newHp,
-            ac: statBlock.ac,
-            speed: statBlock.speed,
-            initiativeBonus: statBlock.initiativeBonus,
-            saveProf: statBlock.saveProf,
-            resistances: statBlock.resistances,
-            immunities: statBlock.immunities,
-            vulnerabilities: statBlock.vulnerabilities,
-            conditionImmunities: statBlock.conditionImmunities,
-            senses: statBlock.senses,
-            languages: statBlock.languages,
-            traits: statBlock.traits,
-            actions: statBlock.actions,
-            reactions: statBlock.reactions,
-            legendaryActions: statBlock.legendaryActions,
-          });
-        }
-      } else if (targetKind === 'monster' && targetParticipant.monsterInstanceId) {
-        await monsterInstanceRepository.update(targetParticipant.monsterInstanceId, { hpCurrent: newHp });
-      }
-
-      if (newHp <= 0 && !targetParticipant.isOut && (targetKind === 'npc' || targetKind === 'monster')) {
-        await encounterParticipantRepository.update(targetParticipant.id, { isOut: true });
-      }
+      const target = await loadCombatTarget(targetParticipant);
+      const applied = await applyStrikeDamage({
+        targetParticipant,
+        target,
+        damageTotal,
+        damageType,
+        isCritical,
+      });
 
       if (ctx.encounterId) {
         await checkEncounterEnd({ encounterId: ctx.encounterId });
 
         const critText = isCritical ? (isNatural20 ? ' [КРИТ nat20]' : ' [КРИТ автокрит]') : '';
+        const typeNote = formatDamageTypeNote(applied.damageType, applied.damageModifiers);
+        const appliedNote =
+          applied.damageModifiers.length > 0 && applied.damageTotal !== applied.damageRaw
+            ? ` → ${applied.damageTotal}`
+            : '';
         await encounterLogRepository.create({
           encounterId: ctx.encounterId,
           actorName: attacker.name,
-          message: `атакует ${targetName} (${weaponName}): попадание${critText}! Урон ${damageTotal}, HP цели ${targetHp} → ${newHp}${newHp <= 0 ? ' [ВЫБЫЛ]' : ''}`,
+          message: `атакует ${targetName} (${weaponName}): попадание${critText}! Урон ${applied.damageRaw}${typeNote}${appliedNote}, HP цели ${target.hp} → ${applied.newHp}${applied.targetIsOut ? ' [ВЫБЫЛ]' : ''}`,
           meta: {
             attackRoll: attackRoll.value,
             attackRolls: attackRoll.rolls,
@@ -478,9 +415,12 @@ export const resolvePlayerAttackTool: ILlmTool = {
             isNatural1: false,
             damageFormula,
             damageRolls,
-            damageTotal,
-            targetPreviousHp: targetHp,
-            targetNewHp: newHp,
+            damageRaw: applied.damageRaw,
+            damageTotal: applied.damageTotal,
+            damageType: applied.damageType,
+            damageModifiers: applied.damageModifiers,
+            targetPreviousHp: target.hp,
+            targetNewHp: applied.newHp,
           },
         });
       }
@@ -500,12 +440,15 @@ export const resolvePlayerAttackTool: ILlmTool = {
         damageFormula,
         damageRolls,
         damageBonus: parsedDamage.bonus,
-        damageTotal,
+        damageRaw: applied.damageRaw,
+        damageTotal: applied.damageTotal,
+        damageType: applied.damageType,
+        damageModifiers: applied.damageModifiers,
         targetName,
-        targetPreviousHp: targetHp,
-        targetNewHp: newHp,
-        targetMaxHp,
-        targetIsOut: newHp <= 0,
+        targetPreviousHp: target.hp,
+        targetNewHp: applied.newHp,
+        targetMaxHp: target.maxHp,
+        targetIsOut: applied.targetIsOut,
         weaponName,
       };
     }
