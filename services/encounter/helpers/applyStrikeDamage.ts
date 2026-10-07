@@ -2,7 +2,7 @@ import { encounterParticipantRepository } from '@/data/encounter';
 import { monsterInstanceRepository } from '@/data/monster';
 import { npcRepository, npcStatBlockRepository } from '@/data/npc';
 import { playerRepository } from '@/data/player';
-import { CombatFlag, hasFlag } from '@/domain/combat';
+import { applyDamageModifiers, CombatFlag, damageTypeLabel, hasFlag, type TDamageModifierKind } from '@/domain/combat';
 import type { IEncounterParticipant } from '@/domain/encounter';
 import { syncUnconscious } from '@/domain/player/helpers/syncUnconscious';
 
@@ -14,6 +14,19 @@ export interface ICombatTarget {
   maxHp: number;
   isUnconscious: boolean;
   hidden: boolean;
+  resistances: string[];
+  immunities: string[];
+  vulnerabilities: string[];
+}
+
+export interface IApplyStrikeDamageResult {
+  newHp: number;
+  deathSaveFailuresAdded: number;
+  targetIsOut: boolean;
+  damageRaw: number;
+  damageTotal: number;
+  damageType: string | null;
+  damageModifiers: TDamageModifierKind[];
 }
 
 export const loadCombatTarget = async (targetParticipant: IEncounterParticipant): Promise<ICombatTarget> => {
@@ -28,6 +41,9 @@ export const loadCombatTarget = async (targetParticipant: IEncounterParticipant)
       maxHp: player.hpMax,
       isUnconscious: player.conditions.includes('unconscious'),
       hidden: false,
+      resistances: [],
+      immunities: [],
+      vulnerabilities: [],
     };
   }
 
@@ -44,6 +60,9 @@ export const loadCombatTarget = async (targetParticipant: IEncounterParticipant)
       maxHp: statBlock.hpMax,
       isUnconscious: false,
       hidden: false,
+      resistances: statBlock.resistances,
+      immunities: statBlock.immunities,
+      vulnerabilities: statBlock.vulnerabilities,
     };
   }
 
@@ -58,6 +77,9 @@ export const loadCombatTarget = async (targetParticipant: IEncounterParticipant)
       maxHp: monster.hpMax,
       isUnconscious: false,
       hidden: hasFlag(monster.conditions, CombatFlag.hidden),
+      resistances: monster.resistances,
+      immunities: monster.immunities,
+      vulnerabilities: monster.vulnerabilities,
     };
   }
 
@@ -68,6 +90,7 @@ interface IApplyStrikeDamageParams {
   targetParticipant: IEncounterParticipant;
   target: ICombatTarget;
   damageTotal: number;
+  damageType?: string | null;
   isCritical: boolean;
 }
 
@@ -75,9 +98,18 @@ export const applyStrikeDamage = async ({
   targetParticipant,
   target,
   damageTotal,
+  damageType,
   isCritical,
-}: IApplyStrikeDamageParams): Promise<{ newHp: number; deathSaveFailuresAdded: number; targetIsOut: boolean }> => {
-  const newHp = Math.max(0, target.hp - damageTotal);
+}: IApplyStrikeDamageParams): Promise<IApplyStrikeDamageResult> => {
+  const modified = applyDamageModifiers({
+    amount: damageTotal,
+    damageType,
+    resistances: target.resistances,
+    immunities: target.immunities,
+    vulnerabilities: target.vulnerabilities,
+  });
+  const applied = modified.amount;
+  const newHp = Math.max(0, target.hp - applied);
   let deathSaveFailuresAdded = 0;
   let targetIsOut = newHp <= 0;
 
@@ -99,7 +131,7 @@ export const applyStrikeDamage = async ({
           targetIsOut = true;
         } else targetIsOut = false;
       } else {
-        const excessDamage = target.hp > 0 ? Math.max(0, damageTotal - target.hp) : 0;
+        const excessDamage = target.hp > 0 ? Math.max(0, applied - target.hp) : 0;
         const instantDeath = newHp === 0 && excessDamage >= player.hpMax;
         const syncedState = syncUnconscious(newHp, {
           conditions: player.conditions,
@@ -134,5 +166,13 @@ export const applyStrikeDamage = async ({
     targetIsOut = true;
   }
 
-  return { newHp, deathSaveFailuresAdded, targetIsOut };
+  return {
+    newHp,
+    deathSaveFailuresAdded,
+    targetIsOut,
+    damageRaw: modified.raw,
+    damageTotal: applied,
+    damageType: damageTypeLabel(damageType),
+    damageModifiers: modified.modifiers,
+  };
 };

@@ -73,7 +73,10 @@ const validateAction = (raw: unknown, where: string, field: string): IMonsterAct
     throw new Error(`${where}.${field}: attackBonus должен быть числом.`);
   if (obj.damage !== undefined && typeof obj.damage !== 'string')
     throw new Error(`${where}.${field}: damage должен быть строкой.`);
-  if (obj.damageType !== undefined && typeof obj.damageType !== 'string')
+  if (obj.damage !== undefined) {
+    if (typeof obj.damageType !== 'string' || !obj.damageType.trim())
+      throw new Error(`${where}.${field}: damageType обязателен, если указан damage.`);
+  } else if (obj.damageType !== undefined && typeof obj.damageType !== 'string')
     throw new Error(`${where}.${field}: damageType должен быть строкой.`);
 
   if (obj.attackType !== undefined) {

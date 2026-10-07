@@ -1,3 +1,4 @@
+import { damageTypeLabel } from '@/domain/combat';
 import type { ICombatAgentContext } from './loadCombatAgentContext';
 
 const calculateAbilityMod = (score: number): number => Math.floor((score - 10) / 2);
@@ -41,7 +42,7 @@ const formatWeapons = (ctx: ICombatAgentContext) => {
 
       if (damageProp && typeof damageProp === 'object' && 'dice' in damageProp && 'damageType' in damageProp) {
         const dice = damageProp.dice as string;
-        const damageType = damageProp.damageType as string;
+        const damageType = damageTypeLabel(damageProp.damageType as string) ?? (damageProp.damageType as string);
         parts.push(`урон: ${dice} ${damageType}`);
       }
 

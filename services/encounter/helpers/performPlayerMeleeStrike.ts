@@ -1,6 +1,6 @@
 import { itemRepository } from '@/data/item';
 import { monsterInstanceRepository } from '@/data/monster';
-import { CombatFlag, combineRollModes, hasFlag } from '@/domain/combat';
+import { CombatFlag, combineRollModes, hasFlag, resolveStrikeDamageType, UNARMED_DAMAGE_TYPE } from '@/domain/combat';
 import type { IEncounterParticipant } from '@/domain/encounter';
 import { isFinesseWeapon, isRangedWeapon } from '@/domain/item/validation/validateProperties';
 import { abilityMod, type IPlayer } from '@/domain/player';
@@ -47,6 +47,7 @@ export const performPlayerMeleeStrike = async ({
   let weaponName = 'Безоружная атака';
   let damageFormula = `1${abilityMod(attacker.str) >= 0 ? '+' : ''}${abilityMod(attacker.str)}`;
   let attackBonus = abilityMod(attacker.str) + attacker.proficiencyBonus;
+  let damageType = UNARMED_DAMAGE_TYPE;
 
   if (weapon) {
     weaponName = weapon.name;
@@ -55,8 +56,10 @@ export const performPlayerMeleeStrike = async ({
     const isFinesse = isFinesseWeapon(props);
     const ability = isFinesse ? Math.max(abilityMod(attacker.str), abilityMod(attacker.dex)) : abilityMod(attacker.str);
     attackBonus = ability + attacker.proficiencyBonus;
-    if (damageProp && damageProp.type === 'damage')
+    if (damageProp && damageProp.type === 'damage') {
       damageFormula = `${damageProp.dice}${ability >= 0 ? '+' : ''}${ability}`;
+      damageType = resolveStrikeDamageType(damageProp.damageType);
+    }
   }
 
   const targetMonster = targetParticipant.monsterInstanceId
@@ -129,6 +132,7 @@ export const performPlayerMeleeStrike = async ({
     targetParticipant,
     target,
     damageTotal,
+    damageType,
     isCritical: critResult.isCritical,
   });
 
@@ -139,7 +143,10 @@ export const performPlayerMeleeStrike = async ({
     damageFormula,
     damageRolls,
     damageBonus: bonus,
-    damageTotal,
+    damageRaw: applied.damageRaw,
+    damageTotal: applied.damageTotal,
+    damageType: applied.damageType,
+    damageModifiers: applied.damageModifiers,
     targetPreviousHp: target.hp,
     targetNewHp: applied.newHp,
     targetMaxHp: target.maxHp,
